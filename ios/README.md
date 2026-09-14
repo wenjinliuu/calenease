@@ -54,9 +54,11 @@ iOS 26 的 Liquid Glass 系统 API 也只出现在这一个文件里。
 | Workflow | 触发 | 作用 |
 | --- | --- | --- |
 | `iOS Build & Test` | push main / PR / 手动 | 生成工程、模拟器编译、跑单元测试 |
+| `App Icon Preview` | 图标文件 push / 手动 | Xcode 原生验证；第三方预览仅作非阻塞辅助 |
 | `TestFlight` | 手动 / `v*` tag | 归档、签名、上传 TestFlight |
 
 TestFlight 需要的 Secrets 见 [`../docs/ios-release.md`](../docs/ios-release.md)。
+图标源文件与验证规则见 [`../docs/app-icon-workflow.md`](../docs/app-icon-workflow.md)。
 
 ## 与网页版的关系
 
