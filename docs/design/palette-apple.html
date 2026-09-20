@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>班表配色台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --canvas:#F2F2F7; --card:#FFFFFF; --card2:#F2F2F7; --card3:#E5E5EA;
+  --sep:rgba(60,60,67,.20); --sep2:rgba(60,60,67,.10);
+  --label:#000000; --label2:rgba(60,60,67,.62); --label3:rgba(60,60,67,.32);
+  --tint:#007AFF; --tintSoft:#E6F0FF;
+  --r-s:10px; --r-m:16px; --r-l:22px;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Inter','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --canvas:#000000; --card:#1C1C1E; --card2:#2C2C2E; --card3:#3A3A3C;
+  --sep:rgba(84,84,88,.62); --sep2:rgba(84,84,88,.34);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.62); --label3:rgba(235,235,245,.32);
+  --tint:#0A84FF; --tintSoft:#0B2847;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --canvas:#000000; --card:#1C1C1E; --card2:#2C2C2E; --card3:#3A3A3C;
+  --sep:rgba(84,84,88,.62); --sep2:rgba(84,84,88,.34);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.62); --label3:rgba(235,235,245,.32);
+  --tint:#0A84FF; --tintSoft:#0B2847;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--label);font-family:var(--font);
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 80px}
+h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.022em}
+.tnum{font-variant-numeric:tabular-nums}
+
+header.top{padding-block:44px 22px}
+.kicker{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--tint);text-transform:uppercase;margin-bottom:10px}
+h1{font-size:clamp(32px,6.4vw,50px);font-weight:700;line-height:1.08;letter-spacing:-.032em}
+header.top p{color:var(--label2);max-width:60ch;margin:14px 0 0;font-size:16.5px}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--canvas);
+  border-bottom:.5px solid var(--sep);margin-inline:-16px;padding:9px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.seg{display:inline-flex;background:var(--card3);border-radius:9px;padding:2px;gap:2px}
+.seg button{font:inherit;font-size:13px;font-weight:500;border:none;background:transparent;color:var(--label);
+  padding:4px 11px;border-radius:7px;cursor:pointer;transition:.15s;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--tint);outline-offset:1px}
+.blab{font-size:11px;font-weight:600;color:var(--label3);text-transform:uppercase;letter-spacing:.05em}
+
+section{padding-block:40px 0;scroll-margin-top:72px}
+.shd{margin-bottom:20px}
+.shd .n{font-size:12px;font-weight:600;color:var(--label3);letter-spacing:.05em}
+.shd h2{font-size:27px;font-weight:700;margin-top:2px}
+.shd p{color:var(--label2);font-size:15px;max-width:68ch;margin:8px 0 0}
+h3.blk{font-size:19px;font-weight:650;margin:36px 0 2px}
+
+/* principle cards */
+.pcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:12px}
+.pc{background:var(--card);border-radius:var(--r-m);padding:16px 17px;display:flex;flex-direction:column;gap:8px}
+.pc .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px;font-weight:700;color:#fff}
+.pc h4{font-size:15.5px;font-weight:650}
+.pc p{margin:0;font-size:13.5px;color:var(--label2);line-height:1.55}
+.pc .num{font-variant-numeric:tabular-nums;font-weight:650;color:var(--label)}
+
+/* contrast proof strip */
+.proof{background:var(--card);border-radius:var(--r-m);overflow:hidden;margin-top:14px}
+.proof .row{display:grid;grid-template-columns:120px 1fr 1fr;gap:1px;align-items:stretch}
+.proof .row+.row{border-top:.5px solid var(--sep2)}
+.proof .hdr{font-size:11.5px;font-weight:600;color:var(--label2);padding:9px 14px;background:var(--card2)}
+.proof .name{padding:10px 14px;font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:8px}
+.proof .name i{width:12px;height:12px;border-radius:4px;flex:none}
+.proof .cell{padding:9px 14px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:5px;border-radius:9px}
+.proof .cell small{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;opacity:.75}
+.proof .bad{outline:1.5px dashed rgba(255,59,48,.6);outline-offset:-1.5px}
+
+/* palettes */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(218px,1fr));gap:12px}
+.pcard{background:var(--card);border-radius:var(--r-m);padding:15px;display:flex;flex-direction:column;gap:11px;cursor:pointer;
+  border:2px solid transparent;transition:.15s}
+.pcard.on{border-color:var(--tint)}
+.pcard:focus-visible{outline:2px solid var(--tint);outline-offset:2px}
+.pcard .t{display:flex;align-items:center;gap:7px}
+.pcard .t h4{font-size:16px;font-weight:650}
+.pcard .t span{font-size:11px;color:var(--label3);font-weight:500}
+.pcard p{margin:0;font-size:12.8px;color:var(--label2);line-height:1.5;flex:1}
+.swr{display:flex;gap:5px;flex-wrap:wrap}
+.sw{flex:1;min-width:30px;height:38px;border-radius:9px;display:grid;place-items:center;font-size:13px;font-weight:650}
+.tokr{font-size:11.5px;color:var(--label2);display:flex;justify-content:space-between;gap:8px;
+  font-variant-numeric:tabular-nums;border-top:.5px solid var(--sep2);padding-top:8px}
+
+/* variants */
+.vgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;align-items:start}
+.vc{background:var(--card);border-radius:var(--r-l);overflow:hidden}
+.vc .h{padding:15px 17px 13px}
+.vc .h .tag{font-size:11.5px;font-weight:650;color:var(--tint);letter-spacing:.03em}
+.vc .h h4{font-size:18px;font-weight:650;margin-top:1px}
+.vc .h p{margin:6px 0 0;font-size:13px;color:var(--label2);line-height:1.5}
+.vc .b{padding:4px 12px 14px}
+.vc .f{padding:12px 17px 15px;border-top:.5px solid var(--sep2);font-size:12.5px;color:var(--label2);display:grid;gap:6px}
+.vc .f div{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start}
+.vc .f b{font-size:10.5px;font-weight:650;padding:2px 6px;border-radius:5px;height:fit-content;letter-spacing:.02em}
+.vc .f .y b{background:rgba(52,199,89,.16);color:#1E8E3E}
+.vc .f .n b{background:var(--card2);color:var(--label2)}
+
+/* calendar */
+.cal{--g:4px}
+.cal .wk{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--g);margin-bottom:6px}
+.cal .wk span{text-align:center;font-size:10.5px;font-weight:600;color:var(--label3)}
+.cal .gd{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--g)}
+.cel{position:relative;border-radius:9px;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.cel.bl{visibility:hidden}
+.dn{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.sn{font-weight:650;letter-spacing:-.01em}
+.hr{font-size:9.5px;font-weight:500;font-variant-numeric:tabular-nums;opacity:.72}
+.hol{font-size:8.5px;font-weight:600;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td::after{content:"";position:absolute;inset:0;border-radius:9px;border:2px solid var(--tint);pointer-events:none}
+
+/* 24h bar */
+.h24{position:relative;border-radius:99px;overflow:hidden;flex:none;background:rgba(120,120,128,.22)}
+.h24 i{position:absolute;top:0;bottom:0;display:block;border-radius:99px}
+.h24 u{position:absolute;top:0;bottom:0;width:1px;background:rgba(128,128,128,.45)}
+.ticks{display:flex;gap:1px;flex:none}
+.ticks b{flex:1;border-radius:1px;background:rgba(120,120,128,.22)}
+
+/* variant geometry */
+.v1 .cel{background:var(--card2);padding:6px 5px;justify-content:space-between;aspect-ratio:1/1.24}
+.v1 .sn{font-size:14px}
+.v1 .h24{height:5px;margin-top:4px}
+.v2 .cel{padding:6px 5px;justify-content:space-between;aspect-ratio:1/1.24}
+.v2 .sn{font-size:14px}
+.v2 .h24{height:5px;margin-top:4px;background:rgba(60,60,67,.16)}
+.v3 .cel{background:var(--card2);padding:9px 5px 6px;justify-content:space-between;aspect-ratio:1/1.24}
+.v3 .h24{position:absolute;top:0;left:0;right:0;height:4px;border-radius:0;margin:0}
+.v3 .sn{font-size:14px}
+.v4 .cel{background:var(--card2);padding:6px 4px;justify-content:space-between;aspect-ratio:1/1.2;gap:4px}
+.v4 .h24{height:17px;border-radius:6px}
+.v4 .h24 .lb{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:700;z-index:2;letter-spacing:.02em}
+.v4 .h24 i{border-radius:5px}
+.v5 .cel{background:var(--card2);padding:6px 4px 5px;align-items:center;gap:2px;aspect-ratio:1/1.24}
+.v5 .arc{width:100%;max-width:36px}
+.v6 .cel{background:var(--card2);padding:7px 5px;justify-content:space-between;aspect-ratio:1/1.08}
+.v6 .h24{height:6px;margin-top:5px}
+.v7 .cel{background:var(--card2);padding:6px 5px;justify-content:space-between;aspect-ratio:1/1.24}
+.v7 .sn{font-size:14px}
+.v7 .ticks{height:7px;margin-top:4px}
+.compact .cel{aspect-ratio:1/1.02!important}
+.compact .sn{font-size:12.5px!important}
+.compact .hr{display:none}
+
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
+.legend .c{display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:8px;font-size:11.5px;font-weight:600}
+.legend .c em{font-style:normal;font-size:9.5px;font-weight:500;opacity:.7;font-variant-numeric:tabular-nums}
+
+/* thumbnails */
+.thumbs{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px}
+.th{background:var(--card);border-radius:var(--r-m);padding:12px;display:flex;flex-direction:column;gap:9px}
+.th .nm{font-size:13px;font-weight:650;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.th .nm em{font-style:normal;font-size:10.5px;color:var(--label3);font-weight:500}
+.th .cal{--g:2px}
+.th .cel{aspect-ratio:1/1.1;border-radius:4px;padding:2px}
+.th .dn{font-size:7px}
+.th .h24{height:3px;margin-top:auto}
+.th .wk{display:none}
+
+/* spec table */
+.spec{background:var(--card);border-radius:var(--r-m);overflow:hidden;margin-top:12px}
+.spec .r{display:grid;grid-template-columns:150px 1fr;gap:14px;padding:11px 16px;font-size:13.5px}
+.spec .r+.r{border-top:.5px solid var(--sep2)}
+.spec .r .k{font-weight:600}
+.spec .r .v{color:var(--label2)}
+.spec .r .v code{font-size:12.5px;font-variant-numeric:tabular-nums;background:var(--card2);padding:1px 5px;border-radius:5px;color:var(--label)}
+
+.reco{background:var(--card);border-radius:var(--r-l);padding:20px;display:grid;gap:12px}
+.reco h3{font-size:19px;font-weight:700}
+.reco ol{margin:0;padding-left:20px;display:grid;gap:8px;font-size:14.2px;color:var(--label2)}
+.reco ol b{color:var(--label)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<header class="top">
+  <div class="kicker">Shift Ledger · 方案 C 深化</div>
+  <h1>班表配色台</h1>
+  <p>只围绕 24 小时条这一种格子展开。上面切配色，下面七种排版同步换色，可以任意组合着挑。配色全部建立在苹果系统色上，并且每一对「底色 + 文字」都算过对比度。</p>
+</header>
+
+<div class="bar">
+  <span class="blab">配色</span>
+  <div class="seg" id="palSeg"></div>
+  <span class="blab">密度</span>
+  <div class="seg" id="denSeg">
+    <button data-den="std" aria-pressed="true">标准</button>
+    <button data-den="compact" aria-pressed="false">紧凑</button>
+  </div>
+  <span class="blab">工时</span>
+  <div class="seg" id="hrSeg">
+    <button data-hr="1" aria-pressed="true">显示</button>
+    <button data-hr="0" aria-pressed="false">隐藏</button>
+  </div>
+  <span class="blab">外观</span>
+  <div class="seg" id="thSeg">
+    <button data-th="light" aria-pressed="true">浅色</button>
+    <button data-th="dark" aria-pressed="false">深色</button>
+  </div>
+</div>
+
+<section id="why">
+  <div class="shd"><div class="n">01</div><h2>苹果的多彩，是怎么做到不塌的</h2>
+  <p>关键不是"用鲜艳的颜色"，而是<b>鲜艳的颜色永远不直接当文字的底</b>。苹果自己的系统色刷上白字全都不够看——下面是实算值。</p></div>
+  <div class="pcards" id="pcards"></div>
+
+  <h3 class="blk">实证：同一个系统色的三种用法</h3>
+  <p style="color:var(--label2);font-size:14px;margin:6px 0 0;max-width:66ch">左边是"实心色 + 白字"，右边是苹果真正在用的"淡染底 + 同色深阶文字"。数字是 WCAG 对比度，正文门槛 4.5:1。</p>
+  <div class="proof" id="proof"></div>
+</section>
+
+<section id="pal">
+  <div class="shd"><div class="n">02</div><h2>五套配色</h2>
+  <p>点卡片切换，下面全部演示实时重绘。班次的色相顺序是<b>橙 → 靛 → 薄荷 → 粉 → 紫 → 绿</b>，这个顺序过了色盲分离度校验（相邻色对 OKLab ΔE 最差 14.4，门槛 8；普通视觉最差 24.7，门槛 15）。苹果系统色本身没做过这项校验，换个顺序就会挂。</p></div>
+  <div class="pgrid" id="pgrid"></div>
+</section>
+
+<section id="var">
+  <div class="shd"><div class="n">03</div><h2>七种排版</h2>
+  <p>都保留 24 小时条这个核心。2026 年 9 月，4白2休4夜2休，今天 20 号（夜班），25 号中秋。</p></div>
+  <div class="vgrid" id="vgrid"></div>
+</section>
+
+<section id="cmp">
+  <div class="shd"><div class="n">04</div><h2>五套配色并排看</h2>
+  <p>同一种排版、同一个月，缩到实际在手机上一眼扫过去的大小。挑配色看这里最准。</p></div>
+  <div class="thumbs" id="thumbs"></div>
+</section>
+
+<section id="spec">
+  <div class="shd"><div class="n">05</div><h2>24 小时条的画法</h2>
+  <p>这条轴是整个方案的核心，规格定死才不会每个班次画得不一样。</p></div>
+  <div class="spec" id="specTbl"></div>
+</section>
+
+<section id="reco">
+  <div class="shd"><div class="n">06</div><h2>推荐组合</h2></div>
+  <div class="reco">
+    <h3>系统色 + 排版 二（淡染卡）</h3>
+    <ol>
+      <li><b>配色选「系统色」</b>：直接用 iOS 的 systemOrange / systemIndigo / systemMint / systemPink / systemPurple / systemGreen。用户在别的 App 里已经认得这几个色，不需要重新学；而且以后换成 <span style="font-variant-numeric:tabular-nums"><code>Color.orange</code></span> 这种语义色，深浅色两套是系统自动给的。</li>
+      <li><b>排版选二（淡染卡）</b>：格子底是班次色 13% 淡染，简称用同色深阶，24 小时条用满色。这是三层里唯一「整格都带色」的，最接近你说的多彩，而且对比度全部 ≥ 4.6:1。</li>
+      <li><b>休息和请假不占色位</b>：用 systemGray 家族 + 空心条。六个色位全留给真正要区分的工作班次。</li>
+      <li><b>渐变只允许出现在 24 小时条上，而且必须同色相内渐变</b>（橙深→橙浅，不是橙→粉）。现在代码里 <code>gradientEnd</code> 把蓝收到紫、黄收到橙，尾色正好是别的班次的身份色，这个要删掉。</li>
+      <li><b>底色换成冷灰</b>：<code>#F2F2F7</code> 分组底 + 纯白卡，深色模式是纯黑 <code>#000</code> + <code>#1C1C1E</code> 卡。直接用 <code>systemGroupedBackground</code> 那一族，不要自己调暖灰。</li>
+      <li><b>字体不用管</b>：iOS 上就是 SF Pro，数字全部打开 <code>monospacedDigit()</code>，格子里的日期和工时才不会跳。</li>
+    </ol>
+  </div>
+</section>
+</div>
+
+<script>
+const SHIFT={
+ day  :{n:'白班',s:'白',st:'08:00',en:'20:00',h:12},
+ night:{n:'夜班',s:'夜',st:'20:00',en:'08:00',h:12},
+ morn :{n:'早班',s:'早',st:'08:00',en:'16:00',h:8},
+ mid  :{n:'中班',s:'中',st:'16:00',en:'00:00',h:8},
+ late :{n:'晚班',s:'晚',st:'00:00',en:'08:00',h:8},
+ other:{n:'门诊',s:'诊',st:'09:00',en:'17:00',h:8},
+ rest :{n:'休息',s:'休',h:0,rest:true},
+ leave:{n:'请假',s:'假',h:0,rest:true},
+};
+const ROSTER=[];{const c=['day','day','day','day','rest','rest','night','night','night','night','rest','rest'];
+ for(let d=1;d<=30;d++)ROSTER[d]=c[(d-1)%12];}
+const TODAY=20,LEAD=1,DAYS=30,HOLI={25:'中秋'};
+
+/* ---------- 配色 ---------- */
+const PAL={
+ sys:{name:'系统色',en:'System',
+  d:'原封不动的 iOS 系统色。淡染底 + 同色深阶文字，是苹果日历、提醒事项、备忘录在用的那一套。最稳，也最"一看就是 iOS"。',
+  L:{day:['#FF9500','#FFF1DE','#9E5C00'],night:['#5856D6','#E9E9FA','#4B49C4'],morn:['#00C7BE','#DEF8F7','#007B76'],
+     mid:['#FF2D55','#FFE4E9','#C72342'],late:['#AF52DE','#F5E9FB','#9345BA'],other:['#34C759','#E5F8E9','#207B37'],
+     rest:['#C7C7CC','#F2F2F7','#6C6C70'],leave:['#A2845E','#F3EFEA','#7E6749']},
+  D:{day:['#FF9F0A','#573E19','#FF9F0A'],night:['#5E5CE6','#2D2D52','#9290EE'],morn:['#63E6E2','#2E5151','#63E6E2'],
+     mid:['#FF375F','#57232F','#FF6F8C'],late:['#BF5AF2','#462C55','#CE82F5'],other:['#30D158','#214B2D','#30D158'],
+     rest:['#48484A','#2C2C2E','#98989D'],leave:['#AC8E68','#413A31','#BDA586']},
+  tok:['systemOrange / Indigo / Mint','#F2F2F7 → #000']},
+
+ soft:{name:'柔彩',en:'Soft',
+  d:'同样的色相，饱和度收一档、淡染提到 20%。整页更软更亮，像 Journal 和健康 App 的卡片。多彩但不刺眼，适合长时间盯着看。',
+  L:{day:['#F59300','#FFEBCC','#8F5300'],night:['#6B69DB','#E6E5FA','#4B49C4'],morn:['#14B8B0','#D4F5F3','#006E6A'],
+     mid:['#F0466A','#FFDCE3','#B52340'],late:['#B268E0','#F2E4FA','#8A3FB0'],other:['#46C066','#DEF5E4','#1E7333'],
+     rest:['#D1D1D6','#F7F7FA','#6C6C70'],leave:['#B09272','#F5F0EA','#7E6749']},
+  D:{day:['#FFB340','#4A3617','#FFC470'],night:['#7D7BEB','#2B2B4C','#A5A3F2'],morn:['#7FEBE7','#274848','#9CF0ED'],
+     mid:['#FF6482','#4E242D','#FF94A8'],late:['#CE82F5','#412A4F','#DCA5F8'],other:['#5DDB7C','#1F4429','#86E89C'],
+     rest:['#48484A','#2C2C2E','#A0A0A6'],leave:['#AC8E68','#3D362E','#C4B096']},
+  tok:['饱和度 −12%','淡染 20%']},
+
+ solid:{name:'实心',en:'Solid',
+  d:'格子整块上满色，不留白。文字按底色明度自动选黑或白——橙、薄荷、绿上是黑字（9:1 以上），只有靛蓝能扛白字。最浓、最有冲击力，像小组件。',
+  L:{day:['#FF9500','#FF9500','#231400'],night:['#5856D6','#5856D6','#FFFFFF'],morn:['#00C7BE','#00C7BE','#00201F'],
+     mid:['#FF2D55','#FF2D55','#FFFFFF'],late:['#AF52DE','#AF52DE','#FFFFFF'],other:['#34C759','#34C759','#062810'],
+     rest:['#E5E5EA','#E5E5EA','#6C6C70'],leave:['#A2845E','#A2845E','#FFFFFF']},
+  D:{day:['#FF9F0A','#FF9F0A','#231400'],night:['#5E5CE6','#5E5CE6','#FFFFFF'],morn:['#63E6E2','#63E6E2','#00201F'],
+     mid:['#FF375F','#FF375F','#FFFFFF'],late:['#BF5AF2','#BF5AF2','#1A0022'],other:['#30D158','#30D158','#062810'],
+     rest:['#2C2C2E','#2C2C2E','#98989D'],leave:['#AC8E68','#AC8E68','#1C1408']},
+  tok:['白字只给 Indigo','其余一律黑字']},
+
+ mono:{name:'单蓝',en:'Mono',
+  d:'只有一个 systemBlue。班次靠明度阶和 24 小时条的位置区分，色相完全不参与。极简到底，整页最安静——但班次种类一多就顶不住。',
+  L:{day:['#007AFF','#E1EEFF','#0058B8'],night:['#0A2E5C','#DDE4EC','#0A2E5C'],morn:['#5AC8FA','#E3F6FE','#0D6A8C'],
+     mid:['#0040A0','#DFE6F5','#0040A0'],late:['#1B3A6B','#E0E4EC','#1B3A6B'],other:['#4A90D9','#E6F0FA','#26618F'],
+     rest:['#C7C7CC','#F2F2F7','#6C6C70'],leave:['#AEAEB2','#F0F0F3','#6C6C70']},
+  D:{day:['#0A84FF','#0F2C4D','#5AB0FF'],night:['#8FC5FF','#233A52','#A9D3FF'],morn:['#64D2FF','#17414F','#64D2FF'],
+     mid:['#4A9EFF','#152C47','#7FBBFF'],late:['#B3D9FF','#2A3C4F','#C7E3FF'],other:['#2E6FB8','#132538','#6EA8DE'],
+     rest:['#48484A','#2C2C2E','#98989D'],leave:['#3A3A3C','#262628','#8E8E93']},
+  tok:['单色相','明度分班次']},
+
+ grad:{name:'渐变',en:'Gradient',
+  d:'白卡 + 24 小时条走同色相渐变，像体能训练环和音乐 App。渐变只出现在这一条上，绝不压在文字底下，也绝不跨色相——同色相内渐变才不会撞上别的班次。',
+  L:{day:['#FF9500','#FFF4E5','#9E5C00','#FFCC00'],night:['#5856D6','#EAEAFB','#4B49C4','#8E8CEA'],
+     morn:['#00C7BE','#E0F9F8','#007B76','#5AC8FA'],mid:['#FF2D55','#FFE8EC','#C72342','#FF6482'],
+     late:['#AF52DE','#F6EBFC','#9345BA','#D48BF0'],other:['#34C759','#E8F9EC','#207B37','#6EE08B'],
+     rest:['#C7C7CC','#F5F5F8','#6C6C70','#E5E5EA'],leave:['#A2845E','#F4F1EC','#7E6749','#C4AC8E']},
+  D:{day:['#FF9F0A','#241A09','#FFB340','#FFD60A'],night:['#5E5CE6','#1B1B33','#9290EE','#A5A3F2'],
+     morn:['#63E6E2','#16302F','#63E6E2','#64D2FF'],mid:['#FF375F','#33161D','#FF6F8C','#FF94A8'],
+     late:['#BF5AF2','#2A1B33','#CE82F5','#DCA5F8'],other:['#30D158','#122A1A','#30D158','#6EE08B'],
+     rest:['#48484A','#202022','#98989D','#5A5A5C'],leave:['#AC8E68','#2A251E','#BDA586','#C4B096']},
+  tok:['渐变限 24h 条','同色相内']},
+};
+const ORDER=['day','night','morn','mid','late','other','rest','leave'];
+let P='sys', DEN='std', HRS=true;
+const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');
+  return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+const S=()=>PAL[P][isDark()?'D':'L'];
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+
+/* ---------- 24h 几何 ---------- */
+function segs(sh){
+  if(sh.rest)return[];
+  const m=t=>{const[a,b]=t.split(':').map(Number);return a*60+b};
+  let s=m(sh.st),e=m(sh.en); if(e===0)e=1440;
+  if(e<=s)return[[s/14.4,(1440-s)/14.4],[0,e/14.4]];
+  return[[s/14.4,(e-s)/14.4]];
+}
+function hourSet(sh){
+  const on=new Array(24).fill(false); if(sh.rest)return on;
+  const m=t=>Number(t.split(':')[0]); let s=m(sh.st),e=m(sh.en); if(e===0)e=24;
+  if(e<=s){for(let i=s;i<24;i++)on[i]=true;for(let i=0;i<e;i++)on[i]=true;}
+  else for(let i=s;i<e;i++)on[i]=true;
+  return on;
+}
+function bar24(k,opt={}){
+  const c=S()[k],sh=SHIFT[k];
+  const b=el('div','h24');
+  if(opt.h)b.style.height=opt.h;
+  [6,12,18].forEach(hh=>{const u=el('u');u.style.left=(hh/24*100)+'%';b.appendChild(u)});
+  segs(sh).forEach(([x,w])=>{const i=el('i');i.style.left=x+'%';i.style.width=w+'%';
+    i.style.background=(P==='grad'&&c[3])?('linear-gradient(90deg,'+c[0]+','+c[3]+')'):c[0];
+    b.appendChild(i)});
+  if(sh.rest){b.style.background='transparent';b.style.boxShadow='inset 0 0 0 1px var(--sep2)';}
+  return b;
+}
+function ticks24(k){
+  const c=S()[k],on=hourSet(SHIFT[k]),t=el('div','ticks');
+  for(let i=0;i<24;i++){const b=el('b');
+    if(on[i])b.style.background=c[0];
+    else if(i%6===0)b.style.background='var(--label3)';
+    t.appendChild(b)}
+  return t;
+}
+function arc24(k){
+  const c=S()[k],sh=SHIFT[k],NS='http://www.w3.org/2000/svg';
+  const s=document.createElementNS(NS,'svg');s.setAttribute('viewBox','0 0 40 40');s.setAttribute('class','arc');
+  const R=15.5,C=2*Math.PI*R;
+  const mk=(col,dash,off,w)=>{const c2=document.createElementNS(NS,'circle');
+    c2.setAttribute('cx',20);c2.setAttribute('cy',20);c2.setAttribute('r',R);c2.setAttribute('fill','none');
+    c2.setAttribute('stroke',col);c2.setAttribute('stroke-width',w);c2.setAttribute('stroke-linecap','round');
+    if(dash!=null){c2.setAttribute('stroke-dasharray',dash+' '+C);c2.setAttribute('stroke-dashoffset',off)}
+    c2.setAttribute('transform','rotate(-90 20 20)');return c2};
+  s.appendChild(mk('rgba(120,120,128,.22)',null,null,5.5));
+  segs(sh).forEach(([x,w])=>s.appendChild(mk(c[0],C*w/100,-C*x/100,5.5)));
+  const t=document.createElementNS(NS,'text');t.setAttribute('x',20);t.setAttribute('y',20);
+  t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','central');
+  t.setAttribute('font-size','13');t.setAttribute('font-weight','650');t.setAttribute('fill',sh.rest?'var(--label3)':c[2]);
+  t.setAttribute('font-family','var(--font)');t.textContent=sh.s;s.appendChild(t);
+  return s;
+}
+
+/* ---------- 格子 ---------- */
+function cell(v,day,opt={}){
+  const k=ROSTER[day],sh=SHIFT[k],c=S()[k];
+  const holi=HOLI[day]||'', today=day===TODAY, done=!sh.rest&&day<TODAY;
+  const e=el('div','cel'+(today?' td':''));
+  const num=el('span','dn',day);
+  const name=()=>{const n=el('span','sn',sh.s);n.style.color=sh.rest?'var(--label3)':c[2];return n};
+  const hrs=()=>{if(!HRS||!sh.h)return null;const x=el('span','hr',sh.h+'h');
+    x.style.color=v==='v2'||v==='v4x'?c[2]:'var(--label2)';return x};
+  const hol=()=>{const x=el('span','hol',holi);x.style.color=v==='v2'?c[2]:'var(--tint)';x.style.opacity=.9;return x};
+
+  if(v==='v2'){ e.style.background=sh.rest?'var(--card2)':c[1]; num.style.color=sh.rest?'var(--label2)':c[2]; }
+  else num.style.color='var(--label)';
+  if(v==='solidLike'){}
+
+  if(v==='v5'){
+    e.appendChild(num); e.appendChild(arc24(k));
+    if(holi){const h=hol();h.style.marginTop='1px';e.appendChild(h)}
+    else if(HRS&&sh.h){const x=hrs();x.style.marginTop='1px';e.appendChild(x)}
+    return e;
+  }
+  if(v==='v6'){
+    const top=el('div');top.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:3px';
+    top.appendChild(num);
+    if(holi)top.appendChild(hol());
+    else if(done){const d=el('span');d.style.cssText='width:5px;height:5px;border-radius:50%;background:'+c[0];top.appendChild(d)}
+    e.appendChild(top); e.appendChild(bar24(k)); return e;
+  }
+  if(v==='v4'){
+    const top=el('div');top.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:3px';
+    top.appendChild(num);
+    if(HRS&&sh.h){const x=el('span','hr',sh.h+'h');x.style.color='var(--label2)';top.appendChild(x)}
+    e.appendChild(top);
+    if(holi){const h=hol();h.style.textAlign='center';e.appendChild(h)}
+    const b=bar24(k);
+    if(!sh.rest)b.style.background=c[1];
+    const lb=el('span','lb',sh.s);
+    lb.style.color=sh.rest?'var(--label3)':(c[2]);
+    lb.style.mixBlendMode='normal';
+    b.appendChild(lb);
+    e.appendChild(b); return e;
+  }
+  if(v==='v7'){
+    const top=el('div');top.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:3px';
+    top.appendChild(num); if(holi)top.appendChild(hol());
+    e.appendChild(top);
+    const mid=el('div');mid.style.cssText='display:flex;justify-content:space-between;align-items:baseline;gap:3px';
+    mid.appendChild(name()); const x=hrs(); if(x)mid.appendChild(x);
+    e.appendChild(mid); e.appendChild(ticks24(k)); return e;
+  }
+  /* v1 / v2 / v3 共用 */
+  const top=el('div');top.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:3px';
+  top.appendChild(num);
+  if(done){const d=el('span');d.style.cssText='width:5px;height:5px;border-radius:50%;flex:none;background:'+
+    (v==='v2'?c[2]:c[0]);d.style.opacity=v==='v2'?.5:1;top.appendChild(d)}
+  e.appendChild(top);
+  const mid=el('div');mid.style.cssText='display:flex;justify-content:space-between;align-items:baseline;gap:3px';
+  mid.appendChild(name()); const x=hrs(); if(x)mid.appendChild(x);
+  e.appendChild(mid);
+  if(holi){const h=hol();h.style.marginTop='1px';e.appendChild(h)}
+  e.appendChild(bar24(k));
+  return e;
+}
+function month(v,opt={}){
+  const c=el('div','cal '+v+(DEN==='compact'&&!opt.thumb?' compact':''));
+  if(!opt.thumb){const w=el('div','wk');['一','二','三','四','五','六','日'].forEach(d=>w.appendChild(el('span',null,d)));c.appendChild(w)}
+  const g=el('div','gd');
+  for(let i=0;i<LEAD;i++)g.appendChild(el('div','cel bl'));
+  for(let d=1;d<=DAYS;d++)g.appendChild(cell(v,d,opt));
+  c.appendChild(g); return c;
+}
+function legend(){
+  const s=S(),l=el('div','legend');
+  ORDER.filter(k=>k!=='leave').forEach(k=>{const sh=SHIFT[k],c=s[k];const x=el('div','c');
+    x.style.background=c[1];x.style.color=c[2];
+    x.innerHTML='<span style="width:8px;height:8px;border-radius:3px;background:'+c[0]+';display:inline-block"></span>'+
+      sh.n+(sh.st?'<em>'+sh.st.slice(0,2)+'–'+sh.en.slice(0,2)+'</em>':'');
+    l.appendChild(x)});
+  return l;
+}
+
+/* ---------- 01 原则 ---------- */
+const PRIN=[
+ ['#FF3B30','①','系统色刷白字，全军覆没',
+  '实算：systemYellow 上的白字 <span class="num">1.51:1</span>、systemOrange <span class="num">2.20:1</span>、systemMint <span class="num">2.12:1</span>、systemGreen <span class="num">2.22:1</span>。正文门槛是 4.5:1，连界面元素的 3:1 都过不了。十二个系统色里只有 systemIndigo（5.65）能扛白字。'],
+ ['#34C759','②','正确用法：淡染底 + 同色深阶字',
+  '把系统色按 13% 覆在白底上得到淡染填充，再把同一个色相压暗到刚好 <span class="num">4.6:1</span> 当文字色。苹果日历的事件块、提醒事项的清单色、备忘录的标签，用的都是这一招。颜色照样鲜艳，字照样看得清。'],
+ ['#FF9500','③','非要上实心块，就用黑字',
+  '橙、黄、薄荷、绿、青这些亮色配黑字都在 <span class="num">8:1</span> 以上——systemOrange 上黑字 9.55:1，systemYellow 13.89:1。苹果小组件和体能训练环就是这么干的。白字只留给 Indigo、Purple 这两个暗色相。'],
+ ['#007AFF','④','底色必须是冷灰，不能是暖奶油',
+  '<span class="num">#F2F2F7</span> 分组底 + 纯白卡，深色模式纯黑 <span class="num">#000</span> + <span class="num">#1C1C1E</span>。一旦底色偏暖偏黄，鲜艳的系统色压上去立刻显旧。直接用 <code style="font-size:12px">systemGroupedBackground</code> 那一族，别自己调。'],
+ ['#5856D6','⑤','24 小时条是第二编码',
+  '这条轴用<b>位置</b>表示几点上班，不是用颜色。有了它，颜色就不必独自承担区分职责——所以才敢放心用苹果那套没做过色盲校验的系统色。这也是方案 C 比其它几种更经得起推敲的原因。'],
+ ['#AF52DE','⑥','渐变只准出现在色条上',
+  '而且必须同色相内渐变（橙深→橙浅）。现在代码里 <code style="font-size:12px">gradientEnd</code> 把蓝收到紫、黄收到橙——紫是晚班色、橙是早班色，渐变尾色正好撞上别的班次的身份。'],
+];
+{const b=document.getElementById('pcards');
+ PRIN.forEach(([col,ic,t,d])=>{const c=el('div','pc');
+   const i=el('div','ic',ic);i.style.background=col;c.appendChild(i);
+   c.appendChild(el('h4',null,t));c.appendChild(el('p',null,d));b.appendChild(c)})}
+
+const PROOF=[['systemYellow','#FFCC00','#FFF8DE','#856A00',1.51,4.86],
+ ['systemOrange','#FF9500','#FFF1DE','#9E5C00',2.20,4.74],
+ ['systemMint','#00C7BE','#DEF8F7','#007B76',2.12,4.61],
+ ['systemGreen','#34C759','#E5F8E9','#207B37',2.22,4.79],
+ ['systemPink','#FF2D55','#FFE4E9','#C72342',3.65,4.68],
+ ['systemIndigo','#5856D6','#E9E9FA','#4B49C4',5.65,4.71]];
+{const b=document.getElementById('proof');
+ const h=el('div','row');
+ h.appendChild(el('div','hdr','系统色'));h.appendChild(el('div','hdr','实心 + 白字'));h.appendChild(el('div','hdr','淡染 + 深阶字'));
+ b.appendChild(h);
+ PROOF.forEach(([n,bar,fill,ink,c1,c2])=>{const r=el('div','row');
+   const nm=el('div','name');const i=el('i');i.style.background=bar;nm.appendChild(i);
+   nm.appendChild(document.createTextNode(n));r.appendChild(nm);
+   const a=el('div','cell'+(c1<4.5?' bad':''));a.style.background=bar;a.style.color='#fff';
+   a.innerHTML='白班 12h<small>'+c1.toFixed(2)+':1</small>';r.appendChild(a);
+   const c=el('div','cell');c.style.background=fill;c.style.color=ink;
+   c.innerHTML='白班 12h<small>'+c2.toFixed(2)+':1</small>';r.appendChild(c);
+   b.appendChild(r)})}
+
+/* ---------- 02 配色卡 ---------- */
+function renderPal(){
+  const g=document.getElementById('pgrid');g.innerHTML='';
+  Object.entries(PAL).forEach(([k,p])=>{
+    const s=p[isDark()?'D':'L'],c=el('div','pcard'+(k===P?' on':''));
+    c.tabIndex=0;c.setAttribute('role','button');
+    const t=el('div','t');t.appendChild(el('h4',null,p.name));t.appendChild(el('span',null,p.en));c.appendChild(t);
+    c.appendChild(el('p',null,p.d));
+    const r=el('div','swr');
+    ['day','night','morn','mid','late','other'].forEach(kk=>{const w=el('div','sw',SHIFT[kk].s);
+      w.style.background=s[kk][1];w.style.color=s[kk][2];
+      w.style.boxShadow='inset 0 -3px 0 '+s[kk][0];r.appendChild(w)});
+    c.appendChild(r);
+    const tk=el('div','tokr');tk.innerHTML='<span>'+p.tok[0]+'</span><span>'+p.tok[1]+'</span>';c.appendChild(tk);
+    const pick=()=>{P=k;render()};
+    c.onclick=pick;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}};
+    g.appendChild(c)});
+  const seg=document.getElementById('palSeg');seg.innerHTML='';
+  Object.entries(PAL).forEach(([k,p])=>{const b=el('button',null,p.name);
+    b.setAttribute('aria-pressed',k===P);b.onclick=()=>{P=k;render()};seg.appendChild(b)});
+}
+
+/* ---------- 03 排版 ---------- */
+const VARS=[
+ ['v1','排版 一','净白卡','白卡 + 底部细色条。颜色只占 5px，整页极其安静。最保守也最不会出错的一版。',
+  '大面积留白，深色模式下卡片边界干净','一米外扫视时班次识别主要靠那行简称，色条太细帮不上忙'],
+ ['v2','排版 二 · 推荐','淡染卡','整格底色是班次色 13% 淡染，简称用同色深阶，色条用满色。三层都带色，最"多彩"，而且对比度全部达标。',
+  '整月一眼看出轮转节奏；颜色参与到底但不牺牲可读性','休息日必须彻底退成白卡，否则整页没有呼吸点'],
+ ['v3','排版 三','顶边色条','色条移到格子上沿，满宽贴边，像给每天盖了一道色。格内回到纯白，信息层次最干净。',
+  '色条位置统一在顶部，跨月扫视时基线一致','顶边的条和格子圆角有冲突，实现时要裁切'],
+ ['v4','排版 四','粗条嵌字','色条加粗到 17px，简称直接坐进条里。色块成了格子的主角，最图形化。',
+  '最强的视觉冲击；简称和时段条合并，省一行','条内文字受限于条宽，简称超过两个字会挤'],
+ ['v5','排版 五','时间环','把 24 小时展成一个圆环，班次时段是环上的一段弧，简称在圆心。00:00 在正上方，顺时针走。',
+  '跨午夜的班在环上是连续的一段，不用断成两截；很苹果','圆环比直条占地方，信息密度低于直条'],
+ ['v6','排版 六','无字纯条','格子里只有日期和色条，简称完全去掉。颜色 + 时段位置就是身份，靠图例学一次。',
+  '格子最矮，一屏能放下两个月；最极简','必须依赖图例；新用户前几天会不认得'],
+ ['v7','排版 七','刻度条','把色条拆成 24 个独立小格，一格一小时。填色的格子就是上班的钟点，精确到小时。',
+  '能精确读出几点到几点，不用看时间文字；6/12/18 点有灰刻度','24 个格子在窄屏上每格不到 2px，需要下限保护'],
+];
+function renderVars(){
+  const g=document.getElementById('vgrid');g.innerHTML='';
+  VARS.forEach(([v,tag,name,desc,pro,con])=>{
+    const c=el('div','vc');
+    const h=el('div','h');h.appendChild(el('div','tag',tag));h.appendChild(el('h4',null,name));
+    h.appendChild(el('p',null,desc));c.appendChild(h);
+    const b=el('div','b');b.appendChild(month(v));b.appendChild(legend());c.appendChild(b);
+    const f=el('div','f');
+    const y=el('div','y');y.innerHTML='<b>取</b><span>'+pro+'</span>';f.appendChild(y);
+    const n=el('div','n');n.innerHTML='<b>舍</b><span>'+con+'</span>';f.appendChild(n);
+    c.appendChild(f);g.appendChild(c)});
+}
+
+/* ---------- 04 缩略对比 ---------- */
+function renderThumbs(){
+  const g=document.getElementById('thumbs');g.innerHTML='';
+  const keep=P;
+  Object.entries(PAL).forEach(([k,p])=>{
+    P=k;
+    const c=el('div','th');
+    const nm=el('div','nm');nm.innerHTML='<span>'+p.name+'</span><em>'+p.en+'</em>';c.appendChild(nm);
+    c.appendChild(month('v2',{thumb:true}));
+    g.appendChild(c)});
+  P=keep;
+}
+
+/* ---------- 05 规格 ---------- */
+const SPEC=[
+ ['轴的范围','固定 00:00 → 24:00，永远是整条。不按班次缩放，否则月与月之间的位置读数会失效。'],
+ ['刻度','6:00 / 12:00 / 18:00 三条 1px 细线，颜色 <code>rgba(128,128,128,.45)</code>。不画 0 点和 24 点，那是轴的两端。'],
+ ['跨午夜','<code>crossesMidnight</code> 为真时断成两段：<code>[start, 24:00]</code> 与 <code>[00:00, end]</code>，两段都用同一个班次色。这是这条轴相对"一行起止时间文字"最大的价值。'],
+ ['休息 / 请假','轨道透明 + 1px 内描边，不填色。不计工时的状态不占色位。'],
+ ['条高','标准 5px、粗条版 17px、刻度版 7px。圆角一律 <code>999px</code>（粗条版 6px）。'],
+ ['最小宽度','iPhone 上一格约 46pt，24 个刻度每格 1.4pt 太细——刻度版要做下限：格宽 &lt; 44pt 时自动退回连续条。'],
+ ['格子高度','标准 <code>宽 × 1.24</code>，紧凑 <code>宽 × 1.02</code>。高度整月统一，不随内容伸缩，避免有的格错位。'],
+ ['今天','2px 系统 tint 描边，不改底色。底色留给班次。'],
+ ['已完成','右上角 5px 实心圆点，用班次色。<code>record.completed || key &lt; todayKey</code>。'],
+ ['字号','日期 11pt / 简称 14pt / 工时 9.5pt，全部走 <code>Font.system(.caption2, weight:)</code> 这类语义字号，跟随动态字体，不要写死 <code>size:</code>。'],
+];
+{const t=document.getElementById('specTbl');
+ SPEC.forEach(([k,v])=>{const r=el('div','r');
+   r.appendChild(el('div','k',k));r.appendChild(el('div','v',v));t.appendChild(r)})}
+
+/* ---------- 渲染 ---------- */
+function render(){renderPal();renderVars();renderThumbs();}
+document.getElementById('denSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  DEN=b.dataset.den;[...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
+document.getElementById('hrSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  HRS=b.dataset.hr==='1';[...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
+document.getElementById('thSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  document.documentElement.setAttribute('data-theme',b.dataset.th);
+  [...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+  if(!document.documentElement.getAttribute('data-theme'))render()});
+render();
+</script>
+
+</body>
+</html>
