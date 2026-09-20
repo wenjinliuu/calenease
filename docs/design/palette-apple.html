@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
 body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>班表配色台</title>
+<title>留白与满色</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -13,25 +13,28 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 :root{
   color-scheme:light;
   --canvas:#F2F2F7; --card:#FFFFFF; --card2:#F2F2F7; --card3:#E5E5EA;
-  --sep:rgba(60,60,67,.20); --sep2:rgba(60,60,67,.09);
-  --label:#000000; --label2:rgba(60,60,67,.62); --label3:rgba(60,60,67,.30);
-  --tint:#007AFF;
+  --sep:rgba(60,60,67,.20); --sep2:rgba(60,60,67,.08);
+  --label:#000000; --label2:rgba(60,60,67,.60); --label3:rgba(60,60,67,.28);
+  --tint:#007AFF; --danger:#FF3B30;
+  --screen:#FFFFFF; --band:#F2F2F7; --sumcard:#F5F5F7;
   --r-m:16px; --r-l:22px;
   --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Inter','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   color-scheme:dark;
   --canvas:#000000; --card:#1C1C1E; --card2:#2C2C2E; --card3:#3A3A3C;
-  --sep:rgba(84,84,88,.60); --sep2:rgba(84,84,88,.32);
-  --label:#FFFFFF; --label2:rgba(235,235,245,.62); --label3:rgba(235,235,245,.30);
-  --tint:#0A84FF;
+  --sep:rgba(84,84,88,.60); --sep2:rgba(84,84,88,.30);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.60); --label3:rgba(235,235,245,.28);
+  --tint:#0A84FF; --danger:#FF453A;
+  --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E;
 }}
 :root[data-theme="dark"]{
   color-scheme:dark;
   --canvas:#000000; --card:#1C1C1E; --card2:#2C2C2E; --card3:#3A3A3C;
-  --sep:rgba(84,84,88,.60); --sep2:rgba(84,84,88,.32);
-  --label:#FFFFFF; --label2:rgba(235,235,245,.62); --label3:rgba(235,235,245,.30);
-  --tint:#0A84FF;
+  --sep:rgba(84,84,88,.60); --sep2:rgba(84,84,88,.30);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.60); --label3:rgba(235,235,245,.28);
+  --tint:#0A84FF; --danger:#FF453A;
+  --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--canvas);color:var(--label);font-family:var(--font);
@@ -39,16 +42,16 @@ body{margin:0;background:var(--canvas);color:var(--label);font-family:var(--font
 .wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 80px}
 h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.022em}
 
-header.top{padding-block:40px 20px}
+header.top{padding-block:40px 18px}
 .kicker{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--tint);text-transform:uppercase;margin-bottom:9px}
 h1{font-size:clamp(31px,6.2vw,48px);font-weight:700;line-height:1.08;letter-spacing:-.032em}
 header.top p{color:var(--label2);max-width:60ch;margin:13px 0 0;font-size:16.5px}
 
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;background:var(--canvas);
-  border-bottom:.5px solid var(--sep);margin-inline:-16px;padding:9px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+  border-bottom:.5px solid var(--sep);margin-inline:-16px;padding:9px 16px;display:flex;flex-wrap:wrap;gap:8px 15px;align-items:center}
 .seg{display:inline-flex;background:var(--card3);border-radius:9px;padding:2px;gap:2px}
 .seg button{font:inherit;font-size:13px;font-weight:500;border:none;background:transparent;color:var(--label);
-  padding:4px 11px;border-radius:7px;cursor:pointer;transition:.15s;white-space:nowrap}
+  padding:4px 10px;border-radius:7px;cursor:pointer;transition:.15s;white-space:nowrap}
 .seg button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.14);font-weight:600}
 .seg button:focus-visible{outline:2px solid var(--tint);outline-offset:1px}
 .blab{font-size:11px;font-weight:600;color:var(--label3);text-transform:uppercase;letter-spacing:.05em}
@@ -57,111 +60,106 @@ section{padding-block:38px 0;scroll-margin-top:70px}
 .shd{margin-bottom:18px}
 .shd .n{font-size:12px;font-weight:600;color:var(--label3);letter-spacing:.05em}
 .shd h2{font-size:26px;font-weight:700;margin-top:2px}
-.shd p{color:var(--label2);font-size:15px;max-width:68ch;margin:8px 0 0}
-
-/* ---- studio ---- */
-.studio{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
-@media (max-width:760px){.studio{grid-template-columns:1fr}}
-.stage{background:var(--card);border-radius:var(--r-l);padding:16px 14px 18px;position:sticky;top:76px}
-@media (max-width:760px){.stage{position:static}}
-.stage .ttl{display:flex;justify-content:space-between;align-items:baseline;padding:0 3px 12px;gap:8px}
-.stage .ttl b{font-size:17px;font-weight:650}
-.stage .ttl span{font-size:12.5px;color:var(--label2);font-variant-numeric:tabular-nums}
-.panel{background:var(--card);border-radius:var(--r-m);padding:15px 16px 16px;display:grid;gap:12px}
+.shd p{color:var(--label2);font-size:15px;max-width:70ch;margin:8px 0 0}
+.panel{background:var(--card);border-radius:var(--r-m);padding:15px 16px;display:grid;gap:11px}
 .panel h4{font-size:14.5px;font-weight:650}
-.panel .hint{font-size:12.5px;color:var(--label2);line-height:1.5;margin:-4px 0 0}
-.togs{display:flex;flex-wrap:wrap;gap:7px}
-.tog{font:inherit;font-size:13px;font-weight:550;border:none;cursor:pointer;padding:6px 13px;border-radius:999px;
-  background:var(--card2);color:var(--label2);transition:.15s;display:flex;align-items:center;gap:6px}
-.tog[aria-pressed="true"]{background:var(--tint);color:#fff;font-weight:600}
-.tog:focus-visible{outline:2px solid var(--tint);outline-offset:2px}
-.presets{display:flex;flex-wrap:wrap;gap:7px}
-.pbtn{font:inherit;font-size:13px;font-weight:550;border:1.5px solid var(--sep);background:var(--card);color:var(--label);
-  padding:6px 13px;border-radius:999px;cursor:pointer;transition:.15s}
-.pbtn:hover{border-color:var(--tint);color:var(--tint)}
+.panel .hint{font-size:12.8px;color:var(--label2);line-height:1.55;margin:-3px 0 0}
 
-/* ---- pair gallery ---- */
-.pairs{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:12px}
-.pair{background:var(--card);border-radius:var(--r-m);padding:13px;display:grid;gap:10px;cursor:pointer;
+/* --- before / after --- */
+.ba{background:var(--card);border-radius:var(--r-m);overflow:hidden}
+.ba .r{display:grid;grid-template-columns:88px 1fr 1fr;align-items:stretch}
+.ba .r+.r{border-top:.5px solid var(--sep2)}
+.ba .hd{font-size:11.5px;font-weight:600;color:var(--label2);padding:9px 13px;background:var(--card2)}
+.ba .nm{padding:9px 13px;font-size:13px;font-weight:550;display:flex;align-items:center;gap:8px}
+.ba .nm i{width:13px;height:13px;border-radius:4px;flex:none}
+.ba .sw{margin:5px;border-radius:9px;display:flex;align-items:center;justify-content:space-between;
+  padding:9px 12px;font-size:12.5px;font-weight:650}
+.ba .sw code{font-family:ui-monospace,monospace;font-size:10.5px;opacity:.72;font-weight:500}
+
+/* --- palette --- */
+.hues{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
+.hue{border-radius:12px;padding:10px 9px;display:grid;gap:3px;min-height:74px;align-content:space-between}
+.hue b{font-size:13px;font-weight:650}
+.hue code{font-family:ui-monospace,monospace;font-size:9.5px;opacity:.7;font-weight:500}
+
+.pairs{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:11px}
+.pair{background:var(--card);border-radius:var(--r-m);padding:12px;display:grid;gap:9px;cursor:pointer;
   border:2px solid transparent;transition:.15s}
 .pair.on{border-color:var(--tint)}
 .pair:focus-visible{outline:2px solid var(--tint);outline-offset:2px}
-.pair .nm{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
-.pair .nm b{font-size:15px;font-weight:650}
-.pair .nm em{font-style:normal;font-size:11px;color:var(--label3);font-variant-numeric:tabular-nums}
-.duo{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.duo .d{aspect-ratio:1/1.05;border-radius:11px;padding:7px;display:flex;flex-direction:column;justify-content:space-between}
-.duo .d .t{font-size:10.5px;font-weight:600;opacity:.75;font-variant-numeric:tabular-nums}
-.duo .d .s{font-size:21px;font-weight:700;line-height:1}
+.pair .nm{display:flex;justify-content:space-between;align-items:baseline;gap:5px}
+.pair .nm b{font-size:14.5px;font-weight:650}
+.pair .nm em{font-style:normal;font-size:10.5px;color:var(--label3)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.duo .d{aspect-ratio:1/1;border-radius:11px;padding:7px;display:flex;flex-direction:column;justify-content:space-between}
+.duo .d .t{font-size:10px;font-weight:600;opacity:.72;font-variant-numeric:tabular-nums}
+.duo .d .s{font-size:20px;font-weight:700;line-height:1}
 .mini{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .mini i{aspect-ratio:1;border-radius:2.5px;display:block}
 
-/* ---- vivid compare ---- */
-.vivs{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
-.viv{background:var(--card);border-radius:var(--r-m);padding:13px;display:grid;gap:9px;cursor:pointer;
-  border:2px solid transparent;transition:.15s}
-.viv.on{border-color:var(--tint)}
-.viv .h{display:flex;justify-content:space-between;align-items:baseline}
-.viv .h b{font-size:14.5px;font-weight:650}
-.viv .h em{font-style:normal;font-size:11px;color:var(--label3);font-variant-numeric:tabular-nums}
-.viv .ratio{font-size:11.5px;color:var(--label2);font-variant-numeric:tabular-nums;display:flex;justify-content:space-between}
-.viv .ratio b{font-weight:600;color:var(--label)}
+/* --- phone --- */
+.phone{width:100%;max-width:330px;margin:0 auto;background:var(--screen);border-radius:26px;overflow:hidden;
+  border:.5px solid var(--sep);display:flex;flex-direction:column}
+.pnav{display:flex;align-items:center;justify-content:center;gap:16px;padding:13px 14px 11px;position:relative}
+.pnav .mo{font-size:13px;color:var(--label3);font-weight:500}
+.pnav .mo.cur{font-size:19px;font-weight:700;color:var(--label);letter-spacing:-.02em}
+.pnav .bk{position:absolute;left:14px;color:var(--label2);font-size:17px;font-weight:500}
+.pnav .mr{position:absolute;right:14px;width:22px;height:22px;border-radius:50%;background:var(--card2)}
+.pband{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--band);padding:8px 0}
+.pband span{text-align:center;font-size:10.5px;font-weight:550;color:var(--label2)}
+.pgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:2px 3px 6px}
+.psum{margin:6px 12px 14px;background:var(--sumcard);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:16px}
+.psum .k{font-size:11.5px;color:var(--label2);line-height:1.3}
+.psum .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:1px}
+.psum .go{margin-left:auto;font-size:12.5px;color:var(--label2);white-space:nowrap}
 
-/* ---- shapes ---- */
-.shapes{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:12px}
-.shp{background:var(--card);border-radius:var(--r-m);padding:13px;display:grid;gap:10px;cursor:pointer;
-  border:2px solid transparent;transition:.15s}
-.shp.on{border-color:var(--tint)}
-.shp .h b{font-size:14.5px;font-weight:650;display:block}
-.shp .h span{font-size:11.5px;color:var(--label2);line-height:1.45;display:block;margin-top:2px}
+/* --- cell --- */
+.c{position:relative;display:flex;flex-direction:column;align-items:center;padding:7px 1px 6px;min-width:0;gap:4px;overflow:hidden}
+.airy .c{min-height:74px}
+.airy .c.fill{min-height:52px}
+.tight .c.fill{min-height:44px}
+.tight .c{min-height:58px}
+.c .numrow{display:flex;align-items:flex-start;gap:2px;max-width:100%}
+.c .num{font-size:23px;font-weight:550;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.tight .c .num{font-size:20px}
+.c .sub{position:absolute;top:6px;right:3px;font-size:8px;line-height:1.05;color:var(--label3);width:9px;font-weight:600;text-align:center}
+.c .sub.h{color:var(--danger)}
+.c .mk{display:flex;align-items:center;justify-content:center;gap:2.5px;max-width:100%;min-width:0}
+.chip{width:14px;height:14px;border-radius:4px;display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+.hrs{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%}
+.uline{width:22px;height:3px;border-radius:99px}
+.pillm{border-radius:7px;padding:2px 5px;font-size:10.5px;font-weight:650;display:flex;gap:4px;align-items:center}
+.axis{width:26px;height:3px;border-radius:99px;position:relative;overflow:hidden}
+.axis i{position:absolute;top:0;bottom:0;border-radius:99px}
+/* filled cells */
+.c.fill{border-radius:10px;justify-content:space-between;padding:5px 4px;align-items:stretch}
+.c.fill .numrow{justify-content:space-between;width:100%}
+.c.fill .mk{justify-content:space-between;width:100%}
+.c.fill .snm{font-size:13.5px;font-weight:700;line-height:1}
+.fillwrap{padding:3px 2px}
+.c.rest .num{color:var(--label3);font-weight:450}
+.c.today .num{color:var(--tint);font-weight:700}
+.c.fill.today::after{content:"";position:absolute;inset:0;border-radius:11px;border:2px solid var(--label);pointer-events:none;opacity:.35}
 
-/* ---- calendar ---- */
-.cal{--g:4px}
-.cal .wk{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--g);margin-bottom:6px}
-.cal .wk span{text-align:center;font-size:10.5px;font-weight:600;color:var(--label3)}
-.cal .gd{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--g)}
-.cel{position:relative;border-radius:10px;min-width:0;display:flex;flex-direction:column;overflow:hidden;
-  padding:6px 5px;justify-content:space-between;background:var(--card2)}
-.cel.bl{visibility:hidden}
-.dn{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
-.sn{font-weight:650;letter-spacing:-.01em;font-size:15px;line-height:1.05}
-.hr{font-size:9.5px;font-weight:550;font-variant-numeric:tabular-nums;opacity:.78}
-.tm{font-size:8.5px;font-weight:500;font-variant-numeric:tabular-nums;opacity:.72;line-height:1.2;display:block}
-.hol{font-size:8.5px;font-weight:600;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rowb{display:flex;justify-content:space-between;align-items:center;gap:3px}
-.rowm{display:flex;justify-content:space-between;align-items:baseline;gap:3px}
-.dot5{width:5px;height:5px;border-radius:50%;flex:none}
-.td::after{content:"";position:absolute;inset:0;border-radius:10px;border:2px solid var(--tint);pointer-events:none}
-.h24{position:relative;border-radius:99px;overflow:hidden;flex:none;height:5px;margin-top:4px;background:rgba(120,120,128,.24)}
-.h24 i{position:absolute;top:0;bottom:0;display:block;border-radius:99px}
-.h24 u{position:absolute;top:0;bottom:0;width:1px;background:rgba(128,128,128,.42)}
-.pillbox{border-radius:7px;padding:2px 4px;display:flex;align-items:baseline;justify-content:space-between;gap:3px}
-.topbar{position:absolute;top:0;left:0;right:0;height:4px}
-.leftbar{position:absolute;left:0;top:0;bottom:0;width:4px}
-.bigdot{width:24px;height:6px;border-radius:99px;margin:0 auto}
-.big .cel{aspect-ratio:1/1.22}
-.big .cal{--g:5px}
-.thumb .cel{aspect-ratio:1/1.08;border-radius:5px;padding:2.5px 2px}
-.thumb .dn{font-size:7px}
-.thumb .sn{font-size:8.5px}
-.thumb .hr,.thumb .tm,.thumb .hol,.thumb .dot5{display:none}
-.thumb .h24{height:2.5px;margin-top:2px}
-.thumb .cal{--g:2px}
-.thumb .wk{display:none}
+/* --- shape cards --- */
+.shapes{display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:15px;align-items:start}
+.sc{background:var(--card);border-radius:var(--r-l);overflow:hidden;cursor:pointer;border:2px solid transparent;transition:.15s}
+.sc.on{border-color:var(--tint)}
+.sc:focus-visible{outline:2px solid var(--tint);outline-offset:2px}
+.sc .h{padding:14px 16px 11px}
+.sc .h .tg{font-size:11px;font-weight:650;color:var(--tint);letter-spacing:.03em}
+.sc .h b{font-size:17px;font-weight:650;display:block;margin-top:1px}
+.sc .h span{font-size:12.6px;color:var(--label2);line-height:1.5;display:block;margin-top:5px}
+.sc .body{padding:0 10px 14px}
+.sc .phone{max-width:none;border:none;border-radius:16px}
 
-.legend{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
-.legend .c{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:9px;font-size:11.5px;font-weight:600}
-.legend .c em{font-style:normal;font-size:9.5px;font-weight:500;opacity:.72;font-variant-numeric:tabular-nums}
-
-/* ---- combos ---- */
-.combos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px}
-.cmb{background:var(--card);border-radius:var(--r-m);padding:13px;display:grid;gap:10px;cursor:pointer;
-  border:2px solid transparent;transition:.15s}
-.cmb:hover{border-color:var(--tint)}
-.cmb .h b{font-size:14.5px;font-weight:650;display:block}
-.cmb .h span{font-size:11.5px;color:var(--label2);display:block;margin-top:2px;line-height:1.45}
-
-/* ---- code ---- */
+/* --- contrast table --- */
+.crt{display:grid;gap:0}
+.crt .r{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;
+  padding:7px 0;border-bottom:.5px solid var(--sep2);font-size:13px}
+.crt .r:last-child{border-bottom:none}
+.crt .sq{width:23px;height:23px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:700}
 pre{background:var(--card);border-radius:var(--r-m);padding:16px;overflow-x:auto;margin:12px 0 0;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.65;color:var(--label)}
 pre b{font-weight:600;color:var(--tint)}
@@ -174,108 +172,109 @@ pre i{font-style:normal;color:var(--label3)}
 
 <div class="wrap">
 <header class="top">
-  <div class="kicker">Shift Ledger · 配色台</div>
-  <h1>班表配色台</h1>
-  <p>白班和夜班是最常出现的两个班次，先把这一对定下来，其余四个跟着走。浓度可调，格子里每一样东西都能单独关掉——24 小时条和起止时间也不例外，它们不是必须的。</p>
+  <div class="kicker">Shift Ledger · 月历</div>
+  <h1>留白与满色</h1>
+  <p>颜色重算了一遍：不再拿白色去兑原色，改成在 OKLCH 里抬明度、把彩度顶在色域边缘。格子可以满色，也可以完全不上色——两条路都给了整屏预览。</p>
 </header>
 
 <div class="bar">
-  <span class="blab">浓度</span>
-  <div class="seg" id="vivSeg"></div>
-  <span class="blab">形态</span>
-  <div class="seg" id="shpSeg"></div>
+  <span class="blab">配色</span><div class="seg" id="pairSeg"></div>
+  <span class="blab">浓度</span><div class="seg" id="vivSeg"></div>
+  <span class="blab">密度</span>
+  <div class="seg" id="denSeg"><button data-d="airy" aria-pressed="true">疏</button><button data-d="tight" aria-pressed="false">紧</button></div>
   <span class="blab">外观</span>
-  <div class="seg" id="thSeg">
-    <button data-th="light" aria-pressed="true">浅色</button>
-    <button data-th="dark" aria-pressed="false">深色</button>
-  </div>
+  <div class="seg" id="thSeg"><button data-th="light" aria-pressed="true">浅色</button><button data-th="dark" aria-pressed="false">深色</button></div>
 </div>
 
-<section id="studio">
-  <div class="shd"><div class="n">01</div><h2>实时预览</h2>
-  <p>2026 年 9 月，4白2休4夜2休，今天 20 号（夜班），25 号中秋。右边改什么，左边立刻变。</p></div>
-  <div class="studio">
-    <div class="stage">
-      <div class="ttl"><b id="stgName">日出</b><span id="stgMeta"></span></div>
-      <div id="stgCal" class="big"></div>
-      <div id="stgLeg"></div>
-    </div>
-    <div style="display:grid;gap:14px">
-      <div class="panel">
-        <h4>格子里放什么</h4>
-        <p class="hint">全部关掉就只剩日期和一块颜色。24 小时条在这里叫「时段条」——它是方案 C 的特征，但不是必需品。</p>
-        <div class="togs" id="togs"></div>
-      </div>
-      <div class="panel">
-        <h4>快速预设</h4>
-        <p class="hint">六种搭配好的组合，点一下整套套上去。</p>
-        <div class="presets" id="presets"></div>
-      </div>
-      <div class="panel">
-        <h4>当前对比度</h4>
-        <p class="hint">每个班次的「底色 / 文字」实算值。低于 4.5:1 会标红——浓度拉太高时文字色会自动压暗来补，但实心档下有些色相补不回来。</p>
-        <div id="crTable" style="display:grid;gap:0"></div>
-      </div>
-    </div>
+<section id="fix">
+  <div class="shd"><div class="n">01</div><h2>之前为什么显土</h2>
+  <p>旧算法是把系统色和白色在 sRGB 里插值。白一兑进去，<b>彩度被直接稀释</b>——橙变粉橘、绿变灰绿，就是那种奶油感。新算法只抬明度，彩度顶在该明度下 sRGB 能给的最大值，所以浅也浅得鲜。下面是同一档浓度、同一个色的两种算法结果。</p></div>
+  <div class="ba" id="baTbl"></div>
+  <div class="panel" style="margin-top:14px">
+    <h4>顺带的一个收获</h4>
+    <p class="hint">苹果系统色里橙和黄天生就亮（OKLCH 明度 0.77 / 0.87），靛蓝和蓝天生就暗（0.53 / 0.60）。所以只要全部按满饱和度用，<b>白班自动是亮块、夜班自动是暗块</b>——昼夜感不用另外设计，是色相本身带来的。这也是"满色"这一档最值得试的原因。</p>
   </div>
 </section>
 
-<section id="pairs">
-  <div class="shd"><div class="n">02</div><h2>白班 × 夜班</h2>
-  <p>八组配对，都是 iOS 系统色或它的加饱和版。左边那块是白班，右边是夜班，下面是整月缩略。点一下就套用到上面的预览。</p></div>
+<section id="pal">
+  <div class="shd"><div class="n">02</div><h2>色板</h2>
+  <p>十一个 iOS 系统色，满饱和度。文字色不是黑或白，是<b>同色相压暗或提亮的版本</b>，所以整块看上去是一个颜色的深浅两阶，比黑字白字更整。</p></div>
+  <div class="hues" id="hueGrid"></div>
+  <h4 style="margin:26px 0 10px;font-size:18px;font-weight:650">白班 × 夜班</h4>
   <div class="pairs" id="pairGrid"></div>
 </section>
 
-<section id="viv">
-  <div class="shd"><div class="n">03</div><h2>四档浓度</h2>
-  <p>同一组色，从淡染到实心。之前那版默认停在最淡的一档，所以显得寡。第三档「浓」是多数人说的"苹果那种鲜艳"——颜色已经占满格子，文字还稳稳在 4.5:1 以上。</p></div>
-  <div class="vivs" id="vivGrid"></div>
-</section>
-
 <section id="shapes">
-  <div class="shd"><div class="n">04</div><h2>五种形态</h2>
-  <p>颜色以什么形状出现在格子里。整格填色最浓，圆点最轻。</p></div>
+  <div class="shd"><div class="n">03</div><h2>七种格子</h2>
+  <p>前三种给格子上色，后四种一点底色都不给、靠字号和留白撑。同一份数据：2026 年 9 月，4白2休4夜2休，今天 20 号，25 号中秋。</p></div>
   <div class="shapes" id="shpGrid"></div>
 </section>
 
-<section id="combos">
-  <div class="shd"><div class="n">05</div><h2>六种成品</h2>
-  <p>配对 × 浓度 × 形态 × 元素，四个维度搭好的完整方案。点一下载入预览。</p></div>
-  <div class="combos" id="cmbGrid"></div>
+<section id="cr">
+  <div class="shd"><div class="n">04</div><h2>当前对比度</h2>
+  <p>每个班次的「底色 / 文字」实算值。文字色是按底色实时算的，压到 4.5:1 才停。</p></div>
+  <div class="panel"><div class="crt" id="crTbl"></div></div>
 </section>
 
 <section id="out">
-  <div class="shd"><div class="n">06</div><h2>色值输出</h2>
-  <p>当前这一套的实际色值，浅色深色两份，可以直接搬进 <span style="font-family:ui-monospace,monospace;font-size:13px">AccentHex</span>。文字色是按底色实时算出来的，保证 ≥ 4.5:1。</p></div>
+  <div class="shd"><div class="n">05</div><h2>色值输出</h2>
+  <p>当前这一套的浅色深色两份，可以直接搬进 <span style="font-family:ui-monospace,monospace;font-size:13px">AccentHex</span>。</p></div>
   <pre id="swiftOut"></pre>
 </section>
 
 <section id="notes">
-  <div class="shd"><div class="n">07</div><h2>几条不能动的</h2></div>
-  <div class="panel" style="gap:14px">
-    <div><b style="font-size:14.5px">文字色跟着底色走，不是固定值。</b><p class="hint" style="margin-top:3px">浓度每升一档，文字色就得压暗一档。写死一个 <span style="font-family:ui-monospace,monospace;font-size:12.5px">.white</span> 是现在代码里最大的问题——九个班次色刷白字全部不达标，systemYellow 上只有 1.51:1。</p></div>
-    <div><b style="font-size:14.5px">白班和夜班必须在明度上也拉开。</b><p class="hint" style="margin-top:3px">不能只靠色相。橙和靛在色相上差很多，但如果两个都调到同样的明度，缩略图上整月就是一片均匀的花。明度拉开之后，轮转节奏在缩略图上才看得出来。</p></div>
-    <div><b style="font-size:14.5px">休息和请假不占色位。</b><p class="hint" style="margin-top:3px">它们是"没有班"，不是"第 N 个班次"。用 systemGray 家族，把六个彩色位全留给真正要区分的工作班次。</p></div>
-    <div><b style="font-size:14.5px">底色用冷灰，不能用暖奶油。</b><p class="hint" style="margin-top:3px">浅色 <span style="font-family:ui-monospace,monospace;font-size:12.5px">#F2F2F7</span> + 白卡，深色纯黑 + <span style="font-family:ui-monospace,monospace;font-size:12.5px">#1C1C1E</span>。底色一偏暖，再鲜艳的系统色压上去也立刻显旧。</p></div>
+  <div class="shd"><div class="n">06</div><h2>四条规矩</h2></div>
+  <div class="panel" style="gap:15px">
+    <div><b style="font-size:14.5px">淡色永远在 OKLCH 里做，不要 mix 白。</b>
+      <p class="hint" style="margin-top:3px">SwiftUI 里 <span style="font-family:ui-monospace,monospace;font-size:12.5px">color.opacity(0.15)</span> 压在白底上等价于 mix 白，出来就是奶油色。要淡就预先算好 hex 存进色板，别在运行时靠透明度凑。</p></div>
+    <div><b style="font-size:14.5px">文字色跟着底色走，而且是同色相的深浅阶。</b>
+      <p class="hint" style="margin-top:3px">现在代码里写死的 <span style="font-family:ui-monospace,monospace;font-size:12.5px">.white</span> 在九个班次色上全部不达标，systemYellow 只有 1.51:1。换成同色相压暗版，既达标又比纯黑纯白整。</p></div>
+    <div><b style="font-size:14.5px">满色的时候别再给格子加描边。</b>
+      <p class="hint" style="margin-top:3px">色块自己就是边界。"今天"用一圈半透明的描边就够，不要再叠阴影和渐变。</p></div>
+    <div><b style="font-size:14.5px">留白型的关键是行高，不是颜色。</b>
+      <p class="hint" style="margin-top:3px">日期数字给到 24px、中等字重，行高给到 74px，休息日整个数字退成浅灰。颜色只剩一枚 15px 的小方块——小面积才撑得住满饱和度。</p></div>
   </div>
 </section>
 </div>
 
 <script>
-/* ===== 色彩计算 ===== */
-const rgb=h=>{h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');
-  return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]};
-const hex=a=>'#'+a.map(v=>Math.round(Math.min(255,Math.max(0,v))).toString(16).padStart(2,'0')).join('');
-const lum=h=>{const[r,g,b]=rgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});
-  return .2126*r+.7152*g+.0722*b};
+/* ===== OKLCH 色彩引擎 ===== */
+const g2l=v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);
+const l2g=v=>v<=.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-.055;
+const hx=h=>{h=h.replace('#','');return[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255)};
+const HX=a=>'#'+a.map(v=>Math.round(Math.max(0,Math.min(1,v))*255).toString(16).padStart(2,'0')).join('');
+function toOk([r,g,b]){r=g2l(r);g=g2l(g);b=g2l(b);
+ const l=Math.cbrt(.4122214708*r+.5363325363*g+.0514459929*b),
+       m=Math.cbrt(.2119034982*r+.6806995451*g+.1073969566*b),
+       s=Math.cbrt(.0883024619*r+.2817188376*g+.6299787005*b);
+ return[.2104542553*l+.7936177850*m-.0040720468*s,
+        1.9779984951*l-2.4285922050*m+.4505937099*s,
+        .0259040371*l+.7827717662*m-.8086757660*s]}
+function fromOk([L,a,b]){
+ const l=Math.pow(L+.3963377774*a+.2158037573*b,3),
+       m=Math.pow(L-.1055613458*a-.0638541728*b,3),
+       s=Math.pow(L-.0894841775*a-1.2914855480*b,3);
+ return[l2g(4.0767416621*l-3.3077115913*m+.2309699292*s),
+        l2g(-1.2684380046*l+2.6097574011*m-.3413193965*s),
+        l2g(-.0041960863*l-.7034186147*m+1.7076147010*s)]}
+const inG=c=>c.every(v=>v>=-.001&&v<=1.001);
+const lch=h=>{const[L,a,b]=toOk(hx(h));return[L,Math.hypot(a,b),Math.atan2(b,a)]};
+const rgbOf=(L,C,h)=>fromOk([L,C*Math.cos(h),C*Math.sin(h)]);
+function maxC(L,h){let lo=0,hi=.45;for(let i=0;i<22;i++){const m=(lo+hi)/2;inG(rgbOf(L,m,h))?lo=m:hi=m}return lo}
+/* 保相对彩度地改明度 */
+function atL(base,Lt){const[L,C,h]=lch(base);
+ const rel=Math.min(C/Math.max(maxC(L,h),1e-6),1);
+ return HX(rgbOf(Lt,maxC(Lt,h)*rel,h))}
+const mixW=(base,t)=>HX(hx(base).map(v=>v+(1-v)*t));
+const lum=h=>{const[r,g,b]=hx(h).map(g2l);return .2126*r+.7152*g+.0722*b};
 const CR=(a,b)=>{const x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
-const mix=(a,b,t)=>{const A=rgb(a),B=rgb(b);return hex(A.map((v,i)=>v+(B[i]-v)*t))};
-/* 文字色：底色亮就往黑压，底色暗就往白提，第一个够 4.6:1 的就用 */
+/* 同色相的可读文字色：底亮就往暗走，底暗就往亮走 */
 function inkOn(base,fill){
-  const toward=lum(fill)>.32?'#000000':'#FFFFFF';
-  let best=base,bestC=CR(base,fill);
-  for(let t=0;t<=1.0001;t+=.04){
-    const c=mix(base,toward,t),v=CR(c,fill);
+  const up=lum(fill)<.30;
+  let L=lch(fill)[0],best=fill,bestC=1;
+  for(let i=0;i<24;i++){
+    L=up?Math.min(.99,L+.035):Math.max(.06,L-.035);
+    const c=atL(base,L),v=CR(c,fill);
     if(v>=4.6)return c;
     if(v>bestC){bestC=v;best=c}
   }
@@ -284,187 +283,179 @@ function inkOn(base,fill){
 
 /* ===== 数据 ===== */
 const SHIFT={
- day  :{n:'白班',s:'白',st:'08:00',en:'20:00',h:12},
+ day:{n:'白班',s:'白',st:'08:00',en:'20:00',h:12},
  night:{n:'夜班',s:'夜',st:'20:00',en:'08:00',h:12},
- morn :{n:'早班',s:'早',st:'08:00',en:'16:00',h:8},
- mid  :{n:'中班',s:'中',st:'16:00',en:'00:00',h:8},
- late :{n:'晚班',s:'晚',st:'00:00',en:'08:00',h:8},
+ morn:{n:'早班',s:'早',st:'08:00',en:'16:00',h:8},
+ mid:{n:'中班',s:'中',st:'16:00',en:'00:00',h:8},
+ late:{n:'晚班',s:'晚',st:'00:00',en:'08:00',h:8},
  other:{n:'门诊',s:'诊',st:'09:00',en:'17:00',h:8},
- rest :{n:'休息',s:'休',h:0,rest:true},
+ rest:{n:'休息',s:'休',h:0,rest:true},
 };
 const KEYS=['day','night','morn','mid','late','other'];
 const ROSTER=[];{const c=['day','day','day','day','rest','rest','night','night','night','night','rest','rest'];
  for(let d=1;d<=30;d++)ROSTER[d]=c[(d-1)%12]}
 const TODAY=20,LEAD=1,DAYS=30,HOLI={25:'中秋'};
 
-/* ===== 八组白夜配对（其余四班跟随） ===== */
+const SYS={red:['红','#FF3B30'],orange:['橙','#FF9500'],yellow:['黄','#FFCC00'],green:['绿','#34C759'],
+ mint:['薄荷','#00C7BE'],teal:['蓝绿','#30B0C7'],cyan:['青','#32ADE6'],blue:['蓝','#007AFF'],
+ indigo:['靛','#5856D6'],purple:['紫','#AF52DE'],pink:['粉','#FF2D55']};
+
 const PAIRS=[
- {id:'sunrise',n:'日出',sub:'Orange × Indigo',
-  c:{day:'#FF9500',night:'#5856D6',morn:'#00C7BE',mid:'#FF2D55',late:'#AF52DE',other:'#34C759'},
-  d:'systemOrange 配 systemIndigo。两个色的明度差最大，缩略图上轮转节奏最清楚。最稳的一组。'},
- {id:'sunmoon',n:'日月',sub:'Yellow × Indigo',
-  c:{day:'#FFCC00',night:'#5856D6',morn:'#32ADE6',mid:'#FF9500',late:'#AF52DE',other:'#34C759'},
-  d:'太阳黄配夜空靛，隐喻最直白。黄在浓档下极亮，必须配深色文字。'},
- {id:'daynight',n:'昼夜',sub:'Orange × Blue',
-  c:{day:'#FF9500',night:'#007AFF',morn:'#34C759',mid:'#FF2D55',late:'#AF52DE',other:'#00C7BE'},
-  d:'橙蓝互补，最经典也最亮眼。systemBlue 同时是系统强调色，跟"今天"的描边会有一点抢。'},
- {id:'amber',n:'琥珀夜空',sub:'Amber × Deep Blue',
-  c:{day:'#FFB800',night:'#2043C9',morn:'#00C7BE',mid:'#FF6B35',late:'#7D5AF0',other:'#34C759'},
-  d:'琥珀配深蓝。夜班压得更沉，整月一眼分成"亮一片、暗一片"，是八组里昼夜感最强的。'},
- {id:'flame',n:'烈焰',sub:'Red × Violet',
-  c:{day:'#FF453A',night:'#7D5AF0',morn:'#FFCC00',mid:'#FF9500',late:'#AF52DE',other:'#00C7BE'},
-  d:'朱红配靛紫，最有冲击力。代价是红色同时也是"删除"的意思，得确保删除操作另有说法。'},
- {id:'peach',n:'蜜桃',sub:'Coral × Purple',
-  c:{day:'#FF7A45',night:'#AF52DE',morn:'#00C7BE',mid:'#FF2D55',late:'#5856D6',other:'#34C759'},
-  d:'珊瑚橙配紫。比纯橙柔一点、比淡染浓得多，是"鲜艳但不吵"的那一档。'},
- {id:'gold',n:'金紫',sub:'Gold × Purple',
-  c:{day:'#FFC400',night:'#BF5AF2',morn:'#30D158',mid:'#FF9500',late:'#5856D6',other:'#32ADE6'},
-  d:'金黄配亮紫，饱和度全组最高，最接近 Apple Music 和小组件那种浓度。'},
- {id:'coral',n:'珊瑚青',sub:'Coral × Azure',
-  c:{day:'#FF6B4A',night:'#0091FF',morn:'#FFCC00',mid:'#AF52DE',late:'#5856D6',other:'#00C7BE'},
-  d:'暖珊瑚配天青。两个色都很亮，明度差小——轮转节奏靠色相认，不靠明暗。'},
+ {id:'sunrise',n:'日出',sub:'橙 × 靛',c:{day:'#FF9500',night:'#5856D6',morn:'#00C7BE',mid:'#FF2D55',late:'#AF52DE',other:'#34C759'}},
+ {id:'sunmoon',n:'日月',sub:'黄 × 靛',c:{day:'#FFCC00',night:'#5856D6',morn:'#32ADE6',mid:'#FF9500',late:'#AF52DE',other:'#34C759'}},
+ {id:'daynight',n:'昼夜',sub:'橙 × 蓝',c:{day:'#FF9500',night:'#007AFF',morn:'#34C759',mid:'#FF2D55',late:'#AF52DE',other:'#00C7BE'}},
+ {id:'flame',n:'烈焰',sub:'红 × 紫',c:{day:'#FF3B30',night:'#AF52DE',morn:'#FFCC00',mid:'#FF9500',late:'#5856D6',other:'#00C7BE'}},
+ {id:'neon',n:'霓虹',sub:'Fitness 三色',c:{day:'#FA114F',night:'#1AD5F5',morn:'#92E82A',mid:'#FF9500',late:'#5856D6',other:'#AF52DE'}},
+ {id:'citrus',n:'柑橘',sub:'黄 × 青',c:{day:'#FFCC00',night:'#32ADE6',morn:'#34C759',mid:'#FF2D55',late:'#AF52DE',other:'#00C7BE'}},
 ];
-const REST={light:'#C7C7CC',dark:'#48484A'};
+const RESTC={light:'#C7C7CC',dark:'#48484A'};
+/* 浓度 = 目标 OKLCH 明度；solid 用色相自身的明度 */
+const VIVS=[{id:'solid',n:'满色',L:null},{id:'rich',n:'浓',L:.80},{id:'mid',n:'中',L:.87},{id:'wash',n:'淡',L:.93}];
 
-/* ===== 浓度 ===== */
-const VIVS=[
- {id:'wash',n:'淡染',t:.14,d:'颜色只是底色的一层薄染，格子整体还是白的。'},
- {id:'mid', n:'中等',t:.32,d:'颜色明确成为格子的身份，仍留白底的呼吸感。'},
- {id:'rich',n:'浓',  t:.58,d:'颜色占满格子，接近实心但还留一点余地。推荐档。'},
- {id:'full',n:'实心',t:1,  d:'满色块。最浓，文字自动切黑或白。'},
-];
-/* ===== 形态 ===== */
-const SHAPES=[
- {id:'full',n:'整格填色',d:'颜色铺满整个格子，最浓。'},
- {id:'pill',n:'格内胶囊',d:'颜色收进简称那一行，格子底保持中性。'},
- {id:'top', n:'顶边色条',d:'只在格子上沿盖一道 4px 色条。'},
- {id:'left',n:'左侧色条',d:'只在格子左边立一条 4px 色条。'},
- {id:'dot', n:'色点',    d:'一颗 24×6 的小色块，最轻。'},
-];
-/* ===== 元素 ===== */
-const ELEMS=[
- ['sn','简称','白 / 夜 / 休'],['hr','工时','12h'],['tm','起止时间','08:00–20:00'],
- ['bar','时段条','24 小时轴'],['done','完成点','已计入工时'],['hol','节假日','中秋'],
-];
-
-let PAIR='sunrise',VIV='rich',SHP='full',TH=null;
-const ON={sn:true,hr:true,tm:false,bar:true,done:true,hol:true};
+let PAIR='sunrise',VIV='solid',DEN='airy',SHP='fill';
 const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');
-  return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+ return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
 
-/* 给定班次 key，算出 {bar, fill, ink} */
-function tone(k,pairId=PAIR,vivId=VIV){
-  const dk=isDark();
-  const P=PAIRS.find(p=>p.id===pairId), t=VIVS.find(v=>v.id===vivId).t;
-  const base=k==='rest'?(dk?REST.dark:REST.light):P.c[k];
-  const ground=dk?'#1C1C1E':'#FFFFFF';
-  const fill=k==='rest'?(dk?'#2C2C2E':'#F2F2F7'):mix(ground,base,dk?t*.88:t);
-  const ink=k==='rest'?(dk?'#98989D':'#6C6C70'):inkOn(base,fill);
-  return{bar:base,fill,ink,cr:CR(ink,fill)};
+function tone(k,pid=PAIR,vid=VIV){
+  const dk=isDark(),P=PAIRS.find(p=>p.id===pid),V=VIVS.find(v=>v.id===vid);
+  if(k==='rest')return{base:dk?RESTC.dark:RESTC.light,fill:dk?'#2C2C2E':'#F2F2F7',
+    ink:dk?'#98989D':'#6C6C70',cr:CR(dk?'#98989D':'#6C6C70',dk?'#2C2C2E':'#F2F2F7')};
+  const base=P.c[k];
+  const L=V.L===null?null:(dk?Math.max(.24,1.12-V.L):V.L);   /* 深色模式往暗的一侧走同样的距离 */
+  const fill=L===null?base:atL(base,L);
+  const ink=inkOn(base,fill);
+  /* 小色标与彩色数字用：在白/黑底上可读的同色相版本 */
+  const ground=dk?'#000000':'#FFFFFF';
+  const onBg=inkOn(base,ground);
+  return{base,fill,ink,onBg,cr:CR(ink,fill)};
 }
 
-/* ===== 24 小时条 ===== */
-function segs(sh){
-  if(sh.rest)return[];
-  const m=t=>{const[a,b]=t.split(':').map(Number);return a*60+b};
-  let s=m(sh.st),e=m(sh.en); if(e===0)e=1440;
-  if(e<=s)return[[s/14.4,(1440-s)/14.4],[0,e/14.4]];
-  return[[s/14.4,(e-s)/14.4]];
-}
-function bar24(k,col,track){
-  const b=el('div','h24'); if(track)b.style.background=track;
-  [6,12,18].forEach(h=>{const u=el('u');u.style.left=(h/24*100)+'%';b.appendChild(u)});
-  segs(SHIFT[k]).forEach(([x,w])=>{const i=el('i');i.style.left=x+'%';i.style.width=w+'%';
-    i.style.background=col;b.appendChild(i)});
-  if(SHIFT[k].rest){b.style.background='transparent';b.style.boxShadow='inset 0 0 0 1px var(--sep2)';}
-  return b;
-}
+/* ===== 24h 轴 ===== */
+function segs(sh){if(sh.rest)return[];
+ const m=t=>{const[a,b]=t.split(':').map(Number);return a*60+b};
+ let s=m(sh.st),e=m(sh.en);if(e===0)e=1440;
+ if(e<=s)return[[s/14.4,(1440-s)/14.4],[0,e/14.4]];
+ return[[s/14.4,(e-s)/14.4]]}
 
 /* ===== 格子 ===== */
+const SHAPES=[
+ {id:'fill',tg:'满色 一',n:'整格满色',
+  d:'格子就是一块满饱和度的系统色。橙的白班天生亮、靛的夜班天生暗，整月直接分成亮暗两片。文字用同色相的深浅阶，不用黑白。'},
+ {id:'tintfill',tg:'满色 二',n:'圆角色块',
+  d:'同样填满，但把浓度降到「浓」或「中」——彩度仍顶在色域边缘，所以浅而不粉。适合想要多彩又不想整页太重的情况。'},
+ {id:'pill',tg:'满色 三',n:'格内胶囊',
+  d:'颜色收进一颗胶囊，格子底保持中性。班次和工时并排坐在胶囊里，是信息密度和克制之间的折中。'},
+ {id:'chip',tg:'留白 一',n:'大字 + 方块标',
+  d:'完全不给格子上色。日期数字 24px 做主角，颜色只剩一枚 15px 小方块。小面积才撑得住满饱和度——这是留白派里最有信息量的一种。'},
+ {id:'dot',tg:'留白 二',n:'大字 + 圆点',
+  d:'色标再收成一颗 7px 圆点，工时用文字色。整屏几乎看不到颜色，只在扫视时形成节奏。最安静。'},
+ {id:'uline',tg:'留白 三',n:'大字 + 下划线',
+  d:'颜色变成日期下面一道 22×3 的短线。线比点更有方向感，连成一行时能看出连班的段落。'},
+ {id:'axis',tg:'留白 四',n:'大字 + 微时段轴',
+  d:'短线换成一条 26px 的 24 小时轴，填充段的位置就是上班时段。方案 C 的核心信息，压缩到几乎没有重量。'},
+];
 function cell(day,o={}){
-  const k=ROSTER[day],sh=SHIFT[k],T=tone(k,o.pair,o.viv);
-  const shape=o.shape||SHP, on=o.on||ON, thumb=o.thumb;
-  const holi=HOLI[day]||'', today=day===TODAY, done=!sh.rest&&day<TODAY;
-  const filled=shape==='full'&&!sh.rest;
-  const e=el('div','cel'+(today?' td':''));
-  if(filled){e.style.background=T.fill}
-  const inkMain=filled?T.ink:'var(--label)';
-  const inkSub =filled?T.ink:'var(--label2)';
+  const k=ROSTER[day],sh=SHIFT[k],shape=o.shape||SHP;
+  const T=tone(k,o.pair,shape==='tintfill'?(o.viv==='solid'?'rich':(o.viv||VIV)):(o.viv));
+  const holi=HOLI[day]||'',today=day===TODAY;
+  const filled=(shape==='fill'||shape==='tintfill')&&!sh.rest;
+  const e=el('div','c'+(sh.rest?' rest':'')+(today?' today':'')+(filled?' fill':''));
+  if(filled){e.style.background=T.fill;e.style.color=T.ink}
 
-  if(shape==='top'&&!sh.rest){const b=el('div','topbar');b.style.background=T.bar;e.appendChild(b);e.style.paddingTop='9px'}
-  if(shape==='left'&&!sh.rest){const b=el('div','leftbar');b.style.background=T.bar;e.appendChild(b);e.style.paddingLeft='9px'}
+  /* 日期 + 右上角小字 */
+  const nr=el('div','numrow');
+  const num=el('span','num',day);
+  if(filled)num.style.fontSize=(o.den||DEN)==='tight'?'17px':'19px';
+  if(filled){num.style.color=T.ink;num.style.opacity=today?1:.88}
+  else if(today)num.style.color='var(--tint)';
+  else if(sh.rest)num.style.color='var(--label3)';
+  nr.appendChild(num);
+  if(!filled&&holi)e.appendChild(el('span','sub h',holi));
+  e.appendChild(nr);
 
-  const top=el('div','rowb');
-  const dn=el('span','dn',day); dn.style.color=filled?T.ink:(sh.rest?'var(--label2)':'var(--label)');
-  if(filled)dn.style.opacity=.85;
-  top.appendChild(dn);
-  if(on.done&&done&&!thumb){const d=el('span','dot5');d.style.background=filled?T.ink:T.bar;
-    if(filled)d.style.opacity=.55;top.appendChild(d)}
-  e.appendChild(top);
-
-  if(on.hol&&holi&&!thumb){const h=el('span','hol',holi);
-    h.style.color=filled?T.ink:'var(--tint)';h.style.opacity=filled?.8:1;e.appendChild(h)}
-
-  if(on.tm&&!sh.rest&&!thumb){const t=el('span','tm',sh.st+'–'+sh.en);t.style.color=inkSub;e.appendChild(t)}
-
-  if(shape==='dot'){
-    if(on.sn){const s=el('div','sn',sh.s);s.style.color=sh.rest?'var(--label3)':T.ink;
-      s.style.textAlign='center';s.style.fontSize='13px';e.appendChild(s)}
-    const p=el('div','bigdot');p.style.background=sh.rest?'var(--card3)':T.bar;e.appendChild(p);
-    if(on.bar)e.appendChild(bar24(k,T.bar));
+  if(filled){
+    const mk=el('div','mk');
+    const s=el('span','snm',sh.s);s.style.color=T.ink;mk.appendChild(s);
+    const h=el('span','hrs',sh.h?sh.h+'h':'');h.style.color=T.ink;h.style.opacity=.82;h.style.fontSize='9.5px';mk.appendChild(h);
+    e.appendChild(mk);
+    if(holi){const x=el('span','sub h',holi);x.style.cssText=
+      'position:absolute;top:5px;right:5px;width:auto;font-size:8px;color:'+T.ink+';opacity:.75';e.appendChild(x)}
     return e;
   }
-  if(shape==='pill'&&!sh.rest){
-    const box=el('div','pillbox');box.style.background=T.fill;
-    if(on.sn){const s=el('span','sn',sh.s);s.style.color=T.ink;s.style.fontSize=thumb?'8.5px':'14px';box.appendChild(s)}
-    if(on.hr&&sh.h&&!thumb){const x=el('span','hr',sh.h+'h');x.style.color=T.ink;box.appendChild(x)}
-    e.appendChild(box);
-    if(on.bar)e.appendChild(bar24(k,T.bar));
-    return e;
-  }
+  if(sh.rest)return e;
 
-  const mid=el('div','rowm');
-  if(on.sn){const s=el('span','sn',sh.s);s.style.color=sh.rest?(filled?T.ink:'var(--label3)'):(filled?T.ink:T.bar);
-    if(thumb)s.style.fontSize='8.5px';mid.appendChild(s)}
-  if(on.hr&&sh.h&&!thumb){const x=el('span','hr',sh.h+'h');x.style.color=inkSub;mid.appendChild(x)}
-  if(mid.children.length)e.appendChild(mid);
-  if(on.bar)e.appendChild(bar24(k,filled?T.ink:T.bar,filled?'rgba(255,255,255,.28)':null));
+  const mk=el('div','mk');
+  if(shape==='pill'){
+    const p=el('div','pillm');p.style.background=tone(k,o.pair,'mid').fill;p.style.color=tone(k,o.pair,'mid').ink;
+    p.innerHTML='<span>'+sh.s+'</span><span style="font-variant-numeric:tabular-nums;font-weight:600">'+sh.h+'h</span>';
+    mk.appendChild(p);
+  }else if(shape==='chip'){
+    const c=el('span','chip',sh.s);c.style.background=T.base;c.style.color=inkOn(T.base,T.base);
+    mk.appendChild(c);
+    const h=el('span','hrs',sh.h+'h');h.style.color=T.onBg;mk.appendChild(h);
+  }else if(shape==='dot'){
+    const d=el('span','dot');d.style.background=T.base;mk.appendChild(d);
+    const h=el('span','hrs',sh.h+'h');h.style.color='var(--label2)';mk.appendChild(h);
+  }else if(shape==='uline'){
+    const w=el('div');w.style.cssText='display:flex;flex-direction:column;align-items:center;gap:3px';
+    const u=el('span','uline');u.style.background=T.base;w.appendChild(u);
+    const h=el('span','hrs',sh.h+'h');h.style.color='var(--label2)';h.style.fontSize='11.5px';w.appendChild(h);
+    mk.appendChild(w);
+  }else if(shape==='axis'){
+    const w=el('div');w.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px';
+    const a=el('span','axis');a.style.background=isDark()?'#2C2C2E':'#E5E5EA';
+    segs(sh).forEach(([x,ww])=>{const i=el('i');i.style.left=x+'%';i.style.width=ww+'%';i.style.background=T.base;a.appendChild(i)});
+    w.appendChild(a);
+    const h=el('span','hrs',sh.h+'h');h.style.color='var(--label2)';h.style.fontSize='11.5px';w.appendChild(h);
+    mk.appendChild(w);
+  }
+  e.appendChild(mk);
   return e;
 }
-function month(o={}){
-  const c=el('div','cal');
-  if(!o.thumb){const w=el('div','wk');['一','二','三','四','五','六','日'].forEach(d=>w.appendChild(el('span',null,d)));c.appendChild(w)}
-  const g=el('div','gd');
-  for(let i=0;i<LEAD;i++)g.appendChild(el('div','cel bl'));
+function screen(o={}){
+  const shape=o.shape||SHP,filled=shape==='fill'||shape==='tintfill';
+  const p=el('div','phone '+(o.den||DEN));
+  const nav=el('div','pnav');
+  nav.innerHTML='<span class="bk">‹</span><span class="mo">8月</span><span class="mo cur">9月</span><span class="mo">10月</span><span class="mr"></span>';
+  p.appendChild(nav);
+  const band=el('div','pband');['周一','周二','周三','周四','周五','周六','周日'].forEach(d=>band.appendChild(el('span',null,d)));
+  p.appendChild(band);
+  const g=el('div','pgrid'+(filled?' fillwrap':''));
+  if(filled)g.style.gap='3px';
+  for(let i=0;i<LEAD;i++)g.appendChild(el('div','c'));
   for(let d=1;d<=DAYS;d++)g.appendChild(cell(d,o));
-  c.appendChild(g);return c;
+  p.appendChild(g);
+  const s=el('div','psum');
+  s.innerHTML='<div><div class="k">已工作小时</div><div class="v">156.0</div></div>'+
+              '<div><div class="k">额外工时</div><div class="v">72.0</div></div>'+
+              '<span class="go">查看明细 ›</span>';
+  p.appendChild(s);
+  return p;
 }
 
-/* ===== 渲染各区 ===== */
-function stage(){
-  const P=PAIRS.find(p=>p.id===PAIR),V=VIVS.find(v=>v.id===VIV),S=SHAPES.find(s=>s.id===SHP);
-  document.getElementById('stgName').textContent=P.n;
-  document.getElementById('stgMeta').textContent=V.n+' · '+S.n;
-  const box=document.getElementById('stgCal');box.innerHTML='';box.appendChild(month());
-  const lg=el('div','legend');
-  [...KEYS,'rest'].forEach(k=>{const T=tone(k),sh=SHIFT[k],x=el('div','c');
-    x.style.background=T.fill;x.style.color=T.ink;
-    x.innerHTML='<span style="width:8px;height:8px;border-radius:3px;background:'+T.bar+';display:inline-block"></span>'
-      +sh.n+(sh.st?'<em>'+sh.st.slice(0,2)+'–'+sh.en.slice(0,2)+'</em>':'');
-    lg.appendChild(x)});
-  const l=document.getElementById('stgLeg');l.innerHTML='';l.appendChild(lg);
-
-  const t=document.getElementById('crTable');t.innerHTML='';
-  [...KEYS,'rest'].forEach(k=>{const T=tone(k),ok=T.cr>=4.5;
-    const r=el('div');r.style.cssText='display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;'+
-      'padding:7px 0;border-bottom:.5px solid var(--sep2);font-size:13px';
-    r.innerHTML='<span style="display:flex;align-items:center;gap:7px"><i style="width:22px;height:22px;border-radius:6px;'+
-      'background:'+T.fill+';color:'+T.ink+';display:grid;place-items:center;font-size:11px;font-weight:700;font-style:normal">'+
-      SHIFT[k].s+'</i>'+SHIFT[k].n+'</span>'+
-      '<span style="font-family:ui-monospace,monospace;font-size:11px;color:var(--label3)">'+T.fill+' / '+T.ink+'</span>'+
-      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px;color:'+(ok?'var(--label)':'#FF3B30')+'">'+T.cr.toFixed(2)+':1</b>';
+/* ===== 渲染 ===== */
+function renderBA(){
+  const t=document.getElementById('baTbl');t.innerHTML='';
+  const h=el('div','r');
+  h.appendChild(el('div','hd','系统色'));h.appendChild(el('div','hd','旧：mix 白 42%'));h.appendChild(el('div','hd','新：OKLCH 保彩度'));
+  t.appendChild(h);
+  ['orange','yellow','green','mint','blue','purple'].forEach(k=>{
+    const[nm,c]=SYS[k],r=el('div','r');
+    const n=el('div','nm');const i=el('span');i.style.cssText='width:13px;height:13px;border-radius:4px;background:'+c;
+    n.appendChild(i);n.appendChild(document.createTextNode(nm));r.appendChild(n);
+    const old=mixW(c,.42),neu=atL(c,.80);
+    [[old,'兑白'],[neu,'保彩度']].forEach(([col,lbl])=>{
+      const s=el('div','sw');s.style.background=col;s.style.color=inkOn(c,col);
+      s.innerHTML='<span>白班 12h</span><code>'+col.toUpperCase()+'</code>';r.appendChild(s)});
     t.appendChild(r)});
+}
+function renderHues(){
+  const g=document.getElementById('hueGrid');g.innerHTML='';
+  Object.entries(SYS).forEach(([k,[nm,c]])=>{
+    const ink=inkOn(c,c),d=el('div','hue');
+    d.style.background=c;d.style.color=ink;
+    d.innerHTML='<b>'+nm+'</b><code>'+c+'</code>';g.appendChild(d)});
 }
 function renderPairs(){
   const g=document.getElementById('pairGrid');g.innerHTML='';
@@ -480,117 +471,59 @@ function renderPairs(){
     const mini=el('div','mini');
     for(let d=1;d<=28;d++){const i=el('i');i.style.background=tone(ROSTER[d],p.id).fill;mini.appendChild(i)}
     c.appendChild(mini);
-    const ds=el('p');ds.style.cssText='margin:0;font-size:12px;color:var(--label2);line-height:1.5';ds.textContent=p.d;
-    c.appendChild(ds);
     const go=()=>{PAIR=p.id;render()};
     c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
     g.appendChild(c)});
-}
-function renderVivs(){
-  const g=document.getElementById('vivGrid');g.innerHTML='';
-  VIVS.forEach(v=>{
-    const c=el('div','viv'+(v.id===VIV?' on':''));c.tabIndex=0;c.setAttribute('role','button');
-    const h=el('div','h');h.innerHTML='<b>'+v.n+'</b><em>'+(v.t===1?'100%':Math.round(v.t*100)+'%')+'</em>';c.appendChild(h);
-    const duo=el('div','duo');
-    ['day','night'].forEach(k=>{const T=tone(k,PAIR,v.id),d=el('div','d');
-      d.style.background=T.fill;d.style.color=T.ink;
-      d.innerHTML='<span class="t">'+(k==='day'?'08–20':'20–08')+'</span><span class="s">'+SHIFT[k].s+'</span>';
-      duo.appendChild(d)});
-    c.appendChild(duo);
-    [['day','白班'],['night','夜班']].forEach(([k,n])=>{const T=tone(k,PAIR,v.id),r=el('div','ratio');
-      r.innerHTML='<span>'+n+'</span><b style="color:'+(T.cr>=4.5?'var(--label)':'#FF3B30')+'">'+T.cr.toFixed(2)+':1</b>';
-      c.appendChild(r)});
-    const ds=el('p');ds.style.cssText='margin:0;font-size:12px;color:var(--label2);line-height:1.5';ds.textContent=v.d;
-    c.appendChild(ds);
-    const go=()=>{VIV=v.id;render()};
-    c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
-    g.appendChild(c)});
+  const s=document.getElementById('pairSeg');s.innerHTML='';
+  PAIRS.forEach(p=>{const b=el('button',null,p.n);b.setAttribute('aria-pressed',p.id===PAIR);
+    b.onclick=()=>{PAIR=p.id;render()};s.appendChild(b)});
+  const v=document.getElementById('vivSeg');v.innerHTML='';
+  VIVS.forEach(x=>{const b=el('button',null,x.n);b.setAttribute('aria-pressed',x.id===VIV);
+    b.onclick=()=>{VIV=x.id;render()};v.appendChild(b)});
 }
 function renderShapes(){
   const g=document.getElementById('shpGrid');g.innerHTML='';
   SHAPES.forEach(s=>{
-    const c=el('div','shp'+(s.id===SHP?' on':''));c.tabIndex=0;c.setAttribute('role','button');
-    const h=el('div','h');h.innerHTML='<b>'+s.n+'</b><span>'+s.d+'</span>';c.appendChild(h);
-    const t=el('div','thumb');t.appendChild(month({shape:s.id,thumb:true,on:Object.assign({},ON,{tm:false})}));
-    c.appendChild(t);
+    const c=el('div','sc'+(s.id===SHP?' on':''));c.tabIndex=0;c.setAttribute('role','button');
+    const h=el('div','h');h.innerHTML='<div class="tg">'+s.tg+'</div><b>'+s.n+'</b><span>'+s.d+'</span>';c.appendChild(h);
+    const b=el('div','body');b.appendChild(screen({shape:s.id}));c.appendChild(b);
     const go=()=>{SHP=s.id;render()};
     c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
     g.appendChild(c)});
 }
-const COMBOS=[
- {n:'满色极简',pair:'amber',viv:'full',shape:'full',on:{sn:true,hr:false,tm:false,bar:false,done:false,hol:true},
-  d:'实心块 + 只有简称。最像小组件，一眼就能扫完整月。时段条和工时全部去掉。'},
- {n:'浓彩标准',pair:'sunrise',viv:'rich',shape:'full',on:{sn:true,hr:true,tm:false,bar:true,done:true,hol:true},
-  d:'推荐款。颜色占满格子，时段条留着，工时留着，起止时间收起来。'},
- {n:'金紫时段',pair:'gold',viv:'rich',shape:'full',on:{sn:true,hr:false,tm:false,bar:true,done:false,hol:true},
-  d:'饱和度最高的一组，配上时段条。去掉工时，让颜色和时段轴说话。'},
- {n:'胶囊清爽',pair:'daynight',viv:'mid',shape:'pill',on:{sn:true,hr:true,tm:false,bar:false,done:true,hol:true},
-  d:'颜色收进胶囊，格子底保持中性。橙蓝互补，鲜艳但整页不闷。'},
- {n:'色条轻量',pair:'flame',viv:'rich',shape:'top',on:{sn:true,hr:true,tm:true,bar:false,done:true,hol:true},
-  d:'颜色只占顶边一道，格内信息最全——连起止时间都放得下。'},
- {n:'纯色点',pair:'peach',viv:'full',shape:'dot',on:{sn:true,hr:false,tm:false,bar:false,done:false,hol:true},
-  d:'一颗色点加一个字，格子最矮，一屏能放下两个月。'},
-];
-function renderCombos(){
-  const g=document.getElementById('cmbGrid');g.innerHTML='';
-  COMBOS.forEach(cb=>{
-    const c=el('div','cmb');c.tabIndex=0;c.setAttribute('role','button');
-    const h=el('div','h');h.innerHTML='<b>'+cb.n+'</b><span>'+cb.d+'</span>';c.appendChild(h);
-    const t=el('div','thumb');t.appendChild(month({pair:cb.pair,viv:cb.viv,shape:cb.shape,on:cb.on,thumb:true}));
-    c.appendChild(t);
-    const go=()=>{PAIR=cb.pair;VIV=cb.viv;SHP=cb.shape;Object.assign(ON,cb.on);render();
-      document.getElementById('studio').scrollIntoView({behavior:'smooth',block:'start'})};
-    c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
-    g.appendChild(c)});
+function renderCR(){
+  const t=document.getElementById('crTbl');t.innerHTML='';
+  [...KEYS,'rest'].forEach(k=>{const T=tone(k),ok=T.cr>=4.5,r=el('div','r');
+    r.innerHTML='<span style="display:flex;align-items:center;gap:8px"><i class="sq" style="background:'+T.fill+
+      ';color:'+T.ink+';font-style:normal">'+SHIFT[k].s+'</i>'+SHIFT[k].n+'</span>'+
+      '<span style="font-family:ui-monospace,monospace;font-size:11px;color:var(--label3)">'+T.fill.toUpperCase()+' / '+T.ink.toUpperCase()+'</span>'+
+      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px;color:'+(ok?'var(--label)':'var(--danger)')+'">'+T.cr.toFixed(2)+':1</b>';
+    t.appendChild(r)});
 }
 function renderOut(){
   const P=PAIRS.find(p=>p.id===PAIR),V=VIVS.find(v=>v.id===VIV);
   const was=document.documentElement.getAttribute('data-theme');
-  const grab=mode=>{document.documentElement.setAttribute('data-theme',mode);
+  const grab=m=>{document.documentElement.setAttribute('data-theme',m);
     const o={};[...KEYS,'rest'].forEach(k=>o[k]=tone(k));return o};
   const L=grab('light'),D=grab('dark');
   if(was)document.documentElement.setAttribute('data-theme',was);
   else document.documentElement.removeAttribute('data-theme');
-  const pad=s=>s+' '.repeat(Math.max(0,6-s.length));
-  let s='<i>// 配对：'+P.n+'（'+P.sub+'）　浓度：'+V.n+' '+(V.t===1?'100%':Math.round(V.t*100)+'%')+'</i>\n';
-  s+='<i>// bar = 色条 / 圆点 / 图例小方块　fill = 格子底　ink = 格内文字</i>\n\n';
+  const pad=s=>s+' '.repeat(Math.max(0,10-s.length));
+  let s='<i>// 配对 '+P.n+'（'+P.sub+'）　浓度 '+V.n+(V.L?'（OKLCH L '+V.L+'）':'（满饱和度）')+'</i>\n';
+  s+='<i>// base = 小色标 / 圆点 / 下划线　fill = 格子底　ink = 格内文字</i>\n\n';
   s+='<b>enum</b> ShiftTone {\n';
-  [['light','浅色',L],['dark','深色',D]].forEach(([mode,cn,set])=>{
+  [['Lite','浅色',L],['Dark','深色',D]].forEach(([sfx,cn,set])=>{
     s+='    <i>// '+cn+'</i>\n';
-    [...KEYS,'rest'].forEach(k=>{
-      const t=set[k];
-      s+='    <b>static let</b> '+pad(k+(mode==='dark'?'Dark':'Lite'))+
-         ' = ("'+t.bar+'", "'+t.fill+'", "'+t.ink+'")  <i>// '+SHIFT[k].n+'　'+t.cr.toFixed(2)+':1</i>\n';
-    });
-    s+='\n';
-  });
+    [...KEYS,'rest'].forEach(k=>{const t=set[k];
+      s+='    <b>static let</b> '+pad(k+sfx)+' = ("'+t.base.toUpperCase()+'", "'+t.fill.toUpperCase()+'", "'+
+         t.ink.toUpperCase()+'")  <i>// '+SHIFT[k].n+'　'+t.cr.toFixed(2)+':1</i>\n'});
+    s+='\n'});
   s+='}\n';
   document.getElementById('swiftOut').innerHTML=s;
 }
-function renderTogs(){
-  const g=document.getElementById('togs');g.innerHTML='';
-  ELEMS.forEach(([k,n,eg])=>{const b=el('button','tog');b.setAttribute('aria-pressed',ON[k]);
-    b.innerHTML=n+'<span style="opacity:.62;font-size:11px;font-weight:500">'+eg+'</span>';
-    b.onclick=()=>{ON[k]=!ON[k];render()};g.appendChild(b)});
-  const p=document.getElementById('presets');p.innerHTML='';
-  [['全部打开',{sn:1,hr:1,tm:1,bar:1,done:1,hol:1}],
-   ['只留简称',{sn:1,hr:0,tm:0,bar:0,done:0,hol:1}],
-   ['简称 + 工时',{sn:1,hr:1,tm:0,bar:0,done:1,hol:1}],
-   ['简称 + 时段条',{sn:1,hr:0,tm:0,bar:1,done:0,hol:1}],
-   ['去掉时段条',{sn:1,hr:1,tm:1,bar:0,done:1,hol:1}],
-   ['全部关闭',{sn:0,hr:0,tm:0,bar:0,done:0,hol:0}]]
-  .forEach(([n,o])=>{const b=el('button','pbtn',n);
-    b.onclick=()=>{Object.keys(ON).forEach(k=>ON[k]=!!o[k]);render()};p.appendChild(b)});
-}
-function renderSegs(){
-  const v=document.getElementById('vivSeg');v.innerHTML='';
-  VIVS.forEach(x=>{const b=el('button',null,x.n);b.setAttribute('aria-pressed',x.id===VIV);
-    b.onclick=()=>{VIV=x.id;render()};v.appendChild(b)});
-  const s=document.getElementById('shpSeg');s.innerHTML='';
-  SHAPES.forEach(x=>{const b=el('button',null,x.n);b.setAttribute('aria-pressed',x.id===SHP);
-    b.onclick=()=>{SHP=x.id;render()};s.appendChild(b)});
-}
-function render(){renderSegs();renderTogs();stage();renderPairs();renderVivs();renderShapes();renderCombos();renderOut()}
+function render(){renderBA();renderHues();renderPairs();renderShapes();renderCR();renderOut()}
+document.getElementById('denSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  DEN=b.dataset.d;[...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
 document.getElementById('thSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   document.documentElement.setAttribute('data-theme',b.dataset.th);
   [...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
