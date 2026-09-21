@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
 body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>右列与今天</title>
+<title>左列与今天</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -70,6 +70,7 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .panel h4{font-size:14.5px;font-weight:650}
 .panel .hint{font-size:12.8px;color:var(--label2);line-height:1.55;margin:-3px 0 0}
 .bad{color:var(--danger)}
+.good{color:var(--ok)}
 
 .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .opt{background:var(--card);border-radius:var(--r-m);padding:13px;display:grid;gap:10px;cursor:pointer;
@@ -78,9 +79,16 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .opt:focus-visible{outline:2px solid var(--tint);outline-offset:2px}
 .opt .nm b{font-size:14.5px;font-weight:650;display:block}
 .opt .nm span{font-size:12px;color:var(--label2);line-height:1.5;display:block;margin-top:3px}
+.opt .verdict{font-size:11.5px;font-weight:600;display:flex;gap:6px;align-items:flex-start}
+.opt .verdict i{font-style:normal;flex:none;font-size:10px;padding:1px 6px;border-radius:99px;margin-top:1px}
+.opt .verdict i.y{background:rgba(36,138,61,.15);color:var(--ok)}
+.opt .verdict i.n{background:var(--card2);color:var(--label2)}
 .stagebox{background:var(--screen);border-radius:12px;padding:8px 4px;display:grid;gap:2px;border:.5px solid var(--sep2)}
 .stagebox.n4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .stagebox.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+/* 两行网格，用来看"横杠到底属于上一格还是下一格" */
+.stack2{background:var(--screen);border-radius:12px;padding:6px 4px;display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;border:.5px solid var(--sep2)}
 
 .matrix{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
 .mcell{background:var(--card);border-radius:14px;padding:9px 7px 10px;display:grid;gap:7px;justify-items:center}
@@ -89,7 +97,6 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .mcell .cap{font-size:11px;color:var(--label2);text-align:center;line-height:1.35}
 .mcell .cap b{display:block;color:var(--label);font-weight:600;font-size:11.5px}
 
-/* 色板 */
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:9px}
 .sw{border-radius:13px;padding:10px 9px 11px;display:grid;gap:6px;cursor:pointer;position:relative;
   border:2.5px solid transparent;transition:.15s;align-content:space-between;min-height:88px}
@@ -97,18 +104,17 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .sw .t{font-size:12.5px;font-weight:650}
 .sw code{font-family:ui-monospace,monospace;font-size:9px;opacity:.55;font-weight:600;display:block}
 .sw .pick{position:absolute;top:7px;right:7px;width:17px;height:17px;border-radius:50%;
-  display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff;opacity:0;transition:.15s}
+  display:grid;place-items:center;font-size:10px;font-weight:700;opacity:0;transition:.15s}
 .sw.on .pick{opacity:1}
 .sw.locked{cursor:default}
-.sw .lk{position:absolute;top:8px;right:8px;font-size:9px;font-weight:600;opacity:.5}
+.sw .lk{position:absolute;bottom:9px;right:9px;font-size:9px;font-weight:600;opacity:.45}
 .clash{background:var(--card);border-radius:var(--r-m);padding:14px 16px;margin-top:12px;display:grid;gap:8px}
 .clash .row{display:flex;align-items:center;gap:9px;font-size:13px;flex-wrap:wrap}
-.clash .row i{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff}
+.clash .row i{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:700}
 .clash .tagv{font-size:11px;font-weight:650;padding:2px 7px;border-radius:99px;font-variant-numeric:tabular-nums}
 .clash .warn{background:rgba(215,0,21,.12);color:var(--danger)}
 .clash .fine{background:rgba(36,138,61,.14);color:var(--ok)}
 
-/* 完整排布 */
 .lays{display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:15px;align-items:start}
 .lay{background:var(--card);border-radius:var(--r-l);overflow:hidden}
 .lay .h{padding:14px 16px 11px}
@@ -118,7 +124,6 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .lay .body{padding:0 10px 14px}
 .lay .phone{max-width:none;border:none;border-radius:16px}
 
-/* phone */
 .phone{width:100%;max-width:330px;margin:0 auto;background:var(--screen);border-radius:26px;overflow:hidden;
   border:.5px solid var(--sep);display:flex;flex-direction:column}
 .pnav{display:flex;align-items:center;justify-content:center;gap:16px;padding:13px 14px 11px;position:relative}
@@ -135,39 +140,39 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .psum .go{margin-left:auto;font-size:12.5px;color:var(--label2);white-space:nowrap}
 
 /* ---- 格子 ---- */
-.c{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
-  padding:7px 12px 6px 4px;min-width:0;gap:4px;border-radius:10px}
-.airy .c{min-height:78px}
-.tight .c{min-height:62px}
-.c .num{font-size:22px;font-weight:550;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.c{position:relative;display:flex;flex-direction:column;align-items:stretch;
+  padding:5px 3px;min-width:0;border-radius:10px}
+.airy .c{min-height:76px}
+.tight .c{min-height:60px}
+.inner{display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:9px;padding:3px 2px 4px}
+.c.top    {justify-content:flex-start}
+.c.center {justify-content:center}
+.c.bottom {justify-content:flex-end}
+.c .num{font-size:22px;font-weight:550;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;
+  position:relative;display:inline-grid;place-items:center}
 .tight .c .num{font-size:19px}
 .c.rest .num{color:var(--label3);font-weight:450}
 .c.empty{visibility:hidden}
 .c.unset .num{color:var(--label3);font-weight:450}
-/* 右列标记 */
-.rail{position:absolute;top:5px;right:1px;width:11px;display:flex;flex-direction:column;align-items:center;gap:3px}
-.rail .ri{line-height:1.04;text-align:center;font-weight:650;width:100%}
-.rail .rh{font-size:8px;color:var(--danger)}
-.rail .rs{font-size:8.5px;color:var(--ok)}
-.rail .rt{font-size:8.5px}
-.rail .rq{width:9px;height:9px;border-radius:2.5px;display:grid;place-items:center;font-size:6.5px;color:#fff}
-.rail .rd{width:5px;height:5px;border-radius:50%}
-.rail .rr{width:9px;height:9px;border-radius:2.5px;display:grid;place-items:center;font-size:6.5px;background:transparent}
-.rail .more{font-size:7.5px;color:var(--label3);font-weight:700}
-/* 主列 */
+/* 两侧标记列 */
+.railL,.railR{position:absolute;top:5px;width:11px;display:flex;flex-direction:column;align-items:center;gap:3px;z-index:2}
+.railL{left:1px} .railR{right:1px}
+.ri{line-height:1.04;text-align:center;font-weight:650;width:100%}
+.rh{font-size:8px;color:var(--danger)}
+.rs{font-size:8.5px;color:var(--ok)}
+.rt{font-size:8.5px}
+.rq{width:9px;height:9px;border-radius:2.5px;display:grid;place-items:center;font-size:6.5px}
+.more{font-size:7.5px;color:var(--label3);font-weight:700}
 .mk{display:flex;align-items:center;justify-content:center;gap:3px;max-width:100%;min-width:0}
 .sq{border-radius:4px;display:grid;place-items:center;font-weight:700;flex:none;line-height:1}
 .hrs{font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
-.tm{font-size:8px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2;white-space:nowrap}
-.notedot{position:absolute;bottom:5px;left:5px;width:4px;height:4px;border-radius:50%;background:var(--label3)}
+.notedot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--label3)}
 /* 今天 */
-.c.tdFill{}
-.c.tdRing::after{content:"";position:absolute;inset:0;border-radius:10px;border:2px solid var(--tint);pointer-events:none}
-.tdDisc{position:absolute;top:3px;left:50%;transform:translateX(-50%);width:30px;height:30px;border-radius:50%;z-index:0}
-.c .num,.c .mk,.c .tm{position:relative;z-index:1}
-.tdBar{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:20px;height:3px;border-radius:99px}
 
-/* 对比度 */
+.numline{width:18px;height:3px;border-radius:99px;flex:none;margin-top:-1px}
+.sidebar{position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 99px 99px 0}
+.botbar{position:absolute;left:50%;transform:translateX(-50%);bottom:4px;width:20px;height:3px;border-radius:99px}
+
 .crt{display:grid;gap:0}
 .crt .r{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;
   padding:8px 0;border-bottom:.5px solid var(--sep2);font-size:13px}
@@ -185,16 +190,16 @@ pre i{font-style:normal;color:var(--label3)}
 
 <div class="wrap">
 <header class="top">
-  <div class="kicker">Shift Ledger · 右列标记 + 今天</div>
-  <h1>右列与今天</h1>
-  <p>四件事：职责标签改成<b>右侧一列，和节假日「中秋」、调休「班」上下对齐</b>；<b>今天</b>不再改数字颜色，改成整格填充；<b>不记工时</b>时格子长什么样；以及给自定义班次准备的<b>十四色备选色板</b>。</p>
+  <div class="kicker">Shift Ledger · 标记列与今天</div>
+  <h1>左列与今天</h1>
+  <p>三件事：职责标签<b>挪到左列</b>试试；今天的填充<b>下面显空</b>，把对齐方式几种都试一遍；底部横杠<b>说不清属于上一格还是下一格</b>，换几种归属明确的标法。色板保留不动。</p>
   <div class="locks" id="locks"></div>
 </header>
 
 <div class="bar">
-  <span class="blab">右列</span><div class="seg" id="railSeg"></div>
+  <span class="blab">标记列</span><div class="seg" id="railSeg"></div>
+  <span class="blab">对齐</span><div class="seg" id="alignSeg"></div>
   <span class="blab">今天</span><div class="seg" id="tdSeg"></div>
-  <span class="blab">信息量</span><div class="seg" id="lvlSeg"></div>
   <span class="blab">密度</span>
   <div class="seg" id="denSeg"><button data-d="airy" aria-pressed="true">疏</button><button data-d="tight" aria-pressed="false">紧</button></div>
   <span class="blab">外观</span>
@@ -202,39 +207,31 @@ pre i{font-style:normal;color:var(--label3)}
 </div>
 
 <section id="rail">
-  <div class="shd"><div class="n">01</div><h2>右列标记</h2>
-  <p>右边留出 11pt 一条竖列，从上往下依次放：<b>节假日 / 调休 →  职责标签 1 →  标签 2 →  标签 3</b>。所有标记共用这一列，天然对齐。主列因此只剩「色标 + 工时」两样，宽度一下就松了。超过三个标签用「＋n」收尾。</p></div>
+  <div class="shd"><div class="n">01</div><h2>标签放左边还是右边</h2>
+  <p>三种都试了。左右各留 11pt，日期数字居中在中间那块。<b>左右分工那版最讲得通</b>：左列是「这天我承担什么」（职责标签），右列是「这天在日历上是什么性质」（节假日、调休）——两类东西本来就不是一回事，分开放比挤在一列清楚。</p></div>
   <div class="opts" id="railGrid"></div>
-  <div class="panel" style="margin-top:14px">
-    <h4>为什么是右列而不是挤在同一行</h4>
-    <p class="hint">一格宽 46pt。原来「色标 13 + 工时 17 + 标签 8 + 两道间距」= 42pt，塞得进但零余量，挂第二个标签就崩了。改成右列之后主列只剩 13 + 17 + 3 = 33pt，余 13pt；右列 11pt 纵向能叠四格（节假日 17pt + 三个标签各 9pt + 间距 = 53pt），而格子高 78pt，<b>放得下还有余</b>。</p>
-  </div>
+</section>
+
+<section id="align">
+  <div class="shd"><div class="n">02</div><h2>内容怎么对齐</h2>
+  <p>你看到的"下面空"其实不是填充的问题——<b>格子高 76pt，内容只有 45pt，一直是顶对齐</b>，所以底下本来就留了 30pt。平时格子没底色看不出来，一填充就露馅了。四种对齐都带着今天的填充，直接比。</p></div>
+  <div class="opts" id="alignGrid"></div>
 </section>
 
 <section id="today">
-  <div class="shd"><div class="n">02</div><h2>今天怎么标</h2>
-  <p>日期数字恢复成正常的主文本色。今天改用<b>整格填充</b>，像列表里被选中的那一行。浅色是系统蓝的淡阶，深色是同色相压暗的版本——都用 OKLCH 算，不是把蓝色兑白或兑黑。</p></div>
+  <div class="shd"><div class="n">03</div><h2>今天怎么标</h2>
+  <p>底部横杠的问题你说得对：<b>它贴在格子下沿，和下一行的格子只隔 1pt，眼睛会把它读成下一格的顶边</b>。凡是"贴着格子边缘"的标记都有这个毛病。下面每张卡片都画成<b>两行三列</b>，中间那格是今天——能直接看出这个标记到底归谁。</p></div>
   <div class="opts" id="tdGrid"></div>
-</section>
-
-<section id="level">
-  <div class="shd"><div class="n">03</div><h2>不记工时的时候</h2>
-  <p>班次、工时、起止时间以后都能自定义。用户要是关掉工时，格子里就只剩色标——这时色标<b>放大到 17pt</b> 把空出来的位置吃掉，不然格子会显得空。三档信息量都在下面。</p></div>
-  <div class="opts" id="lvlGrid"></div>
-</section>
-
-<section id="pal">
-  <div class="shd"><div class="n">04</div><h2>自定义色板</h2>
-  <p>白班南瓜、夜班靛是默认值，其余班次用户自己挑。十四个色全部<b>白字 ≥3:1</b>，全部高饱和，没有一个浊色。点色块可以试选——页面会实时算所选色两两之间的距离，太近的会提示。</p></div>
-  <h3 class="sub">核心八色 · 按推荐顺序</h3>
-  <div class="swatches" id="coreGrid"></div>
-  <h3 class="sub">扩展六色</h3>
-  <div class="swatches" id="extGrid"></div>
-  <div class="clash" id="clashBox"></div>
-  <div class="panel" style="margin-top:12px">
-    <h4>四个色是安全线</h4>
-    <p class="hint">按推荐顺序取前四个（南瓜 · 靛 · 品红 · 森绿），两两之间在正常视觉、红绿色盲、红色盲三种情况下的 OKLab ΔE 最差也有 <b>20.4</b>，远高于 15 的门槛。第五个开始降到 11.5，第八个只剩 5.0。<b>但每个色标里都有一个简称字</b>，颜色不是唯一的区分手段，所以超过四个也能用——只是选到太近的两个时应该提示一下。</p>
+  <div class="panel" style="margin-top:14px">
+    <h4>判断标准</h4>
+    <p class="hint">一个"今天"的标记要同时满足三条：<b>归属明确</b>（一眼知道是这一格的，不会读成邻格）、<b>不改数字颜色</b>（颜色留给班次和节假日）、<b>不和格子里别的东西打架</b>（右上角红字、左列标签、色标都还在）。整格填充和数字胶囊两种都过；底部横杠和左侧竖杠都卡在第一条。</p>
   </div>
+</section>
+
+<section id="screens">
+  <div class="shd"><div class="n">04</div><h2>整屏</h2>
+  <p>2026 年 9 月医护排法。25 号中秋、27 号调休上班，几天挂了一到四个职责标签，今天 20 号。</p></div>
+  <div class="lays" id="scrGrid"></div>
 </section>
 
 <section id="matrix">
@@ -242,19 +239,18 @@ pre i{font-style:normal;color:var(--label3)}
   <div class="matrix" id="matrixGrid"></div>
 </section>
 
-<section id="screens">
-  <div class="shd"><div class="n">06</div><h2>整屏</h2>
-  <p>2026 年 9 月，医护排法。25 号中秋、27 号调休上班，几天挂了一到三个职责标签，今天 20 号（夜班 + 备班 + 带教）。</p></div>
-  <div class="lays" id="scrGrid"></div>
-</section>
-
-<section id="cr">
-  <div class="shd"><div class="n">07</div><h2>对比度总表</h2></div>
-  <div class="panel"><div class="crt" id="crTbl"></div></div>
+<section id="pal">
+  <div class="shd"><div class="n">06</div><h2>自定义色板</h2>
+  <p>保留不动。十四个色全部白字 ≥3:1、全部高饱和。点色块试选，页面会实时算所选色两两的距离并提示。</p></div>
+  <h3 class="sub">核心八色 · 按推荐顺序</h3>
+  <div class="swatches" id="coreGrid"></div>
+  <h3 class="sub">扩展六色</h3>
+  <div class="swatches" id="extGrid"></div>
+  <div class="clash" id="clashBox"></div>
 </section>
 
 <section id="out">
-  <div class="shd"><div class="n">08</div><h2>色值输出</h2></div>
+  <div class="shd"><div class="n">07</div><h2>规格与色值</h2></div>
   <pre id="swiftOut"></pre>
 </section>
 </div>
@@ -293,7 +289,6 @@ function onGround(base,ground,target){
   for(let i=0;i<26;i++){L=up?Math.min(.99,L+.035):Math.max(.05,L-.035);
     const c=atL(base,L),v=CR(c,ground);if(v>=target)return c;if(v>bc){bc=v;best=c}}
   return best}
-/* 色盲模拟 + ΔE */
 const dE=(a,b)=>100*Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
 const M1=[[.31399,.63951,.04649],[.15537,.75789,.08670],[.01776,.10945,.87247]];
 const M2=[[5.47221,-4.6419,.16963],[-1.1252,2.29317,-.1678],[.02980,-.19318,1.16364]];
@@ -302,18 +297,15 @@ function sim(hex,type){const lin=hx(hex).map(g2l),lms=mv(M1,lin);
  const o=type==='deutan'?[lms[0],.494207*lms[0]+1.24827*lms[2],lms[2]]
                         :[2.02344*lms[1]-2.52581*lms[2],lms[1],lms[2]];
  return mv(M2,o).map(v=>Math.max(0,Math.min(1,v)))}
-function dist(a,b){
- const n=dE(toOk(hx(a)),toOk(hx(b)));
- const d=dE(toOk(sim(a,'deutan')),toOk(sim(b,'deutan')));
- const p=dE(toOk(sim(a,'protan')),toOk(sim(b,'protan')));
- return Math.min(n,d,p)}
+const dist=(a,b)=>Math.min(dE(toOk(hx(a)),toOk(hx(b))),
+  dE(toOk(sim(a,'deutan')),toOk(sim(b,'deutan'))),dE(toOk(sim(a,'protan')),toOk(sim(b,'protan'))));
 
 /* ===== 数据 ===== */
 const HUE={day:'#F06E15',night:'#5856D6',morn:'#00A59E',mid:'#C13584',late:'#8A5CF0',tag:'#6E56CF'};
 const SHIFT={
- day:{n:'白班',s:'白',h:12,st:'08:00',en:'20:00'},night:{n:'夜班',s:'夜',h:12,st:'20:00',en:'08:00'},
- morn:{n:'早班',s:'早',h:8,st:'08:00',en:'16:00'},mid:{n:'中班',s:'中',h:8,st:'16:00',en:'00:00'},
- bignight:{n:'大夜',s:'大夜',h:8,hue:'late',st:'00:00',en:'08:00'},
+ day:{n:'白班',s:'白',h:12},night:{n:'夜班',s:'夜',h:12},
+ morn:{n:'早班',s:'早',h:8},mid:{n:'中班',s:'中',h:8},
+ bignight:{n:'大夜',s:'大夜',h:8,hue:'late'},
  rest:{n:'休息',s:'休',h:0,rest:true},leave:{n:'请假',s:'假',h:0,rest:true,leave:true},
 };
 const TAGS={duty:'责',standby:'备',teach:'教',clinic:'诊',meet:'会'};
@@ -323,87 +315,101 @@ const EXT=[['朱红','#FF3B30'],['紫','#AF52DE'],['宝蓝','#1A5FE0'],['天青'
            ['橄榄','#7F9B14'],['琥珀','#CC8300']];
 
 const RAILS=[
- {id:'text',n:'纯色字',d:'标签是一个没有底的彩色字，和上面的红「中秋」、绿「班」同一种质感。最轻，层级差最大。'},
- {id:'chip',n:'小方块',d:'9pt 实心小方块配白字。和班次色标同构但只有它的一半大，一眼知道是"次要的那层"。'},
- {id:'dot',n:'圆点',d:'只有颜色没有字。最安静，但要靠图例或点开才知道是哪个职责。'},
- {id:'ring',n:'描边方块',d:'1px 描边 + 同色字。有形状没重量，介于纯色字和实心方块之间。'},
+ {id:'right',n:'全部在右',y:'一列搞定，左边完全空出来',n2:'节假日和职责挤在一列，含义不同却排在一起',
+  d:'上一版的做法。节假日、调休、职责标签全部从上往下排在右列。'},
+ {id:'split',n:'左职责 · 右节假日',y:'两类信息各占一边，含义分得开；数字真正居中',n2:'两边都占 11pt，中间只剩 24pt',
+  d:'左列放职责标签（这天我承担什么），右列放节假日和调休（这天在日历上是什么性质）。'},
+ {id:'left',n:'全部在左',y:'右边空出来，将来可以放别的',n2:'节假日红字跑到左边，和大多数日历的习惯相反',
+  d:'节假日、调休、职责标签全部挪到左列。'},
+];
+const ALIGNS=[
+ {id:'top',n:'顶对齐',d:'现在的做法。内容贴着格子上沿，底下留 30pt。不填色时看不出来，一填色就显空。'},
+ {id:'center',n:'垂直居中',d:'内容在格子里居中，上下留白对称。填充之后最匀，缩略图上每一格的重心也一致。'},
+ {id:'bottom',n:'底对齐',d:'你想试的那种。日期贴着格子下沿——整月扫视时数字的基线还是齐的，但格子顶上空一大块，反而更怪。'},
+ {id:'hug',n:'填充只包内容',d:'保持顶对齐，但今天的填充只裹住内容那一块，不铺满整格。空的地方就不上色了。'},
 ];
 const TDS=[
- {id:'fill',n:'整格填充',d:'整个格子铺一层淡色，像列表里被选中的那一行。数字保持正常颜色。最像原生 iOS 的选中态。'},
- {id:'disc',n:'数字圆底',d:'只在数字背后放一个圆形色块，像系统日历的今天。占地小，但和格子的圆角不同心。'},
- {id:'ring',n:'描边',d:'格子四周一圈 2pt 描边。最轻，但在留白式的网格里加框会破坏整页的干净。'},
- {id:'bar',n:'底部横杠',d:'格子底部一道短横杠。完全不占内容区，但"今天"的分量最弱。'},
-];
-const LVLS=[
- {id:'full',n:'色标 + 工时',d:'默认。记工时的人用这档。'},
- {id:'markonly',n:'只有色标',d:'关掉工时之后。色标从 13pt 放大到 17pt，把空出来的位置吃掉，格子才不会显空。'},
- {id:'time',n:'再加起止时间',d:'第三行放 8pt 的起止时间。信息最全，但格子要加高到 88pt 才不挤。'},
+ {id:'fill',n:'整格填充',ok:true,d:'整格铺一层淡色。边界就是格子本身，归属没有歧义。配"垂直居中"最好看。'},
+ {id:'hug',n:'内容填充',ok:true,d:'只裹住日期和色标那一小块，做成圆角。比整格轻，归属一样明确。'},
+ {id:'disc',n:'数字胶囊',ok:true,d:'只在日期数字外面套一个胶囊，像系统日历的今天。占地最小，归属最明确——它长在数字上。'},
+ {id:'line',n:'数字下划线',ok:true,d:'紧贴在数字下面 5pt 处的一道短线。因为离数字近、离格子边远，读起来是"这个数字的"。'},
+ {id:'bold',n:'填充 + 加粗',ok:true,d:'整格填充之上把数字加粗到 700。最强，适合怕用户看不见的情况。'},
+ {id:'side',n:'左侧竖杠',ok:false,d:'格子左边一道竖杠。竖向的东西不会被读成上下相邻格，但会和左列的职责标签抢位置。'},
+ {id:'bot',n:'底部横杠',ok:false,d:'贴在格子下沿。和下一行只隔 1pt，眼睛会把它读成下一格的顶边——这就是你说的那个问题。'},
 ];
 
-let RAIL='text',TD='fill',LVL='full',DEN='airy';
+let RAIL='split',ALIGN='center',TD='fill',DEN='airy';
 let PICK=['#F06E15','#5856D6','#C13584','#2BA94A'];
 const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');
  return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
-
 const todayFill=()=>isDark()?atL('#0A84FF',.30):atL('#007AFF',.93);
 function tone(hueKey,ground){
   const dk=isDark(),base=HUE[hueKey]||(typeof hueKey==='string'&&hueKey[0]==='#'?hueKey:HUE.day);
-  const mark=dk?atL(base,.78):base;       /* 深色提亮 + 黑字，浅色原色 + 白字 */
-  const ink=dk?'#000000':'#FFFFFF';
+  const mark=dk?atL(base,.78):base, ink=dk?'#000000':'#FFFFFF';
   const g=ground||(dk?'#000000':'#FFFFFF');
   return{base,mark,ink,cr:CR(ink,mark),text:onGround(base,g,4.5)};
 }
 
 /* ===== 格子 ===== */
 function cell(st,o={}){
-  const rail=o.rail||RAIL, td=o.td||TD, lvl=o.lvl||LVL;
+  const rail=o.rail||RAIL, align=o.align||ALIGN, td=o.td||TD;
   const sh=SHIFT[st.k]||{rest:true,n:'',s:''};
-  const today=!!st.today;
-  const ground=today&&td==='fill'?todayFill():(isDark()?'#000000':'#FFFFFF');
+  const today=!!st.today, tags=st.tags||[];
+  const filled = today&&(td==='fill'||td==='bold');
+  const ground = filled?todayFill():(isDark()?'#000000':'#FFFFFF');
   const T=tone(sh.hue||st.k||'day',ground), tagT=tone('tag',ground);
-  const tags=st.tags||[];
-  const e=el('div','c'+(sh.rest?' rest':'')+(st.unset?' unset':'')+(today&&td==='ring'?' tdRing':''));
-  if(today&&td==='fill')e.style.background=ground;
-  if(today&&td==='disc'){const d=el('div','tdDisc');d.style.background=todayFill();e.appendChild(d)}
-  if(today&&td==='bar'){const b=el('div','tdBar');b.style.background=isDark()?'#0A84FF':'#007AFF';e.appendChild(b)}
+  const useAlign = (today&&td==='hug')?'top':align;
+  const e=el('div','c '+(align==='hug'?'top':useAlign)+(sh.rest?' rest':'')+(st.unset?' unset':''));
+  if(filled)e.style.background=ground;
 
-  /* 右列 */
-  const R=el('div','rail');
-  if(st.hol)R.appendChild(el('span','ri rh',st.hol));
-  else if(st.swap)R.appendChild(el('span','ri rs','班'));
-  tags.slice(0,3).forEach(t=>{
-    if(rail==='text'){const x=el('span','ri rt',TAGS[t]);x.style.color=tagT.text;R.appendChild(x)}
-    else if(rail==='chip'){const x=el('span','rq',TAGS[t]);x.style.background=tagT.base;R.appendChild(x)}
-    else if(rail==='dot'){const x=el('span','rd');x.style.background=tagT.base;R.appendChild(x)}
-    else{const x=el('span','rr',TAGS[t]);x.style.boxShadow='inset 0 0 0 1px '+tagT.base;x.style.color=tagT.text;R.appendChild(x)}
-  });
-  if(tags.length>3)R.appendChild(el('span','more','＋'+(tags.length-3)));
-  if(R.children.length)e.appendChild(R);
+  const mkRail=(cls,items)=>{if(!items.length)return;const R=el('div',cls);
+    items.forEach(f=>R.appendChild(f()));e.appendChild(R)};
+  const holItem=()=>el('span','ri rh',st.hol);
+  const swapItem=()=>el('span','ri rs','班');
+  const tagItem=t=>()=>{const x=el('span','ri rt',TAGS[t]);x.style.color=tagT.text;return x};
+  const moreItem=n=>()=>el('span','ri more','＋'+n);
+
+  const dateItems=[];
+  if(st.hol)dateItems.push(holItem); else if(st.swap)dateItems.push(swapItem);
+  const tagItems=tags.slice(0,3).map(tagItem);
+  if(tags.length>3)tagItems.push(moreItem(tags.length-3));
+
+  if(rail==='right')      mkRail('railR',[...dateItems,...tagItems]);
+  else if(rail==='left')  mkRail('railL',[...dateItems,...tagItems]);
+  else { mkRail('railL',tagItems); mkRail('railR',dateItems); }
+
+  /* 内容块 */
+  const inner=el('div','inner');
+  if(today&&(td==='hug'))inner.style.background=todayFill();
+  const num=el('span','num',st.d);
+  if(today&&td==='bold')num.style.fontWeight='700';
+  if(today&&td==='disc'){num.style.background=todayFill();num.style.padding='3px 9px';
+    num.style.borderRadius='99px';num.style.marginBlock='-3px'}
+  inner.appendChild(num);
+  if(today&&td==='line'){const l=el('span','numline');
+    l.style.background=isDark()?'#0A84FF':'#007AFF';inner.appendChild(l)}
+
+  if(!st.unset){
+    if(sh.rest){
+      const m=el('div','mk');const q=el('span',null,sh.s);
+      q.style.cssText='font-size:12px;font-weight:650;color:var(--greyInk)'+
+        (sh.leave?';box-shadow:inset 0 0 0 1px var(--grey);border-radius:4px;padding:1px 4px;font-size:10px':'');
+      m.appendChild(q);inner.appendChild(m);
+    }else{
+      const two=sh.s.length>1;
+      const q=el('span','sq',sh.s);
+      q.style.cssText='height:13px;font-size:'+(two?7.3:9.5)+'px;background:'+T.mark+';color:'+T.ink+
+        (two?';width:auto;padding:0 3px':';width:13px');
+      const m=el('div','mk');m.appendChild(q);
+      const h=el('span','hrs',(st.hrs!==undefined?st.hrs:sh.h)+'h');h.style.color=T.text;m.appendChild(h);
+      inner.appendChild(m);
+    }
+  }
+  e.appendChild(inner);
+  if(today&&td==='side'){const b=el('span','sidebar');b.style.background=isDark()?'#0A84FF':'#007AFF';e.appendChild(b)}
+  if(today&&td==='bot'){const b=el('span','botbar');b.style.background=isDark()?'#0A84FF':'#007AFF';e.appendChild(b)}
   if(st.note)e.appendChild(el('span','notedot'));
-
-  e.appendChild(el('span','num',st.d));
-  if(st.unset)return e;
-
-  if(sh.rest){
-    const m=el('div','mk');
-    const q=el('span',null,sh.s);
-    q.style.cssText='font-size:12px;font-weight:650;color:var(--greyInk)'+
-      (sh.leave?';box-shadow:inset 0 0 0 1px var(--grey);border-radius:4px;padding:1px 4px;font-size:10px':'');
-    m.appendChild(q);e.appendChild(m);return e;
-  }
-  const big = lvl==='markonly';
-  const size = big?17:13;
-  const two = sh.s.length>1;
-  const q=el('span','sq',sh.s);
-  q.style.cssText='height:'+size+'px;font-size:'+(two?size*.56:size*.72)+'px;background:'+T.mark+';color:'+T.ink+
-    (two?';width:auto;padding:0 3px':';width:'+size+'px');
-  const m=el('div','mk');m.appendChild(q);
-  if(lvl!=='markonly'){
-    const h=el('span','hrs',(st.hrs!==undefined?st.hrs:sh.h)+'h');h.style.color=T.text;m.appendChild(h);
-  }
-  e.appendChild(m);
-  if(lvl==='time'&&sh.st){const t=el('span','tm',sh.st+'–'+sh.en);t.style.color='var(--label2)';e.appendChild(t)}
   return e;
 }
 
@@ -446,7 +452,15 @@ function screen(o={}){
 }
 function boxN(states,o,n){
   const b=el('div','stagebox n'+(n||states.length));
-  states.forEach(st=>b.appendChild(cell(st,o)));
+  states.forEach(st=>b.appendChild(cell(st,o)));return b;
+}
+/* 两行三列，中间是今天——用来看标记归谁 */
+function stack2(o){
+  const b=el('div','stack2');
+  [{d:12,k:'day'},{d:13,k:'night',tags:['duty']},{d:14,k:'day'},
+   {d:19,k:'night'},{d:20,k:'night',today:true,tags:['standby']},{d:21,k:'rest'},
+   {d:26,k:'day'},{d:27,k:'day',swap:true},{d:28,k:'rest'}]
+  .forEach(st=>b.appendChild(cell(st,o)));
   return b;
 }
 
@@ -454,18 +468,22 @@ function boxN(states,o,n){
 function renderLocks(){
   const b=document.getElementById('locks');b.innerHTML='';
   [['白班 南瓜','#F06E15','#F06E15'],['夜班 靛','#5856D6','#5856D6'],
-   ['右列','节假日 → 标签 1 → 2 → 3',null],['今天','整格填充 · 数字不变色',null]].forEach(([a,c,col])=>{
+   ['标记列',RAILS.find(x=>x.id===RAIL).n,null],
+   ['今天',TDS.find(x=>x.id===TD).n+' · '+ALIGNS.find(x=>x.id===ALIGN).n,null]].forEach(([a,c,col])=>{
     const l=el('div','lock');
     if(col){const i=el('i');i.style.background=col;l.appendChild(i)}
     l.innerHTML+='<span>'+a+'</span><em>'+c.toUpperCase()+'</em>';b.appendChild(l)});
 }
-function pickerCards(list,cur,set,states,key,segId,gridId,n){
+function cards(list,cur,set,build,segId,gridId){
   const g=document.getElementById(gridId);g.innerHTML='';
   list.forEach(x=>{
     const c=el('div','opt'+(x.id===cur()?' on':''));c.tabIndex=0;c.setAttribute('role','button');
     const nm=el('div','nm');nm.innerHTML='<b>'+x.n+'</b><span>'+x.d+'</span>';c.appendChild(nm);
-    const o={};o[key]=x.id;
-    c.appendChild(boxN(states,o,n));
+    c.appendChild(build(x));
+    if(x.y){const v1=el('div','verdict');v1.innerHTML='<i class="y">取</i><span>'+x.y+'</span>';c.appendChild(v1);
+      const v2=el('div','verdict');v2.innerHTML='<i class="n">舍</i><span>'+x.n2+'</span>';c.appendChild(v2)}
+    if(x.ok!==undefined){const v=el('div','verdict');
+      v.innerHTML=x.ok?'<i class="y">归属明确</i>':'<i class="n">归属有歧义</i>';c.appendChild(v)}
     const go=()=>{set(x.id);render()};
     c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
     g.appendChild(c)});
@@ -478,61 +496,57 @@ function renderSwatches(){
     const g=document.getElementById(gridId);g.innerHTML='';
     list.forEach(([n,c],i)=>{
       const dk=isDark(),mark=dk?atL(c,.78):c,ink=dk?'#000':'#fff';
-      const locked=(n==='南瓜'||n==='靛');
-      const on=PICK.includes(c);
+      const locked=(n==='南瓜'||n==='靛'), on=PICK.includes(c);
       const d=el('div','sw'+(on?' on':'')+(locked?' locked':''));
       d.style.background=dk?'#1C1C1E':'#F7F7F9';
       d.style.borderColor=on?mark:'transparent';
       const q=el('div','q',n[0]);q.style.background=mark;q.style.color=ink;d.appendChild(q);
-      const t=el('div','t',n);d.appendChild(t);
+      d.appendChild(el('div','t',n));
       d.appendChild(el('code',null,c.toUpperCase()+(core?' · '+(i+1):'')));
       const p=el('div','pick','✓');p.style.background=mark;p.style.color=ink;d.appendChild(p);
       if(locked)d.appendChild(el('div','lk',n==='南瓜'?'白班':'夜班'));
       if(!locked){d.tabIndex=0;d.setAttribute('role','button');
-        const go=()=>{const i2=PICK.indexOf(c);if(i2>=0)PICK.splice(i2,1);else PICK.push(c);render()};
+        const go=()=>{const j=PICK.indexOf(c);if(j>=0)PICK.splice(j,1);else PICK.push(c);render()};
         d.onclick=go;d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}}
       g.appendChild(d)});
   };
   mk(CORE,'coreGrid',true); mk(EXT,'extGrid',false);
-  /* 冲突检查 */
   const NAME={};[...CORE,...EXT].forEach(([n,c])=>NAME[c]=n);
   const box=document.getElementById('clashBox');box.innerHTML='';
-  const hd=el('div','row');
-  hd.innerHTML='<b style="font-size:13.5px;font-weight:650">已选 '+PICK.length+' 个班次色</b>';
+  const hd=el('div','row');hd.innerHTML='<b style="font-size:13.5px;font-weight:650">已选 '+PICK.length+' 个班次色</b>';
   PICK.forEach(c=>{const dk=isDark();const i=el('i');i.style.background=dk?atL(c,.78):c;
     i.style.color=dk?'#000':'#fff';i.textContent=(NAME[c]||'')[0]||'';hd.appendChild(i)});
   box.appendChild(hd);
   const pairs=[];
   for(let i=0;i<PICK.length;i++)for(let j=i+1;j<PICK.length;j++){
-    const v=dist(PICK[i],PICK[j]);
-    if(v<15)pairs.push([NAME[PICK[i]],NAME[PICK[j]],v]);}
+    const v=dist(PICK[i],PICK[j]); if(v<15)pairs.push([NAME[PICK[i]],NAME[PICK[j]],v])}
   pairs.sort((a,b)=>a[2]-b[2]);
   if(!pairs.length){const r=el('div','row');
     r.innerHTML='<span class="tagv fine">全部分得开</span><span style="color:var(--label2);font-size:12.5px">'+
       '任意两色在正常视觉、红绿色盲、红色盲下的 ΔE 都 ≥ 15</span>';box.appendChild(r)}
   else pairs.forEach(([a,b,v])=>{const r=el('div','row');
-    r.innerHTML='<span class="tagv warn">ΔE '+v.toFixed(1)+'</span>'+
-      '<span style="font-size:12.5px"><b>'+a+'</b> 和 <b>'+b+'</b> 容易混——'+
-      (v<8?'色盲下几乎一样，建议换一个':'色盲下接近，靠简称字勉强能分')+'</span>';box.appendChild(r)});
+    r.innerHTML='<span class="tagv warn">ΔE '+v.toFixed(1)+'</span><span style="font-size:12.5px"><b>'+a+
+      '</b> 和 <b>'+b+'</b> 容易混——'+(v<8?'色盲下几乎一样，建议换一个':'色盲下接近，靠简称字勉强能分')+'</span>';
+    box.appendChild(r)});
 }
 const STATES=[
  [{d:12,k:'day'},'普通上班','色标 + 工时'],
- [{d:9,k:'day',tags:['duty']},'1 个标签','右列第一格'],
- [{d:8,k:'night',tags:['duty','standby']},'2 个标签','上下排'],
- [{d:15,k:'day',tags:['teach','duty','standby']},'3 个标签','右列排满'],
+ [{d:9,k:'day',tags:['duty']},'1 个标签','左列第一格'],
+ [{d:8,k:'night',tags:['duty','standby']},'2 个标签','左列上下排'],
+ [{d:15,k:'day',tags:['teach','duty','standby']},'3 个标签','左列排满'],
  [{d:22,k:'night',tags:['standby','duty','teach','meet']},'4 个标签','第四个收成 ＋1'],
- [{d:20,k:'night',today:true},'今天','整格填充'],
- [{d:20,k:'night',today:true,tags:['standby','teach']},'今天 + 标签','填充上照样放'],
+ [{d:20,k:'night',today:true},'今天',''],
+ [{d:20,k:'night',today:true,tags:['standby','teach']},'今天 + 标签','两样叠一起'],
  [{d:5,k:'rest'},'休息日','灰字'],
- [{d:25,k:'rest',hol:'中秋'},'休息 + 节假日','红字占右列首格'],
- [{d:27,k:'day',swap:true},'调休上班','绿「班」占首格'],
- [{d:27,k:'day',swap:true,tags:['duty']},'调休 + 标签','节假日在上标签在下'],
+ [{d:25,k:'rest',hol:'中秋'},'休息 + 节假日','红字在右列'],
+ [{d:27,k:'day',swap:true},'调休上班','绿「班」在右列'],
+ [{d:27,k:'day',swap:true,tags:['duty','teach']},'调休 + 两标签','左右各一列'],
  [{d:3,k:'morn'},'早班','自定义色'],
  [{d:11,k:'leave'},'请假','描边灰'],
  [{d:7,k:'bignight'},'两字简称','撑成胶囊'],
  [{d:14,k:'day',hrs:11.5},'小数工时','11.5h 最宽'],
  [{d:24,k:'day',hol:'中秋'},'节假日还上班','红字 + 正常色标'],
- [{d:29,k:'day',tags:['clinic'],note:true},'有备注','左下角一点'],
+ [{d:29,k:'day',tags:['clinic'],note:true},'有备注','底部一点'],
  [{d:30,unset:true},'未排班','只有浅灰数字'],
 ];
 function renderMatrix(){
@@ -540,50 +554,19 @@ function renderMatrix(){
   STATES.forEach(([st,t,sub])=>{
     const m=el('div','mcell');
     const b=el('div','box');b.appendChild(cell(st));m.appendChild(b);
-    m.appendChild(el('div','cap','<b>'+t+'</b>'+sub));
-    g.appendChild(m)});
+    m.appendChild(el('div','cap','<b>'+t+'</b>'+sub));g.appendChild(m)});
 }
 function renderScreens(){
   const g=document.getElementById('scrGrid');g.innerHTML='';
-  [['当前选择',RAILS.find(x=>x.id===RAIL).n+' · 今天'+TDS.find(x=>x.id===TD).n,{}],
-   ['只有色标','关掉工时之后的样子',{lvl:'markonly'}],
-   ['小方块右列','标签用 9pt 实心小方块',{rail:'chip'}],
-   ['加起止时间','第三行放 8pt 时间',{lvl:'time'}]]
+  [['当前选择',RAILS.find(x=>x.id===RAIL).n+' · '+ALIGNS.find(x=>x.id===ALIGN).n+' · '+TDS.find(x=>x.id===TD).n,{}],
+   ['左右分工 + 居中 + 整格填充','推荐组合',{rail:'split',align:'center',td:'fill'}],
+   ['左右分工 + 顶对齐 + 数字胶囊','最省地方的一版',{rail:'split',align:'top',td:'disc'}],
+   ['全部在右 + 底对齐','你想看的底对齐效果',{rail:'right',align:'bottom',td:'fill'}]]
   .forEach(([t,d,o],i)=>{
     const c=el('div','lay');
     const h=el('div','h');h.innerHTML='<div class="tg">'+(i===0?'当前':'对照 '+i)+'</div><b>'+t+'</b><span>'+d+'</span>';
     c.appendChild(h);
-    const b=el('div','body');b.appendChild(screen(o));c.appendChild(b);
-    g.appendChild(c)});
-}
-function renderCR(){
-  const t=document.getElementById('crTbl');t.innerHTML='';
-  const hd=el('div','r');hd.style.cssText='font-size:11.5px;color:var(--label2);padding-bottom:6px';
-  hd.innerHTML='<span>元素</span><span>色标内文字 ≥3</span><span>底上的文字 ≥4.5</span>';t.appendChild(hd);
-  const gr=isDark()?'#000000':'#FFFFFF';
-  [['day','白班'],['night','夜班'],['morn','早班'],['mid','中班'],['tag','职责标签']]
-  .forEach(([k,n])=>{const T=tone(k),r=el('div','r');
-    r.innerHTML='<span style="display:flex;align-items:center;gap:9px"><i class="sqv" style="background:'+T.mark+
-      ';color:'+T.ink+'">'+n[0]+'</i>'+n+' <code style="font-family:ui-monospace,monospace;font-size:10.5px;color:var(--label3)">'+
-      T.mark.toUpperCase()+'</code></span>'+
-      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px;color:'+(T.cr>=3?'var(--label)':'var(--danger)')+'">'+
-      T.cr.toFixed(2)+':1</b>'+
-      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px">'+CR(T.text,gr).toFixed(2)+':1</b>';
-    t.appendChild(r)});
-  const tf=todayFill();
-  [['今天填充',tf,onGround(HUE.day,tf,4.5),'白班工时压在今天的填充上'],
-   ['节假日红',isDark()?'#FF6961':'#D70015',isDark()?'#FF6961':'#D70015','右列首格'],
-   ['调休绿',isDark()?'#30D158':'#248A3D',isDark()?'#30D158':'#248A3D','右列首格'],
-   ['休息灰',isDark()?'#48484A':'#C7C7CC',isDark()?'#98989D':'#6C6C70','主列']]
-  .forEach(([n,col,ink,note])=>{const r=el('div','r');
-    const c2=CR(ink,n==='今天填充'?col:gr);
-    r.innerHTML='<span style="display:flex;align-items:center;gap:9px"><i class="sqv" style="background:'+col+
-      ';color:'+(lum(col)>.4?'#000':'#fff')+'">·</i>'+n+
-      ' <code style="font-family:ui-monospace,monospace;font-size:10.5px;color:var(--label3)">'+col.toUpperCase()+'</code></span>'+
-      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--label3)">'+note+'</b>'+
-      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px;color:'+(c2>=4.5?'var(--label)':'var(--danger)')+'">'+
-      c2.toFixed(2)+':1</b>';
-    t.appendChild(r)});
+    const b=el('div','body');b.appendChild(screen(o));c.appendChild(b);g.appendChild(c)});
 }
 function renderOut(){
   const was=document.documentElement.getAttribute('data-theme');
@@ -594,39 +577,41 @@ function renderOut(){
   else document.documentElement.removeAttribute('data-theme');
   const NM={day:'白班',night:'夜班',morn:'早班',mid:'中班',tag:'职责标签'};
   const pad=s=>s+' '.repeat(Math.max(0,10-s.length));
-  let s='<i>// 右列：'+RAILS.find(x=>x.id===RAIL).n+'　今天：'+TDS.find(x=>x.id===TD).n+'</i>\n';
-  s+='<i>// mark = 色标底色　ink = 色标里的字　text = 格子底上的工时数字</i>\n\n';
+  let s='<i>// 标记列：'+RAILS.find(x=>x.id===RAIL).n+'　对齐：'+ALIGNS.find(x=>x.id===ALIGN).n+
+        '　今天：'+TDS.find(x=>x.id===TD).n+'</i>\n\n';
+  s+='<i>// 格子几何（iPhone 一格约 46 × 76pt）</i>\n';
+  s+='<b>左列</b>  11pt  职责标签，自上而下最多 3 个，超出 ＋n\n';
+  s+='<b>右列</b>  11pt  节假日（红，两字竖排）/ 调休「班」（绿）\n';
+  s+='<b>中间</b>  24pt  日期 22pt → 色标 13pt + 工时 10.5pt\n';
+  s+='<b>对齐</b>  内容垂直居中，上下留白对称\n\n';
   s+='<b>enum</b> ShiftTone {\n';
   [['Lite','浅色',L],['Dark','深色',D]].forEach(([sfx,cn,set])=>{
     s+='    <i>// '+cn+'</i>\n';
     Object.keys(NM).forEach(k=>{const t=set[k];
       s+='    <b>static let</b> '+pad(k+sfx)+' = (mark: "'+t.mark.toUpperCase()+'", ink: "'+t.ink.toUpperCase()+
          '", text: "'+t.text.toUpperCase()+'")  <i>// '+NM[k]+'</i>\n'});
-    s+='    <b>static let</b> '+pad('today'+sfx)+' = "'+set.today.toUpperCase()+'"  <i>// 今天整格填充</i>\n\n'});
-  s+='    <i>// 状态色</i>\n';
-  s+='    <b>static let</b> holiday  = "#D70015" / "#FF6961"   <i>// 右列首格</i>\n';
-  s+='    <b>static let</b> swapWork = "#248A3D" / "#30D158"   <i>// 调休上班</i>\n';
+    s+='    <b>static let</b> '+pad('today'+sfx)+' = "'+set.today.toUpperCase()+'"  <i>// 今天填充</i>\n\n'});
+  s+='    <b>static let</b> holiday  = "#D70015" / "#FF6961"\n';
+  s+='    <b>static let</b> swapWork = "#248A3D" / "#30D158"\n';
   s+='    <b>static let</b> rest     = "#6C6C70" / "#98989D"\n}\n\n';
-  s+='<b>enum</b> ShiftPalette {   <i>// 用户自定义班次可选，按推荐顺序</i>\n';
-  s+='    <b>static let</b> core = [\n';
-  CORE.forEach(([n,c],i)=>{s+='        "'+c.toUpperCase()+'",  <i>// '+(i+1)+' '+n+(i<4?'　前四个两两 ΔE ≥ 20.4':'')+'</i>\n'});
-  s+='    ]\n    <b>static let</b> extended = ['+EXT.map(e=>'"'+e[1].toUpperCase()+'"').join(', ')+']\n';
+  s+='<b>enum</b> ShiftPalette {   <i>// 自定义班次可选，按推荐顺序</i>\n';
+  s+='    <b>static let</b> core = ['+CORE.map(c=>'"'+c[1].toUpperCase()+'"').join(', ')+']\n';
+  s+='    <i>//           '+CORE.map(c=>c[0]).join('  ')+'　前四个两两 ΔE ≥ 20.4</i>\n';
+  s+='    <b>static let</b> extended = ['+EXT.map(c=>'"'+c[1].toUpperCase()+'"').join(', ')+']\n';
   s+='    <i>// 深色模式统一 atL(base, 0.78) 提亮 + 黑字</i>\n}\n';
   document.getElementById('swiftOut').innerHTML=s;
 }
 function render(){
   renderLocks();
-  pickerCards(RAILS,()=>RAIL,v=>RAIL=v,
-    [{d:9,k:'day',tags:['duty']},{d:8,k:'night',tags:['duty','standby']},
-     {d:15,k:'day',tags:['teach','duty','standby']},{d:27,k:'day',swap:true,tags:['duty','teach']}],
-    'rail','railSeg','railGrid',4);
-  pickerCards(TDS,()=>TD,v=>TD=v,
-    [{d:19,k:'night'},{d:20,k:'night',today:true,tags:['standby','teach']},{d:21,k:'rest'}],
-    'td','tdSeg','tdGrid',3);
-  pickerCards(LVLS,()=>LVL,v=>LVL=v,
-    [{d:12,k:'day'},{d:15,k:'night',tags:['duty']},{d:3,k:'morn',tags:['clinic','teach']}],
-    'lvl','lvlSeg','lvlGrid',3);
-  renderSwatches();renderMatrix();renderScreens();renderCR();renderOut();
+  cards(RAILS,()=>RAIL,v=>RAIL=v,x=>boxN(
+    [{d:9,k:'day',tags:['duty']},{d:15,k:'night',tags:['teach','duty','standby']},
+     {d:25,k:'rest',hol:'中秋'},{d:27,k:'day',swap:true,tags:['duty','teach']}],{rail:x.id},4),
+    'railSeg','railGrid');
+  cards(ALIGNS,()=>ALIGN,v=>ALIGN=v,x=>boxN(
+    [{d:19,k:'night',tags:['duty']},{d:20,k:'night',today:true,tags:['standby','teach']},{d:21,k:'rest'}],
+    {align:x.id,td:x.id==='hug'?'hug':'fill'},3),'alignSeg','alignGrid');
+  cards(TDS,()=>TD,v=>TD=v,x=>stack2({td:x.id}),'tdSeg','tdGrid');
+  renderScreens();renderMatrix();renderSwatches();renderOut();
 }
 document.getElementById('denSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   DEN=b.dataset.d;[...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
