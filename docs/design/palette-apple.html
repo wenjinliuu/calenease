@@ -15,8 +15,8 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
   --canvas:#F2F2F7; --card:#FFFFFF; --card2:#F2F2F7; --card3:#E5E5EA;
   --sep:rgba(60,60,67,.20); --sep2:rgba(60,60,67,.08);
   --label:#000000; --label2:rgba(60,60,67,.60); --label3:rgba(60,60,67,.28);
-  --tint:#007AFF; --danger:#FF3B30;
-  --screen:#FFFFFF; --band:#F2F2F7; --sumcard:#F5F5F7; --track:#E5E5EA;
+  --tint:#007AFF; --danger:#D70015; --ok:#248A3D;
+  --screen:#FFFFFF; --band:#F2F2F7; --sumcard:#F5F5F7; --grey:#C7C7CC; --greyInk:#6C6C70;
   --r-m:16px; --r-l:22px;
   --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Inter','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
 }
@@ -25,16 +25,16 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
   --canvas:#000000; --card:#1C1C1E; --card2:#2C2C2E; --card3:#3A3A3C;
   --sep:rgba(84,84,88,.60); --sep2:rgba(84,84,88,.30);
   --label:#FFFFFF; --label2:rgba(235,235,245,.60); --label3:rgba(235,235,245,.28);
-  --tint:#0A84FF; --danger:#FF453A;
-  --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E; --track:#2C2C2E;
+  --tint:#0A84FF; --danger:#FF6961; --ok:#30D158;
+  --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E; --grey:#48484A; --greyInk:#98989D;
 }}
 :root[data-theme="dark"]{
   color-scheme:dark;
   --canvas:#000000; --card:#1C1C1E; --card2:#2C2C2E; --card3:#3A3A3C;
   --sep:rgba(84,84,88,.60); --sep2:rgba(84,84,88,.30);
   --label:#FFFFFF; --label2:rgba(235,235,245,.60); --label3:rgba(235,235,245,.28);
-  --tint:#0A84FF; --danger:#FF453A;
-  --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E; --track:#2C2C2E;
+  --tint:#0A84FF; --danger:#FF6961; --ok:#30D158;
+  --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E; --grey:#48484A; --greyInk:#98989D;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--canvas);color:var(--label);font-family:var(--font);
@@ -45,18 +45,17 @@ h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.022em}
 header.top{padding-block:40px 16px}
 .kicker{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--tint);text-transform:uppercase;margin-bottom:9px}
 h1{font-size:clamp(31px,6.2vw,48px);font-weight:700;line-height:1.08;letter-spacing:-.032em}
-header.top p{color:var(--label2);max-width:62ch;margin:13px 0 0;font-size:16.5px}
+header.top p{color:var(--label2);max-width:64ch;margin:13px 0 0;font-size:16.5px}
 .locks{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
-.lock{background:var(--card);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:550;
-  display:flex;align-items:center;gap:7px}
+.lock{background:var(--card);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:550;display:flex;align-items:center;gap:7px}
 .lock i{width:9px;height:9px;border-radius:3px;display:block}
 .lock em{font-style:normal;color:var(--label3);font-size:11.5px}
 
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;background:var(--canvas);
-  border-bottom:.5px solid var(--sep);margin-inline:-16px;padding:9px 16px;display:flex;flex-wrap:wrap;gap:8px 15px;align-items:center}
+  border-bottom:.5px solid var(--sep);margin-inline:-16px;padding:9px 16px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
 .seg{display:inline-flex;background:var(--card3);border-radius:9px;padding:2px;gap:2px}
-.seg button{font:inherit;font-size:13px;font-weight:500;border:none;background:transparent;color:var(--label);
-  padding:4px 10px;border-radius:7px;cursor:pointer;transition:.15s;white-space:nowrap}
+.seg button{font:inherit;font-size:12.5px;font-weight:500;border:none;background:transparent;color:var(--label);
+  padding:4px 9px;border-radius:7px;cursor:pointer;transition:.15s;white-space:nowrap}
 .seg button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.14);font-weight:600}
 .seg button:focus-visible{outline:2px solid var(--tint);outline-offset:1px}
 .blab{font-size:11px;font-weight:600;color:var(--label3);text-transform:uppercase;letter-spacing:.05em}
@@ -66,11 +65,23 @@ section{padding-block:38px 0;scroll-margin-top:70px}
 .shd .n{font-size:12px;font-weight:600;color:var(--label3);letter-spacing:.05em}
 .shd h2{font-size:26px;font-weight:700;margin-top:2px}
 .shd p{color:var(--label2);font-size:15px;max-width:70ch;margin:8px 0 0}
+h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .panel{background:var(--card);border-radius:var(--r-m);padding:15px 16px;display:grid;gap:11px}
 .panel h4{font-size:14.5px;font-weight:650}
 .panel .hint{font-size:12.8px;color:var(--label2);line-height:1.55;margin:-3px 0 0}
 
-/* 橙蓝配对 */
+/* 白字代价表 */
+.wt{background:var(--card);border-radius:var(--r-m);overflow:hidden}
+.wt .r{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:stretch}
+.wt .r+.r{border-top:.5px solid var(--sep2)}
+.wt .hd{font-size:11.5px;font-weight:600;color:var(--label2);padding:9px 14px;background:var(--card2)}
+.wt .box{margin:6px;border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:9px}
+.wt .box .q{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff;flex:none}
+.wt .box .tx{font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.35}
+.wt .box .tx em{font-style:normal;display:block;font-weight:500;opacity:.75;font-size:10px}
+.bad{color:var(--danger)}
+
+/* 配对 */
 .duos{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:12px}
 .duo{background:var(--card);border-radius:var(--r-m);padding:13px;display:grid;gap:10px;cursor:pointer;
   border:2px solid transparent;transition:.15s}
@@ -80,30 +91,31 @@ section{padding-block:38px 0;scroll-margin-top:70px}
 .duo .nm b{font-size:15px;font-weight:650}
 .duo .nm em{font-style:normal;font-size:10.5px;color:var(--label3)}
 .bands{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.band{border-radius:10px;height:54px;display:flex;flex-direction:column;justify-content:space-between;padding:7px 8px}
-.band .t{font-size:9.5px;font-weight:600;opacity:.75}
-.band code{font-family:ui-monospace,monospace;font-size:9.5px;font-weight:600;opacity:.8}
-.samp{display:flex;gap:9px;justify-content:center;align-items:center;padding:6px 0 2px}
-.samp .u{display:flex;flex-direction:column;align-items:center;gap:4px}
-.samp .n{font-size:19px;font-weight:600;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.band{border-radius:10px;height:56px;display:flex;flex-direction:column;justify-content:space-between;padding:7px 8px;color:#fff}
+.band .t{font-size:9.5px;font-weight:600;opacity:.85}
+.band .big{font-size:17px;font-weight:700;line-height:1}
+.band code{font-family:ui-monospace,monospace;font-size:9px;font-weight:600;opacity:.85}
+.duo .cr{display:flex;justify-content:space-between;font-size:11px;color:var(--label2);font-variant-numeric:tabular-nums}
 .duo p{margin:0;font-size:12px;color:var(--label2);line-height:1.5}
+.samp{display:flex;gap:10px;justify-content:center;padding:4px 0 0}
+.samp .u{display:flex;flex-direction:column;align-items:center;gap:4px}
+.samp .n{font-size:20px;font-weight:600;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 
-/* 次要色板 */
-.sets{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
-.set{background:var(--card);border-radius:var(--r-m);padding:14px;display:grid;gap:10px;cursor:pointer;
+/* 小样卡 */
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px}
+.opt{background:var(--card);border-radius:var(--r-m);padding:13px;display:grid;gap:10px;cursor:pointer;
   border:2px solid transparent;transition:.15s}
-.set.on{border-color:var(--tint)}
-.set .nm b{font-size:15px;font-weight:650;display:block}
-.set .nm span{font-size:12px;color:var(--label2);line-height:1.5;display:block;margin-top:3px}
-.chips{display:flex;gap:7px;flex-wrap:wrap}
-.chipbox{display:flex;flex-direction:column;align-items:center;gap:4px}
-.chipbox em{font-style:normal;font-size:10px;color:var(--label3)}
+.opt.on{border-color:var(--tint)}
+.opt:focus-visible{outline:2px solid var(--tint);outline-offset:2px}
+.opt .nm b{font-size:14.5px;font-weight:650;display:block}
+.opt .nm span{font-size:12px;color:var(--label2);line-height:1.5;display:block;margin-top:3px}
+.stagebox{background:var(--screen);border-radius:12px;padding:8px 4px;display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;border:.5px solid var(--sep2)}
 
-/* 排版卡 */
+/* 完整排布 */
 .lays{display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:15px;align-items:start}
 .lay{background:var(--card);border-radius:var(--r-l);overflow:hidden;cursor:pointer;border:2px solid transparent;transition:.15s}
 .lay.on{border-color:var(--tint)}
-.lay:focus-visible{outline:2px solid var(--tint);outline-offset:2px}
 .lay .h{padding:14px 16px 11px}
 .lay .h .tg{font-size:11px;font-weight:650;color:var(--tint)}
 .lay .h b{font-size:17px;font-weight:650;display:block;margin-top:1px}
@@ -127,32 +139,35 @@ section{padding-block:38px 0;scroll-margin-top:70px}
 .psum .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:1px}
 .psum .go{margin-left:auto;font-size:12.5px;color:var(--label2);white-space:nowrap}
 
-/* cell — 一律不填底色 */
-.c{position:relative;display:flex;flex-direction:column;align-items:center;padding:7px 1px 6px;min-width:0;gap:4px;overflow:hidden}
-.airy .c{min-height:74px}
-.tight .c{min-height:58px}
-.c .num{font-size:23px;font-weight:550;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+/* cell */
+.c{position:relative;display:flex;flex-direction:column;align-items:center;padding:7px 1px 6px;min-width:0;gap:3px;overflow:hidden}
+.airy .c{min-height:78px}
+.tight .c{min-height:62px}
+.c .num{font-size:22px;font-weight:550;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .tight .c .num{font-size:20px}
 .c.rest .num{color:var(--label3);font-weight:450}
 .c.today .num{color:var(--tint);font-weight:700}
-.c .sub{position:absolute;top:6px;right:3px;font-size:8px;line-height:1.05;color:var(--danger);width:9px;font-weight:600;text-align:center}
-.c .mk{display:flex;align-items:center;justify-content:center;gap:2.5px;max-width:100%;min-width:0}
-.c .stack{display:flex;flex-direction:column;align-items:center;gap:3px}
-.c .row{display:flex;align-items:center;gap:3px}
+.corner{position:absolute;top:4px;right:2px;font-size:8px;line-height:1.05;width:9px;font-weight:600;text-align:center;color:var(--label3)}
+.corner.hol{color:var(--danger)}
+.corner.swap{color:var(--ok)}
+.cornerL{position:absolute;top:5px;left:3px;font-size:8.5px;font-weight:700;line-height:1}
+.mk{display:flex;align-items:center;justify-content:center;gap:2px;max-width:100%;min-width:0}
 .sq{border-radius:4px;display:grid;place-items:center;font-weight:700;flex:none;line-height:1}
-.sq.hollow{background:transparent!important}
-.hrs{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
-.pillm{border-radius:99px;padding:2px 5px;font-size:9.5px;font-weight:650;display:flex;gap:3px;align-items:center;white-space:nowrap;max-width:100%;overflow:hidden}
-.ul{width:20px;height:3px;border-radius:99px}
-.todayring{position:absolute;top:4px;left:50%;transform:translateX(-50%);width:30px;height:30px;border-radius:50%;
-  background:var(--tint);opacity:.12}
+.hrs{font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
+.tag{flex:none;line-height:1;font-weight:700}
+.tag.solid{border-radius:3.5px;display:grid;place-items:center}
+.tag.plain{background:none!important}
+.tag.ring{border-radius:3.5px;display:grid;place-items:center;background:transparent!important}
+.tag.soft{border-radius:4px;display:grid;place-items:center}
+.tagrow{display:flex;gap:2.5px;justify-content:center;align-items:center;max-width:100%}
+.holpill{border-radius:99px;padding:1px 6px;font-size:9px;font-weight:700;white-space:nowrap}
 
-/* 对比度 */
+/* 对比度表 */
 .crt{display:grid;gap:0}
 .crt .r{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;
   padding:8px 0;border-bottom:.5px solid var(--sep2);font-size:13px}
 .crt .r:last-child{border-bottom:none}
-.crt .sqv{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:700;font-style:normal}
+.crt .sqv{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:700;font-style:normal;color:#fff}
 pre{background:var(--card);border-radius:var(--r-m);padding:16px;overflow-x:auto;margin:12px 0 0;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.65;color:var(--label)}
 pre b{font-weight:600;color:var(--tint)}
@@ -165,62 +180,74 @@ pre i{font-style:normal;color:var(--label3)}
 
 <div class="wrap">
 <header class="top">
-  <div class="kicker">Shift Ledger · 留白一 深化</div>
+  <div class="kicker">Shift Ledger · 排法一 定稿</div>
   <h1>橙与蓝</h1>
-  <p>格子结构定了：不给底色，日期数字做主角，颜色只剩一枚小色标。白班是橙、夜班是蓝也定了——这两个色的认知成本最低，不再往外扩。剩下要摸的是：<b>哪个橙配哪个蓝</b>、<b>其余班次怎么跟</b>、<b>色标长什么样、放哪</b>。</p>
+  <p>排法一定了，色标里一律白字。白字要在橙上成立就得把橙往红里推——这是算出来的硬约束，下面第一节给了数。另外补了两样：<b>职责标签</b>（备班、责班、带教这类）和<b>休 / 节假日 / 调休</b>的标记。</p>
   <div class="locks" id="locks"></div>
 </header>
 
 <div class="bar">
-  <span class="blab">橙 × 蓝</span><div class="seg" id="duoSeg"></div>
-  <span class="blab">其余班次</span><div class="seg" id="setSeg"></div>
-  <span class="blab">工时</span>
-  <div class="seg" id="hcSeg"><button data-hc="tint" aria-pressed="true">班次色</button><button data-hc="raw" aria-pressed="false">原色</button><button data-hc="ink" aria-pressed="false">文字色</button></div>
+  <span class="blab">橙×蓝</span><div class="seg" id="duoSeg"></div>
+  <span class="blab">标签</span><div class="seg" id="tagSeg"></div>
+  <span class="blab">位置</span><div class="seg" id="posSeg"></div>
+  <span class="blab">休/节</span><div class="seg" id="mkSeg"></div>
   <span class="blab">密度</span>
   <div class="seg" id="denSeg"><button data-d="airy" aria-pressed="true">疏</button><button data-d="tight" aria-pressed="false">紧</button></div>
   <span class="blab">外观</span>
   <div class="seg" id="thSeg"><button data-th="light" aria-pressed="true">浅色</button><button data-th="dark" aria-pressed="false">深色</button></div>
 </div>
 
+<section id="cost">
+  <div class="shd"><div class="n">01</div><h2>白字的代价</h2>
+  <p>色标是 14px 方块，里面那个字要么白、要么同色深阶。想统一成白字，橙就不能是黄橙——<b>越黄的橙越扛不住白字，压到达标时已经变成土黄了</b>。越红的橙天生就够暗，原色就能用。所以下面的配对全部落在朱橙 / 南瓜这一族。</p></div>
+  <div class="wt" id="wtTbl"></div>
+  <div class="panel" style="margin-top:14px">
+    <h4>一行放得下三样吗</h4>
+    <p class="hint">iPhone 上一格约 46pt。色标 13 + 工时「12h」约 17 + 职责标签 8，加上两道 2pt 间距刚好 42pt——<b>塞得进，但没有余量</b>。所以同行方案里工时压到 10.5px、色标压到 13px；想留余量就把标签挪到左上角或另起一行，下面第 03 节有对照。</p>
+  </div>
+  <div class="panel" style="margin-top:12px">
+    <h4>门槛说明</h4>
+    <p class="hint">色标是图形元素，WCAG 对图形的门槛是 <b>3:1</b>；但里面那个 10px 的字严格说属于正文，门槛 <b>4.5:1</b>。这一页默认按 3:1 选色——那是"鲜艳"和"看得清"之间的平衡点，苹果自己的 systemBlue 配白字也就 4.02。要更稳就切到下面的「稳妥档」，橙会明显变深。</p>
+  </div>
+</section>
+
 <section id="duos">
-  <div class="shd"><div class="n">01</div><h2>六组橙 × 蓝</h2>
-  <p>都是 iOS 系统色或它的同色相加饱和版，没有一个是降饱和度的浊色。橙全部落在 OKLCH 色相 60–75° 之间，蓝落在 230–265°，两边的明度差都拉开了——缩略图上白班是亮的一片、夜班是沉的一片。</p></div>
+  <div class="shd"><div class="n">02</div><h2>八组橙 × 蓝</h2>
+  <p>两个色标都是白字。前六组按 3:1 挑，橙保持鲜艳；后两组按 4.5:1 挑，稳妥但橙偏烧。</p></div>
   <div class="duos" id="duoGrid"></div>
 </section>
 
-<section id="sets">
-  <div class="shd"><div class="n">02</div><h2>其余班次怎么跟</h2>
-  <p>早班、中班、晚班、门诊这些不常出现，但一出现就不能和白夜撞。三套跟法，逻辑各不一样。</p></div>
-  <div class="sets" id="setGrid"></div>
+<section id="tags">
+  <div class="shd"><div class="n">03</div><h2>职责标签</h2>
+  <p>备班、责班、带教、门诊这类职责，一天可以挂多个，是独立于班次的第二层信息。所以它<b>必须比班次标弱一档</b>，否则一眼看过去分不清哪个是班、哪个是职责。四种画法：</p></div>
+  <div class="opts" id="tagGrid"></div>
+  <h3 class="sub">放在哪</h3>
+  <div class="opts" id="posGrid"></div>
+</section>
+
+<section id="marks">
+  <div class="shd"><div class="n">04</div><h2>休 / 节假日 / 调休</h2>
+  <p>三种性质不同的标记要分开处理：<b>休息</b>是常态（一个月十天），<b>法定节假日</b>是一年十三天，<b>调休上班</b>是本该休却要上。用同一个红色会糊成一团。</p></div>
+  <div class="opts" id="mkGrid"></div>
+  <div class="panel" style="margin-top:14px">
+    <h4>颜色分工</h4>
+    <p class="hint">节假日名用<b>红</b>（<code style="font-family:ui-monospace,monospace;font-size:12px">#D70015</code>，比 systemRed 深一阶，小字才压得住白底）；调休上班的「班」用<b>绿</b>（<code style="font-family:ui-monospace,monospace;font-size:12px">#248A3D</code>），因为它的含义是"这天要上班"，和节假日相反；普通休息日一律<b>灰</b>。红只出现在一年十三天，出现时才有分量。</p>
+  </div>
 </section>
 
 <section id="lays">
-  <div class="shd"><div class="n">03</div><h2>八种色标排法</h2>
-  <p>格子一律不填底色。变的只是色标的形状、大小、位置，以及工时放哪。同一份数据：2026 年 9 月，4白2休4夜2休，今天 20 号，25 号中秋。</p></div>
+  <div class="shd"><div class="n">05</div><h2>六种完整排布</h2>
+  <p>把标签和标记都放进排法一。数据是 2026 年 9 月：4白2休4夜2休，25 号中秋，27 号调休上班，几天挂了职责标签，今天 20 号。</p></div>
   <div class="lays" id="layGrid"></div>
 </section>
 
 <section id="cr">
-  <div class="shd"><div class="n">04</div><h2>对比度</h2>
-  <p>色标是 14px 的小块，属于界面元素，门槛 3:1；工时是正文，门槛 4.5:1。两栏分别算。</p></div>
+  <div class="shd"><div class="n">06</div><h2>对比度总表</h2></div>
   <div class="panel"><div class="crt" id="crTbl"></div></div>
-  <div class="panel" style="margin-top:12px">
-    <h4>工时数字的三档颜色</h4>
-    <p class="hint">你发的那张参考图里，「11.5h」用的是班次原色。橙色原色压在白底上只有 <b>2.6:1</b>，达不到正文门槛——看着鲜，但小字会发虚。所以顶栏给了三档：<b>班次色</b>是同色相压到 4.5:1 的深一阶（橙会偏琥珀），<b>原色</b>就是参考图那种效果，<b>文字色</b>最稳。自己对着切一下最快。</p>
-  </div>
-  <div class="panel" style="margin-top:12px">
-    <h4>色标里的字为什么不是白的</h4>
-    <p class="hint">白字压在 systemOrange 上只有 <b>2.20:1</b>，systemYellow 上 1.51:1——远不够。这里用的是<b>同色相压暗的版本</b>：橙底配深琥珀字、蓝底配浅蓝字，一眼看过去还是一个颜色，只是深浅两阶。想强行用白字，就得把底色压暗到烧橙色，那就不鲜艳了。</p>
-  </div>
-</section>
-
-<section id="spec">
-  <div class="shd"><div class="n">05</div><h2>规格</h2></div>
-  <div class="panel" id="specBox"></div>
 </section>
 
 <section id="out">
-  <div class="shd"><div class="n">06</div><h2>色值输出</h2></div>
+  <div class="shd"><div class="n">07</div><h2>色值输出</h2></div>
   <pre id="swiftOut"></pre>
 </section>
 </div>
@@ -254,146 +281,160 @@ function atL(base,Lt){const[L,C,h]=lch(base);
  return HX(rgbOf(Lt,maxC(Lt,h)*rel,h))}
 const lum=h=>{const[r,g,b]=hx(h).map(g2l);return .2126*r+.7152*g+.0722*b};
 const CR=(a,b)=>{const x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
-function stepTo(base,ground,target){          /* 同色相走到够对比度为止 */
-  const up=lum(ground)<.30;
-  let L=lch(ground)[0],best=base,bestC=CR(base,ground);
-  for(let i=0;i<26;i++){
-    L=up?Math.min(.99,L+.035):Math.max(.05,L-.035);
-    const c=atL(base,L),v=CR(c,ground);
-    if(v>=target)return c;
-    if(v>bestC){bestC=v;best=c}
-  }
-  return best;
-}
-const hueDeg=h=>{let d=lch(h)[2]*180/Math.PI;return Math.round((d+360)%360)};
+/* 白字达标的最浅一档 */
+function forWhite(base,target){
+  for(let L=.92;L>.18;L-=.005){const c=atL(base,L);if(CR('#FFFFFF',c)>=target)return c}
+  return atL(base,.18)}
+/* 白底/黑底上可读的同色相版本 */
+function onGround(base,ground,target){
+  const up=lum(ground)<.30;let L=lch(ground)[0],best=base,bc=CR(base,ground);
+  for(let i=0;i<26;i++){L=up?Math.min(.99,L+.035):Math.max(.05,L-.035);
+    const c=atL(base,L),v=CR(c,ground);if(v>=target)return c;if(v>bc){bc=v;best=c}}
+  return best}
 
 /* ===== 数据 ===== */
 const SHIFT={
- day:{n:'白班',s:'白',st:'08:00',en:'20:00',h:12},
- night:{n:'夜班',s:'夜',st:'20:00',en:'08:00',h:12},
- morn:{n:'早班',s:'早',st:'08:00',en:'16:00',h:8},
- mid:{n:'中班',s:'中',st:'16:00',en:'00:00',h:8},
- late:{n:'晚班',s:'晚',st:'00:00',en:'08:00',h:8},
- other:{n:'门诊',s:'诊',st:'09:00',en:'17:00',h:8},
+ day:{n:'白班',s:'白',h:12},night:{n:'夜班',s:'夜',h:12},
+ morn:{n:'早班',s:'早',h:8},mid:{n:'中班',s:'中',h:8},
  rest:{n:'休息',s:'休',h:0,rest:true},
 };
-const KEYS=['day','night','morn','mid','late','other'];
-const ROSTER=[];{const c=['day','day','day','day','rest','rest','night','night','night','night','rest','rest'];
- for(let d=1;d<=30;d++)ROSTER[d]=c[(d-1)%12]}
-const TODAY=20,LEAD=1,DAYS=30,HOLI={25:'中秋'};
+const TAGS={duty:{n:'责班',s:'责'},standby:{n:'备班',s:'备'},teach:{n:'带教',s:'教'},clinic:{n:'门诊',s:'诊'}};
+/* 9 月排班：4白2休4夜2休，25 中秋放假，27 调休上班 */
+const PLAN={};
+{const cyc=['day','day','day','day','rest','rest','night','night','night','night','rest','rest'];
+ for(let d=1;d<=30;d++)PLAN[d]={k:cyc[(d-1)%12]};}
+PLAN[25]={k:'rest',hol:'中秋'};
+PLAN[24]={k:'rest',hol:'中秋'};
+PLAN[27]={k:'day',swap:true};
+PLAN[2].tag='standby'; PLAN[8].tag='duty'; PLAN[15].tag='teach';
+PLAN[19].tag='duty'; PLAN[22].tag='standby'; PLAN[29].tag='clinic';
+PLAN[3].k='morn'; PLAN[16].k='mid';
+const TODAY=20,LEAD=1,DAYS=30;
 
-/* 六组橙 × 蓝 —— 全部高饱和 */
+/* ===== 八组橙 × 蓝（全部白字） ===== */
 const DUOS=[
- {id:'ios',n:'iOS 原色',sub:'Orange × Blue',day:'#FF9500',night:'#007AFF',
-  d:'systemOrange 配 systemBlue。系统里最眼熟的一对，用户在别处已经认得。缺点是蓝和"今天"的强调色同色，要靠别的方式区分今天。'},
- {id:'amber',n:'琥珀深蓝',sub:'Amber × Royal',day:'#FFAA00',night:'#1A5FE0',
-  d:'橙往金里推一档、蓝往深里压一档。明度差是六组里最大的，整月缩略图的亮暗分界最干脆。'},
- {id:'gold',n:'金与天青',sub:'Gold × Sky',day:'#FFB800',night:'#0A9FE8',
-  d:'金黄配天青，两个都很亮，整页最轻快。代价是白夜的明度差变小，靠色相分而不是靠明暗。'},
- {id:'sunset',n:'落日',sub:'Deep Orange × Azure',day:'#FF7A00',night:'#0091FF',
-  d:'橙压深一点，蓝提亮一点。橙的份量更足，适合白班占比高的排法。'},
- {id:'ref',n:'参考同款',sub:'近似你发的那张图',day:'#FF7B23',night:'#3478F6',
-  d:'照着你发的截图取的色。橙偏朱、蓝偏柔，是国产 App 里很常见的一对，比 iOS 原色稍微收一点。'},
- {id:'indigo',n:'橙与靛',sub:'Orange × Indigo',day:'#FF9500',night:'#4B49D6',
-  d:'蓝往紫的方向偏一点到靛。夜的"沉"感最强，也最不会和 systemBlue 的系统控件撞色。'},
+ {id:'vermilion',n:'朱橙宝蓝',sub:'Vermilion × Royal',tier:3,day:'#FF5A1F',night:'#1A5FE0',
+  d:'朱橙原色白字就有 3.12:1，不用压深。蓝压到宝蓝，明度差最大。八组里最鲜艳的一组。'},
+ {id:'pumpkin',n:'南瓜靛',sub:'Pumpkin × Indigo',tier:3,day:'#F06E15',night:'#5856D6',
+  d:'南瓜橙配 systemIndigo。靛比蓝更沉，夜班的份量足，也不会和系统控件的蓝撞色。'},
+ {id:'sunset',n:'落日',sub:'Deep Orange × Blue',tier:3,day:'#ED7100',night:'#007AFF',
+  d:'橙压到刚好 3:1，是黄橙一族里还能用白字的极限。配 systemBlue，最像原生 iOS。'},
+ {id:'coral',n:'珊瑚天青',sub:'Coral × Sky',tier:3,day:'#FF5D4E',night:'#0A8FD8',
+  d:'橙再往红推一档成珊瑚，蓝提亮成天青。两个都亮，整页最轻，靠色相分不靠明暗。'},
+ {id:'ref',n:'参考同款',sub:'照你发的截图',tier:3,day:'#F16E02',night:'#3478F6',
+  d:'按截图取色后压到白字达标。橙偏朱、蓝偏柔，是国产 App 里最常见的一对。'},
+ {id:'brick',n:'砖红靛蓝',sub:'Brick × Indigo',tier:3,day:'#E8590C',night:'#4B49D6',
+  d:'橙压成砖红，最沉稳的一组。白字余量最大，小字最清楚，代价是少了点跳。'},
+ {id:'burnt',n:'烧橙深蓝',sub:'Burnt × Deep',tier:4.5,day:'#BE5900',night:'#0072F0',
+  d:'稳妥档：白字 4.5:1，正文级。橙明显发烧，不够跳，但 10px 的字在任何屏上都清楚。'},
+ {id:'rust',n:'赤橙宝蓝',sub:'Rust × Royal',tier:4.5,day:'#D44201',night:'#2B6FEF',
+  d:'稳妥档里偏红的一版，比烧橙鲜一点。白字 4.59:1。'},
 ];
-/* 其余班次三套跟法 */
-const SETS=[
- {id:'warmcold',n:'暖冷分组',
-  d:'白天上班的一律暖色，夜里上班的一律冷色。早班黄、中班粉（傍晚）、晚班紫（后半夜）、门诊绿。规则最好记，语义最强。',
-  c:{morn:'#FFCC00',mid:'#FF2D55',late:'#8A5CF0',other:'#34C759'}},
- {id:'family',n:'同族延伸',
-  d:'不引入新色相，只在橙族和蓝族里取深浅阶：早班是浅橙、中班是深橙、晚班是浅蓝、门诊单独给一个绿。整页一致性最高，代价是班次多时不好分。',
-  c:{morn:null,mid:null,late:null,other:'#34C759'}},
- {id:'vivid',n:'多彩',
-  d:'剩下四个色位直接拉开：青、粉、紫、绿。班次种类多的行业（医护、公共安全）用这套，辨识度最高。',
-  c:{morn:'#00C7BE',mid:'#FF2D55',late:'#AF52DE',other:'#34C759'}},
-];
-const RESTC={light:'#C7C7CC',dark:'#48484A'};
+const SECOND={morn:'#009A8B',mid:'#C13584'};   /* 早班 / 中班，白字均 ≥3:1 */
+const TAGC='#6E56CF';                           /* 职责标签统一一个紫 */
 
-let DUO='ios',SET='warmcold',HC='tint',DEN='airy',LAY='l1';
+/* ===== 标签四种画法 ===== */
+const TAGSTYLES=[
+ {id:'solid',n:'实心小方块',d:'和班次标同构，但只有 11px、圆角 3.5。最一致，也最容易和班次标看混。'},
+ {id:'plain',n:'纯色字',d:'不给底，直接一个彩色的字。最轻，和班次标的层级差最大——推荐。'},
+ {id:'ring',n:'描边方块',d:'1px 描边 + 同色字。有形状但没重量，介于前两者之间。'},
+ {id:'soft',n:'淡染方块',d:'底色是标签色的淡阶、字是深阶。柔和，但在留白式的格子里稍显厚。'},
+];
+const TAGPOS=[
+ {id:'after',n:'跟在工时后',d:'和班次标、工时排一行。最紧凑，三样东西挤在 42pt 宽里是极限。'},
+ {id:'below',n:'另起一行',d:'标签单独占第三行。格子高 6px，但每一层的职责最清楚。'},
+ {id:'left',n:'日期左上角',d:'和右上角的农历对称。完全不占色标那一行，格子高度不变。'},
+ {id:'badge',n:'班次标右上角',d:'像 App 图标的角标一样贴在班次标上。最省地方，但两个标会互相压。'},
+];
+/* ===== 休 / 节假日 / 调休 四种 ===== */
+const MARKS=[
+ {id:'grey',n:'灰方块「休」',d:'休息日放一枚灰色实心方块，和上班日同构。整月节奏最整齐，代价是休息日不再"退下去"。'},
+ {id:'text',n:'灰字「休」',d:'不给方块，色标位置只放一个灰字。休息日明显比上班日轻一档——推荐。'},
+ {id:'none',n:'什么都不放',d:'休息日只有浅灰日期。最干净，但"这天是休息"和"这天还没排班"看起来一样。'},
+ {id:'pill',n:'节假日进主位',d:'法定节假日当天，把「中秋」做成红色淡染胶囊放进色标行，右上角空出来。一年十三天的仪式感。'},
+];
+
+let DUO='vermilion',TAGST='plain',TAGPO='after',MK='text',DEN='airy',LAY='a';
 const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');
  return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
 
-function baseOf(k,did=DUO,sid=SET){
-  const D=DUOS.find(x=>x.id===did),S=SETS.find(x=>x.id===sid),dk=isDark();
-  if(k==='day')return dk?atL(D.day,Math.min(.82,lch(D.day)[0]+.06)):D.day;
-  if(k==='night')return dk?atL(D.night,Math.min(.72,lch(D.night)[0]+.14)):D.night;
-  if(k==='rest')return dk?RESTC.dark:RESTC.light;
-  if(S.id==='family'){   /* 同族延伸：橙蓝两族的深浅阶 */
-    const m={morn:[D.day,.86],mid:[D.day,.62],late:[D.night,.72]};
-    if(m[k]){const[b,L]=m[k];return atL(b,dk?Math.min(.88,L+.10):L)}
-  }
-  const c=S.c[k]||'#34C759';
-  return dk?atL(c,Math.min(.84,lch(c)[0]+.08)):c;
+function markColor(k,did=DUO){
+  const D=DUOS.find(x=>x.id===did),dk=isDark();
+  let base = k==='day'?D.day : k==='night'?D.night : SECOND[k]||'#8E8E93';
+  if(dk)base=atL(base,Math.min(.68,lch(base)[0]+.08));
+  return base;
 }
-function tone(k,did,sid){
-  const base=baseOf(k,did,sid),ground=isDark()?'#000000':'#FFFFFF';
-  const chipInk=stepTo(base,base,4.5);            /* 色标里的字 */
-  const textOn=stepTo(base,ground,4.5);           /* 白/黑底上的工时数字 */
-  return{base,chipInk,textOn,crChip:CR(chipInk,base),crText:CR(textOn,ground)};
+function tone(k,did){
+  const base=markColor(k,did),ground=isDark()?'#000000':'#FFFFFF';
+  return{base,onWhite:CR('#FFFFFF',base),text:onGround(base,ground,4.5)};
 }
+const tagTone=()=>{const dk=isDark();
+  const base=dk?atL(TAGC,.72):TAGC, ground=dk?'#000000':'#FFFFFF';
+  return{base,text:onGround(base,ground,4.5),soft:atL(TAGC,dk?.28:.93),
+         softInk:onGround(TAGC,atL(TAGC,dk?.28:.93),4.5)}};
 
-/* ===== 八种色标排法 ===== */
-const LAYS=[
- {id:'l1',tg:'排法 一',n:'方块标 + 工时',
-  d:'基准款。14px 圆角方块装一个简称，工时紧跟其后。一行里同时给出"什么班"和"多少小时"，是留白派里信息量最大的。'},
- {id:'l2',tg:'排法 二',n:'方块标居中 · 工时另起一行',
-  d:'色标单独占一行居中，工时降到第三行、用更小的字。层次最清楚，格子也最高。'},
- {id:'l3',tg:'排法 三',n:'大方块',
-  d:'方块放大到 20px、圆角 6px，简称更醒目，工时降到下一行收成 10px。颜色的份量明显加重，但仍然没有填满格子。'},
- {id:'l4',tg:'排法 四',n:'描边方块',
-  d:'方块改成空心：1.5px 描边 + 同色简称。比实心轻一档，整页更透气，深色模式下尤其干净。'},
- {id:'l5',tg:'排法 五',n:'胶囊',
-  d:'简称和工时装进同一颗胶囊，底色是班次色的淡阶。是这八种里唯一带底色的，但只占一小条。'},
- {id:'l6',tg:'排法 六',n:'色标贴在数字左边',
-  d:'方块和日期数字排在同一行，工时在下面。横向排布让格子矮一截，一屏能多放一周。'},
- {id:'l7',tg:'排法 七',n:'下划线 + 工时',
-  d:'方块换成日期下面一道 20×3 的短线，简称不写了。颜色最轻，连着几天上同一个班时会连成一段，节奏感最好。'},
- {id:'l8',tg:'排法 八',n:'只有方块',
-  d:'工时也去掉，一天只剩日期和一个色标。最极简，适合不追工时、只看排班的人——工时去统计页看。'},
-];
-
+/* ===== 格子 ===== */
 function cell(day,o={}){
-  const k=ROSTER[day],sh=SHIFT[k],lay=o.lay||LAY,hc=o.hc||HC;
-  const T=tone(k,o.duo,o.set);
-  const holi=HOLI[day]||'',today=day===TODAY;
+  const P=PLAN[day],sh=SHIFT[P.k],T=tone(P.k,o.duo);
+  const tagst=o.tagst||TAGST,tagpo=o.tagpo||TAGPO,mk=o.mk||MK;
+  const today=day===TODAY,tag=P.tag?TAGS[P.tag]:null,G=tagTone();
   const e=el('div','c'+(sh.rest?' rest':'')+(today?' today':''));
-  const num=()=>el('span','num',day);
-  const hrsEl=(sz)=>{const x=el('span','hrs',sh.h+'h');
-    x.style.color=hc==='tint'?T.textOn:(hc==='raw'?T.base:'var(--label2)');if(sz)x.style.fontSize=sz;return x};
-  const sq=(size,fs,hollow)=>{const s=el('span','sq'+(hollow?' hollow':''),sh.s);
-    s.style.width=s.style.height=size+'px';s.style.fontSize=fs+'px';
-    if(hollow){s.style.boxShadow='inset 0 0 0 1.5px '+T.base;s.style.color=T.textOn}
-    else{s.style.background=T.base;s.style.color=T.chipInk}
-    return s};
 
-  if(lay==='l6'){
-    const row=el('div','row');
-    if(!sh.rest)row.appendChild(sq(13,9.5));
-    row.appendChild(num());
-    e.appendChild(row);
-    if(!sh.rest)e.appendChild(hrsEl());
-    if(holi)e.appendChild(el('span','sub',holi));
+  /* 右上角：节假日 / 调休。有角标时数字整体左移，避免压字 */
+  const hasCorner=(P.hol&&mk!=='pill')||P.swap;
+  if(P.hol&&mk!=='pill')e.appendChild(el('span','corner hol',P.hol));
+  else if(P.swap)e.appendChild(el('span','corner swap','班'));
+
+  /* 标签在左上角 */
+  if(tag&&tagpo==='left'){const t=el('span','cornerL',tag.s);t.style.color=G.text;e.appendChild(t)}
+
+  const numEl=el('span','num',day);
+  if(hasCorner)numEl.style.transform='translateX(-5px)';
+  e.appendChild(numEl);
+
+  const mkTag=(size)=>{
+    const t=el('span','tag '+tagst,tag.s);
+    t.style.fontSize=(size||9)+'px';
+    if(tagst==='solid'){t.style.width=t.style.height=(size?size+3:12)+'px';t.style.background=G.base;t.style.color='#fff'}
+    else if(tagst==='plain'){t.style.color=G.text}
+    else if(tagst==='ring'){t.style.width=t.style.height=(size?size+3:12)+'px';
+      t.style.boxShadow='inset 0 0 0 1px '+G.base;t.style.color=G.text}
+    else{t.style.width=t.style.height=(size?size+4:13)+'px';t.style.background=G.soft;t.style.color=G.softInk}
+    return t};
+
+  /* 节假日进主位 */
+  if(P.hol&&mk==='pill'){
+    const p=el('span','holpill',P.hol);
+    p.style.background=isDark()?'#3A1214':'#FFE5E7';p.style.color='var(--danger)';
+    e.appendChild(p);return e;
+  }
+  /* 休息日 */
+  if(sh.rest){
+    if(mk==='grey'){const m=el('div','mk');
+      const q=el('span','sq','休');q.style.cssText='width:13px;height:13px;font-size:9.5px;background:var(--grey);color:#fff';
+      m.appendChild(q);e.appendChild(m)}
+    else if(mk==='text'){const m=el('div','mk');
+      const q=el('span',null,'休');q.style.cssText='font-size:12px;font-weight:650;color:var(--greyInk)';
+      m.appendChild(q);e.appendChild(m)}
     return e;
   }
-  e.appendChild(num());
-  if(holi)e.appendChild(el('span','sub',holi));
-  if(sh.rest)return e;
 
-  if(lay==='l1'){const m=el('div','mk');m.appendChild(sq(14,10));m.appendChild(hrsEl());e.appendChild(m)}
-  else if(lay==='l2'){const s=el('div','stack');s.appendChild(sq(15,10.5));s.appendChild(hrsEl('10px'));e.appendChild(s)}
-  else if(lay==='l3'){const st=el('div','stack');const q=sq(20,13);q.style.borderRadius='6px';
-    st.appendChild(q);st.appendChild(hrsEl('10px'));e.appendChild(st)}
-  else if(lay==='l4'){const m=el('div','mk');m.appendChild(sq(15,10,true));m.appendChild(hrsEl());e.appendChild(m)}
-  else if(lay==='l5'){const p=el('div','pillm');
-    p.style.background=atL(T.base,isDark()?.30:.93);p.style.color=stepTo(T.base,atL(T.base,isDark()?.30:.93),4.5);
-    p.innerHTML='<span>'+sh.s+'</span><span style="font-variant-numeric:tabular-nums">'+sh.h+'h</span>';
-    e.appendChild(p)}
-  else if(lay==='l7'){const s=el('div','stack');const u=el('span','ul');u.style.background=T.base;
-    s.appendChild(u);s.appendChild(hrsEl('10.5px'));e.appendChild(s)}
-  else if(lay==='l8'){const m=el('div','mk');m.appendChild(sq(15,10.5));e.appendChild(m)}
+  /* 上班日：色标 + 工时 (+ 标签) */
+  const m=el('div','mk');
+  const q=el('span','sq',sh.s);
+  q.style.cssText='width:13px;height:13px;font-size:9.5px;background:'+T.base+';color:#fff';
+  if(tag&&tagpo==='badge'){
+    const w=el('span');w.style.cssText='position:relative;display:inline-flex;flex:none';
+    w.appendChild(q);
+    const b=mkTag(7);b.style.cssText+=';position:absolute;top:-4px;right:-4px;box-shadow:0 0 0 1.5px var(--screen)'+
+      (tagst==='ring'?',inset 0 0 0 1px '+G.base:'');
+    w.appendChild(b);m.appendChild(w);
+  } else m.appendChild(q);
+  const h=el('span','hrs',sh.h+'h');h.style.color=T.text;m.appendChild(h);
+  if(tag&&tagpo==='after')m.appendChild(mkTag(8));
+  e.appendChild(m);
+  if(tag&&tagpo==='below'){const r=el('div','tagrow');r.appendChild(mkTag(9));e.appendChild(r)}
   return e;
 }
 function screen(o={}){
@@ -408,23 +449,44 @@ function screen(o={}){
   for(let d=1;d<=DAYS;d++)g.appendChild(cell(d,o));
   p.appendChild(g);
   const s=el('div','psum');
-  s.innerHTML='<div><div class="k">已工作小时</div><div class="v">156.0</div></div>'+
-              '<div><div class="k">额外工时</div><div class="v">72.0</div></div>'+
+  s.innerHTML='<div><div class="k">已工作小时</div><div class="v">148.0</div></div>'+
+              '<div><div class="k">额外工时</div><div class="v">64.0</div></div>'+
               '<span class="go">查看明细 ›</span>';
   p.appendChild(s);return p;
+}
+function threeCells(days,o){
+  const b=el('div','stagebox');
+  days.forEach(d=>b.appendChild(cell(d,Object.assign({},o))));
+  return b;
 }
 
 /* ===== 渲染 ===== */
 function renderLocks(){
   const b=document.getElementById('locks');b.innerHTML='';
   const D=DUOS.find(x=>x.id===DUO);
-  [['白班','#'+D.day.slice(1),D.day,'OKLCH 色相 '+hueDeg(D.day)+'°'],
-   ['夜班','#'+D.night.slice(1),D.night,'OKLCH 色相 '+hueDeg(D.night)+'°'],
-   ['格子','不填底色',null,'日期 23px 做主角'],
-   ['休息日','浅灰数字',null,'不放色标']].forEach(([a,c,col,ex])=>{
+  [['排法一','色标 + 工时同行',null],['色标内','一律白字',null],
+   ['白班',D.day,D.day],['夜班',D.night,D.night],
+   ['门槛',D.tier===3?'白字 ≥3:1':'白字 ≥4.5:1',null]].forEach(([a,c,col])=>{
     const l=el('div','lock');
     if(col){const i=el('i');i.style.background=col;l.appendChild(i)}
-    l.innerHTML+='<span>'+a+' '+c+'</span><em>'+ex+'</em>';b.appendChild(l)});
+    l.innerHTML+='<span>'+a+'</span><em>'+c.toUpperCase()+'</em>';b.appendChild(l)});
+}
+function renderCost(){
+  const t=document.getElementById('wtTbl');t.innerHTML='';
+  const h=el('div','r');
+  h.appendChild(el('div','hd','原色 + 白字'));h.appendChild(el('div','hd','压到白字 3:1'));h.appendChild(el('div','hd','压到白字 4.5:1'));
+  t.appendChild(h);
+  [['systemYellow','#FFCC00'],['systemOrange','#FF9500'],['琥珀','#FFAA00'],
+   ['朱橙 #FF5A1F','#FF5A1F'],['南瓜 #F97316','#F97316']].forEach(([n,c])=>{
+    const r=el('div','r');
+    [[c,'原色'],[forWhite(c,3),'3:1'],[forWhite(c,4.5),'4.5:1']].forEach(([col,lbl],i)=>{
+      const cr=CR('#FFFFFF',col),box=el('div','box');
+      box.style.background=isDark()?'#1C1C1E':'#F7F7F9';
+      const q=el('span','q','白');q.style.background=col;box.appendChild(q);
+      const tx=el('div','tx');
+      tx.innerHTML='<span class="'+(cr<3?'bad':'')+'">'+cr.toFixed(2)+':1</span><em>'+(i===0?n:col.toUpperCase())+'</em>';
+      box.appendChild(tx);r.appendChild(box)});
+    t.appendChild(r)});
 }
 function renderDuos(){
   const g=document.getElementById('duoGrid');g.innerHTML='';
@@ -432,19 +494,23 @@ function renderDuos(){
     const c=el('div','duo'+(D.id===DUO?' on':''));c.tabIndex=0;c.setAttribute('role','button');
     const nm=el('div','nm');nm.innerHTML='<b>'+D.n+'</b><em>'+D.sub+'</em>';c.appendChild(nm);
     const bs=el('div','bands');
-    [['day','白班 08–20',D.day],['night','夜班 20–08',D.night]].forEach(([k,t,col])=>{
-      const T=tone(k,D.id),b=el('div','band');
-      b.style.background=T.base;b.style.color=T.chipInk;
-      b.innerHTML='<span class="t">'+t+'</span><code>'+T.base.toUpperCase()+'</code>';bs.appendChild(b)});
+    [['白','08–20',D.day],['夜','20–08',D.night]].forEach(([s,t,col])=>{
+      const b=el('div','band');b.style.background=col;
+      b.innerHTML='<span class="t">'+t+'</span><span class="big">'+s+'</span><code>'+col.toUpperCase()+'</code>';
+      bs.appendChild(b)});
     c.appendChild(bs);
+    const cr=el('div','cr');
+    cr.innerHTML='<span>白字 '+CR('#FFFFFF',D.day).toFixed(2)+':1</span><span>白字 '+CR('#FFFFFF',D.night).toFixed(2)+':1</span>';
+    c.appendChild(cr);
     const sp=el('div','samp');
-    [['day',12],['night',15]].forEach(([k,d])=>{
+    [[12,'day'],[15,'night']].forEach(([d,k])=>{
       const T=tone(k,D.id),u=el('div','u');
       u.appendChild(el('span','n',d));
       const m=el('div','mk');
-      const q=el('span','sq',SHIFT[k].s);q.style.cssText='width:14px;height:14px;font-size:10px;background:'+T.base+';color:'+T.chipInk;
+      const q=el('span','sq',SHIFT[k].s);
+      q.style.cssText='width:13px;height:13px;font-size:9.5px;background:'+T.base+';color:#fff';
       m.appendChild(q);
-      const h=el('span','hrs','12h');h.style.color=T.textOn;m.appendChild(h);
+      const hh=el('span','hrs','12h');hh.style.color=T.text;m.appendChild(hh);
       u.appendChild(m);sp.appendChild(u)});
     c.appendChild(sp);
     c.appendChild(el('p',null,D.d));
@@ -455,86 +521,109 @@ function renderDuos(){
   DUOS.forEach(D=>{const b=el('button',null,D.n);b.setAttribute('aria-pressed',D.id===DUO);
     b.onclick=()=>{DUO=D.id;render()};s.appendChild(b)});
 }
-function renderSets(){
-  const g=document.getElementById('setGrid');g.innerHTML='';
-  SETS.forEach(S=>{
-    const c=el('div','set'+(S.id===SET?' on':''));c.tabIndex=0;c.setAttribute('role','button');
-    const nm=el('div','nm');nm.innerHTML='<b>'+S.n+'</b><span>'+S.d+'</span>';c.appendChild(nm);
-    const ch=el('div','chips');
-    KEYS.forEach(k=>{const T=tone(k,DUO,S.id),box=el('div','chipbox');
-      const q=el('span','sq',SHIFT[k].s);
-      q.style.cssText='width:22px;height:22px;font-size:13px;border-radius:6px;background:'+T.base+';color:'+T.chipInk;
-      box.appendChild(q);box.appendChild(el('em',null,SHIFT[k].n));ch.appendChild(box)});
-    c.appendChild(ch);
-    const go=()=>{SET=S.id;render()};
-    c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
-    g.appendChild(c)});
-  const s=document.getElementById('setSeg');s.innerHTML='';
-  SETS.forEach(S=>{const b=el('button',null,S.n);b.setAttribute('aria-pressed',S.id===SET);
-    b.onclick=()=>{SET=S.id;render()};s.appendChild(b)});
+function optCard(list,cur,setter,days,keyName,segId){
+  return(gridId)=>{
+    const g=document.getElementById(gridId);g.innerHTML='';
+    list.forEach(x=>{
+      const c=el('div','opt'+(x.id===cur()?' on':''));c.tabIndex=0;c.setAttribute('role','button');
+      const nm=el('div','nm');nm.innerHTML='<b>'+x.n+'</b><span>'+x.d+'</span>';c.appendChild(nm);
+      const o={};o[keyName]=x.id;
+      c.appendChild(threeCells(days,o));
+      const go=()=>{setter(x.id);render()};
+      c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
+      g.appendChild(c)});
+    const s=document.getElementById(segId);s.innerHTML='';
+    list.forEach(x=>{const b=el('button',null,x.n);b.setAttribute('aria-pressed',x.id===cur());
+      b.onclick=()=>{setter(x.id);render()};s.appendChild(b)});
+  };
 }
+const LAYS=[
+ {id:'a',tg:'排布 一',n:'标签纯色字 · 同行',
+  o:{tagst:'plain',tagpo:'after',mk:'text'},
+  d:'职责标签是一个没有底的彩色字，跟在工时后面。层级差最大——实心方块是班次，彩色字是职责，不会看混。休息日只有一个灰「休」。'},
+ {id:'b',tg:'排布 二',n:'标签另起一行',
+  o:{tagst:'solid',tagpo:'below',mk:'text'},
+  d:'标签用 11px 实心小方块，单独占第三行。格子高 6px，但三层信息各就各位，挂两个标签也放得下。'},
+ {id:'c',tg:'排布 三',n:'标签在左上角',
+  o:{tagst:'plain',tagpo:'left',mk:'text'},
+  d:'标签挪到日期左上角，和右上角的农历对称。完全不占色标那一行，格子高度和没标签时一模一样。'},
+ {id:'d',tg:'排布 四',n:'标签做角标',
+  o:{tagst:'solid',tagpo:'badge',mk:'text'},
+  d:'像 App 图标的角标一样贴在班次标右上。最省地方，但两个标挨得近，小屏上容易糊。'},
+ {id:'e',tg:'排布 五',n:'休息日也给方块',
+  o:{tagst:'plain',tagpo:'after',mk:'grey'},
+  d:'休息日放灰色实心「休」，和上班日同构。整月的节奏最整齐，代价是休息日不再往后退。'},
+ {id:'f',tg:'排布 六',n:'节假日进主位',
+  o:{tagst:'plain',tagpo:'after',mk:'pill'},
+  d:'法定节假日当天，「中秋」做成红色淡染胶囊坐进色标行，右上角空出来。一年只有十三天会这样。'},
+];
 function renderLays(){
   const g=document.getElementById('layGrid');g.innerHTML='';
   LAYS.forEach(L=>{
     const c=el('div','lay'+(L.id===LAY?' on':''));c.tabIndex=0;c.setAttribute('role','button');
     const h=el('div','h');h.innerHTML='<div class="tg">'+L.tg+'</div><b>'+L.n+'</b><span>'+L.d+'</span>';c.appendChild(h);
-    const b=el('div','body');b.appendChild(screen({lay:L.id}));c.appendChild(b);
-    const go=()=>{LAY=L.id;render()};
+    const b=el('div','body');b.appendChild(screen(L.o));c.appendChild(b);
+    const go=()=>{LAY=L.id;TAGST=L.o.tagst;TAGPO=L.o.tagpo;MK=L.o.mk;render()};
     c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
     g.appendChild(c)});
 }
 function renderCR(){
   const t=document.getElementById('crTbl');t.innerHTML='';
   const hd=el('div','r');hd.style.cssText='font-size:11.5px;color:var(--label2);padding-bottom:6px';
-  hd.innerHTML='<span>班次</span><span>色标内文字 ≥3</span><span>工时数字 ≥4.5</span>';t.appendChild(hd);
-  [...KEYS,'rest'].forEach(k=>{const T=tone(k),r=el('div','r');
-    r.innerHTML='<span style="display:flex;align-items:center;gap:9px"><i class="sqv" style="background:'+T.base+
-      ';color:'+T.chipInk+'">'+SHIFT[k].s+'</i>'+SHIFT[k].n+
-      ' <code style="font-family:ui-monospace,monospace;font-size:10.5px;color:var(--label3)">'+T.base.toUpperCase()+'</code></span>'+
-      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px;color:'+(T.crChip>=3?'var(--label)':'var(--danger)')+'">'+T.crChip.toFixed(2)+':1</b>'+
-      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px;color:'+(T.crText>=4.5?'var(--label)':'var(--danger)')+'">'+T.crText.toFixed(2)+':1</b>';
+  hd.innerHTML='<span>元素</span><span>色标白字</span><span>白底文字</span>';t.appendChild(hd);
+  const rows=[['day','白班'],['night','夜班'],['morn','早班'],['mid','中班']];
+  rows.forEach(([k,n])=>{const T=tone(k),r=el('div','r');
+    r.innerHTML='<span style="display:flex;align-items:center;gap:9px"><i class="sqv" style="background:'+T.base+'">'+
+      SHIFT[k].s+'</i>'+n+' <code style="font-family:ui-monospace,monospace;font-size:10.5px;color:var(--label3)">'+
+      T.base.toUpperCase()+'</code></span>'+
+      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px;color:'+(T.onWhite>=3?'var(--label)':'var(--danger)')+'">'+
+      T.onWhite.toFixed(2)+':1</b>'+
+      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px">'+CR(T.text,isDark()?'#000000':'#FFFFFF').toFixed(2)+':1</b>';
+    t.appendChild(r)});
+  const G=tagTone(),gr=isDark()?'#000000':'#FFFFFF';
+  [['职责标签',G.base,CR('#FFFFFF',G.base),CR(G.text,gr)],
+   ['休息灰',isDark()?'#48484A':'#C7C7CC',CR('#FFFFFF',isDark()?'#48484A':'#C7C7CC'),CR(isDark()?'#98989D':'#6C6C70',gr)],
+   ['节假日红',isDark()?'#FF6961':'#D70015',CR('#FFFFFF',isDark()?'#FF6961':'#D70015'),CR(isDark()?'#FF6961':'#D70015',gr)],
+   ['调休绿',isDark()?'#30D158':'#248A3D',CR('#FFFFFF',isDark()?'#30D158':'#248A3D'),CR(isDark()?'#30D158':'#248A3D',gr)]]
+  .forEach(([n,col,a,b])=>{const r=el('div','r');
+    r.innerHTML='<span style="display:flex;align-items:center;gap:9px"><i class="sqv" style="background:'+col+'">·</i>'+n+
+      ' <code style="font-family:ui-monospace,monospace;font-size:10.5px;color:var(--label3)">'+col.toUpperCase()+'</code></span>'+
+      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px;color:'+(a>=3?'var(--label)':'var(--danger)')+'">'+a.toFixed(2)+':1</b>'+
+      '<b style="font-variant-numeric:tabular-nums;font-size:12.5px;color:'+(b>=4.5?'var(--label)':'var(--danger)')+'">'+b.toFixed(2)+':1</b>';
     t.appendChild(r)});
 }
-const SPEC=[
- ['日期数字','23px / weight 550 / 字距 −0.03em / 等宽数字。紧凑档 20px。用 <code>.title3</code> 这一档的语义字号，跟随动态字体。'],
- ['休息日','数字换成三级文字色、字重降到 450，<b>不放任何色标</b>。整月一眼就能看出哪几天不上班。'],
- ['今天','数字换成系统 tint 色 + 字重 700。不画圆圈也不画描边——留白派一旦加框就破功。'],
- ['色标','14×14，圆角 4。里面的字是<b>底色同色相压暗的版本</b>，不是白色。'],
- ['工时','11px / weight 600 / 等宽数字。颜色可选班次色或二级文字色；选班次色时用的是白底上达标的那一阶，不是色标那一阶。'],
- ['节假日','右上角 8px 红字，竖排两字。这个位置平时留给农历（lunar-typescript 已经在算）。'],
- ['行高','疏 74px / 紧 58px。行高是这套设计的命门，压到 58 以下就不"高级"了。'],
- ['底色','日历区纯白（深色模式纯黑），周栏 <code>#F2F2F7</code>，底部汇总卡 <code>#F5F5F7</code>。格子本身永远没有底色。'],
-];
-function renderSpec(){
-  const b=document.getElementById('specBox');b.innerHTML='';
-  SPEC.forEach(([k,v])=>{const d=el('div');
-    d.innerHTML='<b style="font-size:14px;font-weight:650">'+k+'</b>'+
-      '<p class="hint" style="margin-top:2px">'+v+'</p>';b.appendChild(d)});
-}
 function renderOut(){
-  const D=DUOS.find(x=>x.id===DUO),S=SETS.find(x=>x.id===SET);
+  const D=DUOS.find(x=>x.id===DUO);
   const was=document.documentElement.getAttribute('data-theme');
   const grab=m=>{document.documentElement.setAttribute('data-theme',m);
-    const o={};[...KEYS,'rest'].forEach(k=>o[k]=tone(k));return o};
+    const o={};['day','night','morn','mid'].forEach(k=>o[k]=tone(k));o.tag=tagTone();return o};
   const L=grab('light'),Dk=grab('dark');
   if(was)document.documentElement.setAttribute('data-theme',was);
   else document.documentElement.removeAttribute('data-theme');
   const pad=s=>s+' '.repeat(Math.max(0,10-s.length));
-  let s='<i>// '+D.n+'（'+D.sub+'）　其余班次：'+S.n+'</i>\n';
-  s+='<i>// mark = 色标底色　onMark = 色标里的字　onBG = 白底/黑底上的工时数字</i>\n\n';
+  let s='<i>// '+D.n+'（'+D.sub+'）　色标一律白字，门槛 '+(D.tier===3?'3:1':'4.5:1')+'</i>\n';
+  s+='<i>// mark = 色标底色（配白字）　text = 白底/黑底上的工时数字</i>\n\n';
   s+='<b>enum</b> ShiftTone {\n';
   [['Lite','浅色',L],['Dark','深色',Dk]].forEach(([sfx,cn,set])=>{
     s+='    <i>// '+cn+'</i>\n';
-    [...KEYS,'rest'].forEach(k=>{const t=set[k];
-      s+='    <b>static let</b> '+pad(k+sfx)+' = ("'+t.base.toUpperCase()+'", "'+t.chipInk.toUpperCase()+'", "'+
-         t.textOn.toUpperCase()+'")  <i>// '+SHIFT[k].n+'</i>\n'});
-    s+='\n'});
-  s+='}\n';
+    ['day','night','morn','mid'].forEach(k=>{const t=set[k];
+      s+='    <b>static let</b> '+pad(k+sfx)+' = (mark: "'+t.base.toUpperCase()+'", text: "'+t.text.toUpperCase()+
+         '")  <i>// '+SHIFT[k].n+'　白字 '+t.onWhite.toFixed(2)+':1</i>\n'});
+    s+='    <b>static let</b> '+pad('tag'+sfx)+' = (mark: "'+set.tag.base.toUpperCase()+'", text: "'+
+       set.tag.text.toUpperCase()+'")  <i>// 职责标签</i>\n\n'});
+  s+='    <i>// 休息灰 / 节假日红 / 调休绿</i>\n';
+  s+='    <b>static let</b> restLite = ("#C7C7CC", "#6C6C70"),  restDark = ("#48484A", "#98989D")\n';
+  s+='    <b>static let</b> holiday  = ("#D70015", "#FF6961")   <i>// 浅 / 深</i>\n';
+  s+='    <b>static let</b> swapWork = ("#248A3D", "#30D158")   <i>// 调休上班</i>\n}\n';
   document.getElementById('swiftOut').innerHTML=s;
 }
-function render(){renderLocks();renderDuos();renderSets();renderLays();renderCR();renderSpec();renderOut()}
-document.getElementById('hcSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
-  HC=b.dataset.hc;[...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
+function render(){
+  renderLocks();renderCost();renderDuos();
+  optCard(TAGSTYLES,()=>TAGST,v=>TAGST=v,[2,8,15],'tagst','tagSeg')('tagGrid');
+  optCard(TAGPOS,()=>TAGPO,v=>TAGPO=v,[2,8,15],'tagpo','posSeg')('posGrid');
+  optCard(MARKS,()=>MK,v=>MK=v,[24,25,27],'mk','mkSeg')('mkGrid');
+  renderLays();renderCR();renderOut();
+}
 document.getElementById('denSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   DEN=b.dataset.d;[...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
 document.getElementById('thSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
