@@ -113,6 +113,17 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .opt .verdict i.y{background:rgba(36,138,61,.15);color:var(--ok)}
 .opt .verdict i.n{background:var(--card2);color:var(--label2)}
 .stagebox{background:var(--screen);border-radius:12px;padding:8px 4px;display:grid;gap:2px;border:.5px solid var(--sep2)}
+.rhythms{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:15px;align-items:start}
+.rhy{background:var(--card);border-radius:var(--r-l);overflow:hidden;cursor:pointer;border:2px solid transparent;transition:.15s}
+.rhy.on{border-color:var(--tint)}
+.rhy .h{padding:14px 16px 10px}
+.rhy .h b{font-size:16.5px;font-weight:650;display:block}
+.rhy .h span{font-size:12.4px;color:var(--label2);line-height:1.5;display:block;margin-top:4px}
+.rhy .nums{display:flex;gap:12px;flex-wrap:wrap;padding:0 16px 10px;font-size:11px;color:var(--label3);
+  font-variant-numeric:tabular-nums;font-weight:600}
+.rhy .nums b{color:var(--label);font-weight:650}
+.rhy .body{padding:0 10px 14px}
+.rhy .phone{max-width:none;border:none;border-radius:16px}
 .stagebox.n4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .stagebox.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
 /* 两行网格，用来看"横杠到底属于上一格还是下一格" */
@@ -162,7 +173,7 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .pnav .mr{position:absolute;right:14px;width:22px;height:22px;border-radius:50%;background:var(--card2)}
 .pband{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--band);padding:8px 0}
 .pband span{text-align:center;font-size:10.5px;font-weight:550;color:var(--label2)}
-.pgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:3px 3px 6px;gap:1px}
+.pgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:3px 3px 6px;column-gap:1px;row-gap:1px}
 .psum{margin:6px 12px 14px;background:var(--sumcard);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:16px}
 .psum .k{font-size:11.5px;color:var(--label2);line-height:1.3}
 .psum .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:1px}
@@ -171,8 +182,14 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 /* ---- 格子 ---- */
 .c{position:relative;display:flex;flex-direction:column;align-items:stretch;
   padding:5px 9px;min-width:0;border-radius:10px}
-.airy .c{min-height:76px}
-.tight .c{min-height:60px}
+.rh-loose .c{min-height:76px}
+.rh-dense .c{min-height:60px}
+.rh-hug   .c{min-height:58px}
+.rh-open  .c{min-height:56px}
+.rh-loose .pgrid{row-gap:1px}
+.rh-dense .pgrid{row-gap:1px}
+.rh-hug   .pgrid{row-gap:11px}
+.rh-open  .pgrid{row-gap:17px}
 .inner{display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:9px;padding:3px 0 4px;
   margin-inline:-6px}
 .c.top    {justify-content:flex-start}
@@ -180,7 +197,8 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .c.bottom {justify-content:flex-end}
 .c .num{font-size:22px;font-weight:550;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;
   position:relative;display:inline-grid;place-items:center}
-.tight .c .num{font-size:19px}
+.rh-dense .c .num{font-size:20px}
+.rh-open .c .num{font-size:22px}
 .c.rest .num{color:var(--label3);font-weight:450}
 .c.empty{visibility:hidden}
 .c.unset .num{color:var(--label3);font-weight:450}
@@ -222,7 +240,7 @@ pre i{font-style:normal;color:var(--label3)}
 <header class="top">
   <div class="kicker">Shift Ledger · 月历定稿</div>
   <h1>定稿组合</h1>
-  <p><b>左职责 · 右节假日 + 顶对齐 + 整格填充 + 数字加粗</b>。下面第一节是这套组合的浅色深色整屏，后面几节保留各个维度的对照，随时还能切回去比。</p>
+  <p><b>左职责 · 右节假日 + 顶对齐 + 整格填充 + 数字加粗</b>，格子贴合内容、空气放在行距里。第一节先说清「填充之后下面为什么空」，第二节是定稿的浅色深色整屏。</p>
   <div class="locks" id="locks"></div>
 </header>
 
@@ -230,14 +248,13 @@ pre i{font-style:normal;color:var(--label3)}
   <span class="blab">标记列</span><div class="seg" id="railSeg"></div>
   <span class="blab">对齐</span><div class="seg" id="alignSeg"></div>
   <span class="blab">今天</span><div class="seg" id="tdSeg"></div>
-  <span class="blab">密度</span>
-  <div class="seg" id="denSeg"><button data-d="airy" aria-pressed="true">疏</button><button data-d="tight" aria-pressed="false">紧</button></div>
+  <span class="blab">节奏</span><div class="seg" id="rhySeg"></div>
   <span class="blab">外观</span>
   <div class="seg" id="thSeg"><button data-th="light" aria-pressed="true">浅色</button><button data-th="dark" aria-pressed="false">深色</button></div>
 </div>
 
 <section id="final">
-  <div class="shd"><div class="n">00</div><h2>定稿</h2>
+  <div class="shd"><div class="n">02</div><h2>定稿</h2>
   <p>2026 年 9 月医护排法：25 号中秋、27 号调休上班，几天挂了一到四个职责标签，今天 20 号（夜班 + 备班 + 带教）。</p></div>
   <div class="final" id="finalGrid"></div>
   <div class="panel" style="margin-top:16px">
@@ -246,20 +263,27 @@ pre i{font-style:normal;color:var(--label3)}
   </div>
 </section>
 
+<section id="rhythm">
+  <div class="shd"><div class="n">01</div><h2>空气放在哪</h2>
+  <p>你说的两件事其实是同一个毛病的两面：<b>现在行距只有 1pt，整页想松就只能把格子撑高</b>。格子撑到 76pt，可里面的内容只有 56pt，多出的 20pt 就是"填充之后下面空"；缩到 60pt 不空了，行和行又贴在一起，就挤。<br><br>
+  正解是<b>把空气从格子内部挪到行与行之间</b>——格子贴合内容（56–58pt，上下内边距对称），行距拉到 11–17pt。整月总高几乎不变，但填充会紧紧裹住内容，整页反而更透气。</p></div>
+  <div class="rhythms" id="rhyGrid"></div>
+</section>
+
 <section id="rail">
-  <div class="shd"><div class="n">01</div><h2>标签放左边还是右边</h2>
+  <div class="shd"><div class="n">03</div><h2>标签放左边还是右边</h2>
   <p>三种都试了。左右各留 9pt，日期数字居中在中间那 28pt。<b>左右分工那版最讲得通</b>：左列是「这天我承担什么」（职责标签），右列是「这天在日历上是什么性质」（节假日、调休）——两类东西本来就不是一回事，分开放比挤在一列清楚。</p></div>
   <div class="opts" id="railGrid"></div>
 </section>
 
 <section id="align">
-  <div class="shd"><div class="n">02</div><h2>内容怎么对齐</h2>
+  <div class="shd"><div class="n">04</div><h2>内容怎么对齐</h2>
   <p>你看到的"下面空"其实不是填充的问题——<b>格子高 76pt，内容只有 45pt，一直是顶对齐</b>，所以底下本来就留了 30pt。平时格子没底色看不出来，一填充就露馅了。四种对齐都带着今天的填充，直接比。</p></div>
   <div class="opts" id="alignGrid"></div>
 </section>
 
 <section id="today">
-  <div class="shd"><div class="n">03</div><h2>今天怎么标</h2>
+  <div class="shd"><div class="n">05</div><h2>今天怎么标</h2>
   <p>底部横杠的问题你说得对：<b>它贴在格子下沿，和下一行的格子只隔 1pt，眼睛会把它读成下一格的顶边</b>。凡是"贴着格子边缘"的标记都有这个毛病。下面每张卡片都画成<b>两行三列</b>，中间那格是今天——能直接看出这个标记到底归谁。</p></div>
   <div class="opts" id="tdGrid"></div>
   <div class="panel" style="margin-top:14px">
@@ -269,18 +293,18 @@ pre i{font-style:normal;color:var(--label3)}
 </section>
 
 <section id="screens">
-  <div class="shd"><div class="n">04</div><h2>整屏</h2>
+  <div class="shd"><div class="n">06</div><h2>整屏</h2>
   <p>2026 年 9 月医护排法。25 号中秋、27 号调休上班，几天挂了一到四个职责标签，今天 20 号。</p></div>
   <div class="lays" id="scrGrid"></div>
 </section>
 
 <section id="matrix">
-  <div class="shd"><div class="n">05</div><h2>格子状态全集</h2></div>
+  <div class="shd"><div class="n">07</div><h2>格子状态全集</h2></div>
   <div class="matrix" id="matrixGrid"></div>
 </section>
 
 <section id="pal">
-  <div class="shd"><div class="n">06</div><h2>自定义色板</h2>
+  <div class="shd"><div class="n">08</div><h2>自定义色板</h2>
   <p>保留不动。十四个色全部白字 ≥3:1、全部高饱和。点色块试选，页面会实时算所选色两两的距离并提示。</p></div>
   <h3 class="sub">核心八色 · 按推荐顺序</h3>
   <div class="swatches" id="coreGrid"></div>
@@ -290,7 +314,7 @@ pre i{font-style:normal;color:var(--label3)}
 </section>
 
 <section id="out">
-  <div class="shd"><div class="n">07</div><h2>规格与色值</h2></div>
+  <div class="shd"><div class="n">09</div><h2>规格与色值</h2></div>
   <pre id="swiftOut"></pre>
 </section>
 </div>
@@ -378,7 +402,7 @@ const TDS=[
  {id:'bot',n:'底部横杠',ok:false,d:'贴在格子下沿。和下一行只隔 1pt，眼睛会把它读成下一格的顶边——这就是你说的那个问题。'},
 ];
 
-let RAIL='split',ALIGN='top',TD='bold',DEN='airy';
+let RAIL='split',ALIGN='top',TD='bold',RHY='hug';
 let PICK=['#F06E15','#5856D6','#C13584','#2BA94A'];
 const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');
  return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
@@ -474,7 +498,7 @@ PLAN[11]={d:11,k:'leave'};
 const LEAD=1,DAYS=30;
 
 function screen(o={}){
-  const p=el('div','phone '+(o.den||DEN));
+  const p=el('div','phone rh-'+(o.rhy||RHY));
   const nav=el('div','pnav');
   nav.innerHTML='<span class="bk">‹</span><span class="mo">8月</span><span class="mo cur">9月</span><span class="mo">10月</span><span class="mr"></span>';
   p.appendChild(nav);
@@ -606,7 +630,8 @@ function screenThemed(mode,o){
   return w;
 }
 const SPEC=[
- ['格子','46 × 76pt，圆角 10。内容<b>顶对齐</b>，日期距上沿 8pt。'],
+ ['格子','46 × <b>58</b>pt，圆角 10。内容顶对齐，上下内边距对称各 5pt——格子只比内容高 2pt，填充不会留空。'],
+ ['行距','<b>11pt</b>。空气放在行与行之间，不放在格子里。整月五行总高 '+(58*5+11*4)+'pt。'],
  ['左列','9pt。职责标签自上而下，最多 3 个，超出收成 <code>＋n</code>。纯色字，色值 <code>#6E56CF</code>。'],
  ['右列','9pt。法定节假日红字两字竖排 <code>#D70015</code>；调休上班绿「班」<code>#248A3D</code>。'],
  ['日期','22pt / weight 550 / 等宽数字。休息日降到三级灰 + weight 450。'],
@@ -631,6 +656,34 @@ function renderFinal(){
   SPEC.forEach(([k,v])=>{const r=el('div','r');
     v=v.replace('#E3F0FF',tf[0].toUpperCase()).replace('#0E3A63',tf[1].toUpperCase());
     r.appendChild(el('div','k',k));r.appendChild(el('div','v',v));t.appendChild(r)});
+}
+const RHYS=[
+ {id:'hug',n:'贴合 + 行距 11',cell:58,gap:11,
+  d:'推荐。格子只比内容高 2pt，填充紧紧裹住日期和色标，一点空档都没有；空气全部放到行与行之间。'},
+ {id:'open',n:'贴合 + 行距 17',cell:56,gap:17,
+  d:'更松的一版。格子压到刚好等于内容，行距拉到 17pt。整页最透气，接近参考图那种呼吸感。'},
+ {id:'loose',n:'现状 · 疏',cell:76,gap:1,
+  d:'格子 76pt、行距 1pt。空气全在格子里——这就是"填充之后下面空"的来源。'},
+ {id:'dense',n:'现状 · 紧',cell:60,gap:1,
+  d:'格子 60pt、行距 1pt。格内不空了，但行和行只隔 1pt，整页发闷。'},
+];
+function renderRhythm(){
+  const g=document.getElementById('rhyGrid');g.innerHTML='';
+  RHYS.forEach(R=>{
+    const c=el('div','rhy'+(R.id===RHY?' on':''));c.tabIndex=0;c.setAttribute('role','button');
+    const h=el('div','h');h.innerHTML='<b>'+R.n+'</b><span>'+R.d+'</span>';c.appendChild(h);
+    const inner=56, blank=Math.max(0,R.cell-inner), total=R.cell*5+R.gap*4;
+    const nums=el('div','nums');
+    nums.innerHTML='格高 <b>'+R.cell+'</b>　行距 <b>'+R.gap+'</b>　格内空白 <b>'+blank+
+      '</b>　整月总高 <b>'+total+'</b>';
+    c.appendChild(nums);
+    const b=el('div','body');b.appendChild(screen({rhy:R.id}));c.appendChild(b);
+    const go=()=>{RHY=R.id;render()};
+    c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
+    g.appendChild(c)});
+  const sg=document.getElementById('rhySeg');sg.innerHTML='';
+  RHYS.forEach(R=>{const b=el('button',null,R.n.replace('贴合 + 行距 ','贴合').replace('现状 · ',''));
+    b.setAttribute('aria-pressed',R.id===RHY);b.onclick=()=>{RHY=R.id;render()};sg.appendChild(b)});
 }
 function renderScreens(){
   const g=document.getElementById('scrGrid');g.innerHTML='';
@@ -687,10 +740,9 @@ function render(){
     [{d:19,k:'night',tags:['duty']},{d:20,k:'night',today:true,tags:['standby','teach']},{d:21,k:'rest'}],
     {align:x.id,td:x.id==='hug'?'hug':'fill'},3),'alignSeg','alignGrid');
   cards(TDS,()=>TD,v=>TD=v,x=>stack2({td:x.id}),'tdSeg','tdGrid');
-  renderFinal();renderScreens();renderMatrix();renderSwatches();renderOut();
+  renderRhythm();renderFinal();renderScreens();renderMatrix();renderSwatches();renderOut();
 }
-document.getElementById('denSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
-  DEN=b.dataset.d;[...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
+
 document.getElementById('thSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   document.documentElement.setAttribute('data-theme',b.dataset.th);
   [...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
