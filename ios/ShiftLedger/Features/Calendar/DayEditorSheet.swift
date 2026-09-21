@@ -69,6 +69,7 @@ struct DayEditorSheet: View {
                     }
                 }
             }
+            .pageBackground()
             .navigationTitle(titleText)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

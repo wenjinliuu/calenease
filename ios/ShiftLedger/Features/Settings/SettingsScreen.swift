@@ -53,6 +53,7 @@ struct SettingsScreen: View {
                     }
                 }
             }
+            .pageBackground()
             .navigationTitle("设置")
             .sheet(item: $editingShift) { shift in
                 ShiftEditorView(shift: shift)

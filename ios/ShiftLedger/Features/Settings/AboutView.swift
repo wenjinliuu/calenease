@@ -41,6 +41,7 @@ struct AboutView: View {
                 Text("免责声明")
             }
         }
+        .pageBackground()
         .navigationTitle("关于")
         .navigationBarTitleDisplayMode(.inline)
     }

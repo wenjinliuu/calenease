@@ -110,6 +110,7 @@ struct CycleGeneratorSheet: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .pageBackground()
             .navigationTitle("循环排班")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

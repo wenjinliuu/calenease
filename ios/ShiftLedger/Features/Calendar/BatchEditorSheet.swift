@@ -51,6 +51,7 @@ struct BatchEditorSheet: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .pageBackground()
             .navigationTitle("批量修改 · \(dates.count) 天")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

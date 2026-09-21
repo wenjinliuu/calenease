@@ -181,7 +181,7 @@ struct CalendarScreen: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .background(Palette.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Palette.todayFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func handleTap(_ date: String) {
@@ -234,7 +234,7 @@ struct CalendarScreen: View {
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.tertiary)
                 }
-                .raisedCard(cornerRadius: 20, padding: 14)
+                .card(cornerRadius: 20, padding: 14)
             }
             .buttonStyle(.plain)
         } else {
@@ -250,7 +250,7 @@ struct CalendarScreen: View {
                 }
                 Spacer(minLength: 0)
             }
-            .raisedCard(cornerRadius: 20, padding: 14)
+            .card(cornerRadius: 20, padding: 14)
         }
     }
 
@@ -317,7 +317,7 @@ struct CalendarScreen: View {
                 }
             }
         }
-        .raisedCard(cornerRadius: 22, padding: 16)
+        .card(cornerRadius: 22, padding: 16)
     }
 }
 

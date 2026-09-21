@@ -218,18 +218,25 @@ enum Palette {
 
     // MARK: - 背景层次
 
-    /// 页面底色。日历直接坐在这一层上，不再套卡片。
-    static let canvas = Color(.systemBackground)
-    /// 分组列表、统计页那种底色。
-    static let grouped = Color(.systemGroupedBackground)
-    /// 浮在 `canvas` 上的卡片。纯白页面上得用这一层，用 `card` 会白压白看不见。
-    static let raised = Color(.secondarySystemBackground)
-    /// 卡片。
-    static let card = Color(.secondarySystemGroupedBackground)
-    /// 卡片里的格子、输入框这类更内层的面。
-    static let inset = Color(.tertiarySystemGroupedBackground)
+    /// 页面底色。
+    ///
+    /// 系统的分组灰 #F2F2F7 显旧，这里往白里提了一档到 #F7F7FA——大约是原来到纯白的一半。
+    ///
+    /// 没有一路提到 #FAFAFC 是因为 `Form` 的行底色是系统给的纯白，我们管不到；
+    /// 页和行的亮度比要留住，设置页那些分组卡才不会糊成一片：
+    /// #F2F2F7 对白是 1.116，#F7F7FA 还有 1.069，再白到 #FAFAFC 就只剩 1.042 了。
+    /// 我们自己画的卡片另有 `cardStroke` 收边，不吃这个限制。
+    static let canvas = Color(uiColor: .dynamic(light: "#F7F7FA", dark: "#000000"))
+    /// 卡片。浅色是纯白。
+    static let card = Color(uiColor: .dynamic(light: "#FFFFFF", dark: "#1C1C1E"))
+    /// 卡片描边。近白页面上白卡全靠它定边界，深色模式下卡片自己就有明度差，描边只是收口。
+    static let cardStroke = Color(uiColor: .dynamic(light: "#EAEAEF", dark: "#2A2A2C"))
+    /// 卡片里的内层面：指标块、输入框。
+    static let inset = Color(uiColor: .dynamic(light: "#F1F1F5", dark: "#2C2C2E"))
     /// 分隔线。
-    static let hairline = Color(.separator)
+    static let hairline = Color(uiColor: .dynamic(light: "#E3E3E9", dark: "#38383A"))
+    /// 旧名字，指向同一层。
+    static let grouped = canvas
 }
 
 extension ShiftDefinition {

@@ -51,6 +51,7 @@ struct BackupView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .pageBackground()
         .navigationTitle("备份与恢复")
         .navigationBarTitleDisplayMode(.inline)
         .fileImporter(isPresented: $isImporterPresented,
