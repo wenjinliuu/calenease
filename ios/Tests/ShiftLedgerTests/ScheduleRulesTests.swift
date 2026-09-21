@@ -27,6 +27,45 @@ final class ScheduleRulesTests: XCTestCase {
         XCTAssertEqual(normalized.tags[0].color, AccentHex.rose)
     }
 
+    func testPaletteMigrationMovesBuiltInShiftsToTheirNewDefaults() {
+        var document = ScheduleDocument.makeDefault()
+        // 换色板之前装过的用户，文件里存的是上一代色值。
+        document.shifts = document.shifts.map { shift in
+            var shift = shift
+            switch shift.id {
+            case ShiftID.day: shift.color = "#f6c543"
+            case ShiftID.night: shift.color = "#3a83f6"
+            case ShiftID.rest, ShiftID.leave: shift.color = "#8e8e8e"
+            default: break
+            }
+            return shift
+        }
+        document.shifts.append(ShiftDefinition(id: "shift-abc123", name: "自定班", shortName: "自",
+                                               color: "#ed7c37", defaultHours: 8))
+        document.shifts.append(ShiftDefinition(id: "shift-def456", name: "已改过", shortName: "改",
+                                               color: AccentHex.jade, defaultHours: 8))
+        document.tags = [DutyTag(id: "tag-1", name: "带教", shortName: "教", color: "#a67df2")]
+
+        let migrated = PaletteMigration.migrate(document)
+        let color = { (id: String) in migrated.shifts.first { $0.id == id }?.color }
+
+        // 内置班次认 ID，不认色值：白班的 #f6c543 按色相会落到琥珀，新默认色却是南瓜橙。
+        XCTAssertEqual(color(ShiftID.day), AccentHex.pumpkin)
+        XCTAssertEqual(color(ShiftID.night), AccentHex.indigo)
+        XCTAssertEqual(color(ShiftID.rest), AccentHex.neutral)
+        // 自定义班次没有 ID 可认，走色值映射。
+        XCTAssertEqual(color("shift-abc123"), AccentHex.pumpkin)
+        // 已经是新色板里的颜色，说明用户自己挑过，不覆盖。
+        XCTAssertEqual(color("shift-def456"), AccentHex.jade)
+        XCTAssertEqual(migrated.tags[0].color, AccentHex.purple)
+    }
+
+    func testPaletteMigrationIsIdempotent() {
+        let once = PaletteMigration.migrate(.makeDefault())
+        XCTAssertEqual(once, .makeDefault())
+        XCTAssertEqual(PaletteMigration.migrate(once), once)
+    }
+
     func testRestShiftAlwaysNormalizesToGray() throws {
         var raw = try json(.makeDefault())
         var shifts = try XCTUnwrap(raw["shifts"] as? [[String: Any]])

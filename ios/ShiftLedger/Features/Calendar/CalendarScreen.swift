@@ -110,6 +110,7 @@ struct CalendarScreen: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
+        .card(cornerRadius: 22, padding: 14)
     }
 
     /// 网格高度随行数和显示开关变化，提前算好，避免拖动时高度跳变。

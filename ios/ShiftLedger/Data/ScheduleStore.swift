@@ -57,14 +57,35 @@ final class ScheduleStore {
             return
         }
         defer { isReady = true }
-        guard let data = try? Data(contentsOf: fileURL) else { return }
+        guard let data = try? Data(contentsOf: fileURL) else {
+            // 新装：默认数据本来就是新色板，不用再迁。
+            PaletteMigration.markDone()
+            return
+        }
         if let decoded = try? JSONDecoder().decode(ScheduleDocument.self, from: data) {
             document = decoded
         } else if let raw = try? JSONSerialization.jsonObject(with: data) {
             // 文件是更早的结构（或手工放进来的网页版备份）时走清洗流程。
             document = DocumentNormalizer.document(fromBackup: raw)
+        } else {
+            // 文件在那儿但读不懂，别用默认数据把它盖掉。
+            return
         }
+        // 读盘到此为止，后面两步的改动要能落盘。
+        isReady = true
+        migratePaletteIfNeeded()
         materializeFocusedYears()
+    }
+
+    /// 换色板之后，老文件里存的还是旧色值，补迁一次。
+    private func migratePaletteIfNeeded() {
+        guard PaletteMigration.isNeeded() else { return }
+        defer { PaletteMigration.markDone() }
+        let next = PaletteMigration.migrate(document)
+        guard next != document else { return }
+        document = next
+        // 标记已经写下了，这一份必须同步落盘，不能只排一次防抖写。
+        flush()
     }
 
     /// 合并写盘：连续编辑只落一次。
