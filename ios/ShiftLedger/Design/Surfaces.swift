@@ -15,6 +15,14 @@ extension View {
             .background(Palette.card, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 
+    /// 浮在纯色底（`Palette.canvas`）上的卡片：日历页的"下一班""本月展望"。
+    func raisedCard(cornerRadius: CGFloat = 20, padding: CGFloat = 14) -> some View {
+        self
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Palette.raised, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
     /// 卡片里的内层面：日历格、指标块。
     func insetSurface(cornerRadius: CGFloat = 14, tint: Color? = nil) -> some View {
         background(

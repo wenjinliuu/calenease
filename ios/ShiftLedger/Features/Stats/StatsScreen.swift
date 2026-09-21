@@ -24,7 +24,7 @@ struct StatsScreen: View {
                 .padding(.top, 4)
                 .padding(.bottom, 20)
             }
-            .background(Palette.canvas)
+            .background(Palette.grouped)
             .navigationTitle("统计")
             .navigationBarTitleDisplayMode(.inline)
         }

@@ -29,43 +29,73 @@ enum ShiftID {
     ]
 }
 
-/// 强调色，色值与 web 版 `ACCENT_COLORS` 完全一致。
+/// 班次与标签的可选色板。
+///
+/// 十四个色，全部高饱和，全部能在 13pt 色标上配白字达到 3:1 以上——
+/// 越黄的橙越扛不住白字（systemYellow 上只有 1.51:1，压到达标时已经变成芥末），
+/// 所以暖色一律落在朱橙 / 南瓜这一族。
+///
+/// `shiftPalette` 是按推荐顺序排的：前四个（南瓜 · 靛 · 品红 · 森绿）两两之间在
+/// 正常视觉、红绿色盲、红色盲三种情况下的 OKLab ΔE 最差也有 20.4，远高于 15 的门槛；
+/// 第五个开始降到 11.5，第八个只剩 5.0。色标里有简称字做第二编码，所以超过四个仍然能用，
+/// 但班次编辑页应该在用户选到太近的两个色时提示一下。
 enum AccentHex {
-    static let gray = "#8e8e8e"
-    static let blue = "#3a83f6"
-    static let green = "#53b559"
-    static let yellow = "#f6c543"
-    static let pink = "#ed77af"
-    static let orange = "#ed7c37"
-    static let purple = "#a67df2"
-    static let red = "#e66770"
-    static let cyan = "#55a8c7"
 
-    static let shiftPalette = [blue, purple, green, yellow, orange, pink, gray, cyan]
-    static let tagPalette = [purple, green, orange, pink, blue, gray, yellow, cyan]
+    // 核心八色，按推荐顺序
+    static let pumpkin = "#F06E15"
+    static let indigo = "#5856D6"
+    static let magenta = "#C13584"
+    static let forest = "#2BA94A"
+    static let rose = "#FF2D55"
+    static let brick = "#C2410C"
+    static let jade = "#00A59E"
+    static let lavender = "#8A5CF0"
 
-    /// v1 里用过的旧色值，导入时统一收敛到新色板。
+    // 扩展六色
+    static let scarlet = "#FF3B30"
+    static let purple = "#AF52DE"
+    static let royal = "#1A5FE0"
+    static let sky = "#099BE3"
+    static let olive = "#7F9B14"
+    static let amber = "#CC8300"
+
+    /// 休息、请假、备班这类不计工时的状态。它们是"没有班"，不是"第 N 个班次"，
+    /// 所以不占彩色位。
+    static let neutral = "#8E8E93"
+
+    // 旧名字保留，指向新色板，老代码不用改
+    static let blue = royal
+    static let green = forest
+    static let yellow = amber
+    static let pink = rose
+    static let orange = pumpkin
+    static let cyan = jade
+    static let red = scarlet
+    static let gray = neutral
+
+    static let shiftPalette = [pumpkin, indigo, magenta, forest, rose, brick, jade, lavender,
+                               scarlet, purple, royal, sky, olive, amber]
+    static let tagPalette = [lavender, jade, magenta, amber, royal, forest, rose, sky]
+
+    /// 旧数据里用过的色值，导入时统一收敛到新色板。
     static let legacyMap: [String: String] = [
-        "#2f7df4": blue, "#3377cc": blue, "#5368e8": blue,
+        // v2 色板
+        "#3a83f6": royal, "#53b559": forest, "#f6c543": amber, "#ed77af": rose,
+        "#ed7c37": pumpkin, "#a67df2": purple, "#e66770": scarlet, "#55a8c7": sky,
+        "#8e8e8e": neutral,
+        // v1 色板
+        "#2f7df4": royal, "#3377cc": royal, "#5368e8": royal,
         "#665ce8": purple, "#7459d9": purple, "#6a62de": purple,
-        "#9b63d9": purple, "#433f9e": purple,
-        "#17a878": green, "#0d9b82": green,
-        "#ef7d36": yellow, "#e89135": orange, "#d66a38": orange,
-        "#d65374": pink, "#d14f72": pink,
-        "#7a879b": gray, "#7b8799": gray, "#8793a5": gray,
-        "#08a2b8": cyan,
+        "#9b63d9": purple, "#433f9e": indigo,
+        "#17a878": jade, "#0d9b82": jade,
+        "#ef7d36": pumpkin, "#e89135": amber, "#d66a38": brick,
+        "#d65374": rose, "#d14f72": rose,
+        "#7a879b": neutral, "#7b8799": neutral, "#8793a5": neutral,
+        "#08a2b8": sky,
     ]
 
     static func normalize(_ color: String) -> String {
         legacyMap[color.trimmingCharacters(in: .whitespaces).lowercased()] ?? color
-    }
-
-    /// 渐变下端。黄配橙、蓝配紫，其余用同色。
-    static func gradientEnd(for color: String) -> String {
-        let normalized = normalize(color).lowercased()
-        if normalized == yellow { return orange }
-        if normalized == blue { return purple }
-        return normalized
     }
 }
 
@@ -75,30 +105,30 @@ enum ShiftCatalog {
     /// 全部可选的内置班次。`hours` 用于 v1 数据迁移时带入原来的时长。
     static func all(hours: [String: Double] = [:]) -> [ShiftDefinition] {
         [
-            ShiftDefinition(id: ShiftID.day, name: "白班", shortName: "白", color: AccentHex.yellow,
+            ShiftDefinition(id: ShiftID.day, name: "白班", shortName: "白", color: AccentHex.pumpkin,
                             startTime: "08:00", endTime: "20:00",
                             defaultHours: hours["day"] ?? 12, legacyType: "day"),
-            ShiftDefinition(id: ShiftID.night, name: "夜班", shortName: "夜", color: AccentHex.blue,
+            ShiftDefinition(id: ShiftID.night, name: "夜班", shortName: "夜", color: AccentHex.indigo,
                             startTime: "20:00", endTime: "08:00", crossesMidnight: true,
                             defaultHours: hours["night"] ?? 12, legacyType: "night"),
-            ShiftDefinition(id: ShiftID.morning, name: "早班", shortName: "早", color: AccentHex.orange,
+            ShiftDefinition(id: ShiftID.morning, name: "早班", shortName: "早", color: AccentHex.jade,
                             startTime: "08:00", endTime: "16:00",
                             defaultHours: hours["morning"] ?? 8, legacyType: "morning"),
-            ShiftDefinition(id: ShiftID.middle, name: "中班", shortName: "中", color: AccentHex.cyan,
+            ShiftDefinition(id: ShiftID.middle, name: "中班", shortName: "中", color: AccentHex.magenta,
                             startTime: "16:00", endTime: "00:00",
                             defaultHours: hours["middle"] ?? 8, legacyType: "middle"),
-            ShiftDefinition(id: ShiftID.late, name: "晚班", shortName: "晚", color: AccentHex.purple,
+            ShiftDefinition(id: ShiftID.late, name: "晚班", shortName: "晚", color: AccentHex.lavender,
                             startTime: "00:00", endTime: "08:00",
                             defaultHours: hours["late"] ?? 8, legacyType: "late"),
-            ShiftDefinition(id: ShiftID.rest, name: "休息", shortName: "休", color: AccentHex.gray,
+            ShiftDefinition(id: ShiftID.rest, name: "休息", shortName: "休", color: AccentHex.neutral,
                             isRest: true, defaultHours: 0, countsAsWork: false, legacyType: "rest"),
-            ShiftDefinition(id: ShiftID.leave, name: "请假", shortName: "假", color: AccentHex.pink,
+            ShiftDefinition(id: ShiftID.leave, name: "请假", shortName: "假", color: AccentHex.neutral,
                             isRest: true, defaultHours: 0, countsAsWork: false, legacyType: "leave"),
-            ShiftDefinition(id: ShiftID.custom, name: "其他", shortName: "工", color: AccentHex.green,
+            ShiftDefinition(id: ShiftID.custom, name: "其他", shortName: "工", color: AccentHex.forest,
                             defaultHours: 0, legacyType: "custom"),
-            ShiftDefinition(id: ShiftID.duty, name: "责班", shortName: "责", color: AccentHex.purple,
+            ShiftDefinition(id: ShiftID.duty, name: "责班", shortName: "责", color: AccentHex.brick,
                             startTime: "08:00", endTime: "16:00", defaultHours: 8),
-            ShiftDefinition(id: ShiftID.clinic, name: "门诊", shortName: "诊", color: AccentHex.green,
+            ShiftDefinition(id: ShiftID.clinic, name: "门诊", shortName: "诊", color: AccentHex.sky,
                             startTime: "08:00", endTime: "16:00", defaultHours: 8),
         ]
     }
@@ -115,13 +145,13 @@ enum ShiftCatalog {
     static func extra(_ id: String) -> ShiftDefinition? {
         switch id {
         case ShiftID.smallNight:
-            ShiftDefinition(id: ShiftID.smallNight, name: "小夜", shortName: "小夜", color: AccentHex.blue,
+            ShiftDefinition(id: ShiftID.smallNight, name: "小夜", shortName: "小夜", color: AccentHex.royal,
                             startTime: "16:00", endTime: "00:00", defaultHours: 8)
         case ShiftID.bigNight:
             ShiftDefinition(id: ShiftID.bigNight, name: "大夜", shortName: "大夜", color: AccentHex.purple,
                             startTime: "00:00", endTime: "08:00", defaultHours: 8)
         case ShiftID.standby:
-            ShiftDefinition(id: ShiftID.standby, name: "备班", shortName: "备", color: AccentHex.green,
+            ShiftDefinition(id: ShiftID.standby, name: "备班", shortName: "备", color: AccentHex.neutral,
                             defaultHours: 0, countsAsWork: false)
         default: nil
         }

@@ -173,7 +173,7 @@ struct CycleStrip: View {
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(width: 26, height: 26)
-                            .background(shift.map { AnyShapeStyle($0.gradient) } ?? AnyShapeStyle(Color.gray),
+                            .background(shift.map { AnyShapeStyle($0.tint) } ?? AnyShapeStyle(Color.gray),
                                         in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                         if showsIndex {
                             Text("\(index + 1)")

@@ -110,7 +110,6 @@ struct CalendarScreen: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
-        .card()
     }
 
     /// 网格高度随行数和显示开关变化，提前算好，避免拖动时高度跳变。
@@ -118,14 +117,9 @@ struct CalendarScreen: View {
         let blanks = ScheduleCalendar.leadingBlanks(year: store.focusedYear, month: store.focusedMonth)
         let days = ScheduleCalendar.daysInMonth(year: store.focusedYear, month: store.focusedMonth)
         let rows = CGFloat((blanks + days + 6) / 7)
-        var cell: CGFloat = DayCellMetrics.date + DayCellMetrics.holiday + DayCellMetrics.shift
-        if document.display.showShiftTime { cell += DayCellMetrics.time }
-        if (document.display.showHours && document.work.trackHours) || document.display.showTags {
-            cell += DayCellMetrics.footer
-        }
-        cell += DayCellMetrics.verticalPadding * 2 + DayCellMetrics.spacing * 3
+        let cell = DayCellMetrics.height(for: document.display)
         // 星期表头 + 表头间距 + 每行格子与行距
-        return 16 + 8 + rows * cell + (rows - 1) * 4
+        return 13 + 10 + rows * cell + (rows - 1) * DayCellMetrics.rowSpacing
     }
 
     private func monthDrag(width: CGFloat) -> some Gesture {
@@ -187,7 +181,7 @@ struct CalendarScreen: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .insetSurface(cornerRadius: 12, tint: Palette.blue)
+        .background(Palette.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func handleTap(_ date: String) {
@@ -240,7 +234,7 @@ struct CalendarScreen: View {
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.tertiary)
                 }
-                .card(cornerRadius: 20, padding: 14)
+                .raisedCard(cornerRadius: 20, padding: 14)
             }
             .buttonStyle(.plain)
         } else {
@@ -256,7 +250,7 @@ struct CalendarScreen: View {
                 }
                 Spacer(minLength: 0)
             }
-            .card(cornerRadius: 20, padding: 14)
+            .raisedCard(cornerRadius: 20, padding: 14)
         }
     }
 
@@ -323,7 +317,7 @@ struct CalendarScreen: View {
                 }
             }
         }
-        .card()
+        .raisedCard(cornerRadius: 22, padding: 16)
     }
 }
 

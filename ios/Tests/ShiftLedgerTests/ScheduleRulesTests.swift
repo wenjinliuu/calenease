@@ -21,9 +21,10 @@ final class ScheduleRulesTests: XCTestCase {
         raw["tags"] = [["id": "tag-legacy", "name": "旧标签", "shortName": "旧", "color": "#d14f72"]]
 
         let normalized = DocumentNormalizer.document(from: raw)
-        XCTAssertEqual(normalized.shifts[0].color, AccentHex.yellow)
-        XCTAssertEqual(normalized.shifts[1].color, AccentHex.blue)
-        XCTAssertEqual(normalized.tags[0].color, AccentHex.pink)
+        // v1 的 #ef7d36 是个橙，新色板里对应南瓜；旧色板没有合适的橙才退到黄。
+        XCTAssertEqual(normalized.shifts[0].color, AccentHex.pumpkin)
+        XCTAssertEqual(normalized.shifts[1].color, AccentHex.royal)
+        XCTAssertEqual(normalized.tags[0].color, AccentHex.rose)
     }
 
     func testRestShiftAlwaysNormalizesToGray() throws {
