@@ -1,0 +1,9 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bay-gradient" x1="144" y1="84" x2="904" y2="368" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0879F9"/>
+      <stop offset="1" stop-color="#2F9BFF"/>
+    </linearGradient>
+  </defs>
+  <path id="calendar-header" fill="url(#bay-gradient)" fill-rule="evenodd" d="M264 48H760C879.3 48 976 144.7 976 264V380H48V264C48 144.7 144.7 48 264 48ZM312 168A40 40 0 1 0 312 248A40 40 0 1 0 312 168ZM712 168A40 40 0 1 0 712 248A40 40 0 1 0 712 168Z"/>
+</svg>

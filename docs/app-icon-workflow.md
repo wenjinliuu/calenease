@@ -2,7 +2,7 @@
 
 ## 文件位置
 
-- 设计母版：`DesignAssets/AppIcon/pixel-grid-check-master.png`
+- 设计母版：`DesignAssets/AppIcon/*.svg`（四个独立矢量图层）
 - Xcode 编译文件：`ios/ShiftLedger/Resources/AppIcon.icon/`
 - 素材同步脚本：`ios/Scripts/sync-app-icon.sh`
 - 工程设置：`ios/project.yml`，App Icon 名称为 `AppIcon`
@@ -11,9 +11,9 @@
 
 ## 修改方式
 
-替换设计母版并 push 即可。三个 iOS workflow 都会先将它生成成 1024×1024 的 `.icon` 图层，再交给 Xcode。不要在 Asset Catalog 里重新创建另一个 `AppIcon`。
+修改四个 SVG 设计母版并 push 即可。三个 iOS workflow 都会先把它们同步成 1024 × 1024 的 `.icon` 矢量图层，再交给 Xcode。不要在 Asset Catalog 里重新创建另一个 `AppIcon`。
 
-当前 `.icon` 是 Apple 正式支持的单层结构。母版本身已经包含完整玻璃质感，所以图层关闭了 Icon Composer 的额外玻璃、阴影和高光，防止二次处理改变定稿。
+当前 `.icon` 使用 Apple 正式支持的分层 SVG 结构：背景、顶栏、日期点、高亮点各自独立。SVG 只保存平面形状与基础颜色，不包含位图、不烘焙玻璃、高光或阴影；这些材质统一由 Icon Composer 配置与 Xcode 渲染。顶栏的装订孔是 SVG 偶奇填充形成的透明镂空，不使用白色位图覆盖。
 
 ## CI 的判断顺序
 

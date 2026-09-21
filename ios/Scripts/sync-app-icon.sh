@@ -3,11 +3,13 @@ set -euo pipefail
 
 IOS_DIR=$(cd "$(dirname "$0")/.." && pwd)
 ROOT_DIR=$(cd "$IOS_DIR/.." && pwd)
-SOURCE="$ROOT_DIR/DesignAssets/AppIcon/pixel-grid-check-master.png"
-DESTINATION="$IOS_DIR/ShiftLedger/Resources/AppIcon.icon/Assets/PixelGridCheck.png"
+SOURCE_DIR="$ROOT_DIR/DesignAssets/AppIcon"
+ASSET_DIR="$IOS_DIR/ShiftLedger/Resources/AppIcon.icon/Assets"
 
-test -f "$SOURCE"
-mkdir -p "$(dirname "$DESTINATION")"
-sips -s format png -z 1024 1024 "$SOURCE" --out "$DESTINATION" >/dev/null
+mkdir -p "$ASSET_DIR"
+cp "$SOURCE_DIR/calendar-background.svg" "$ASSET_DIR/CalendarBackground.svg"
+cp "$SOURCE_DIR/calendar-header.svg" "$ASSET_DIR/CalendarHeader.svg"
+cp "$SOURCE_DIR/date-dots.svg" "$ASSET_DIR/DateDots.svg"
+cp "$SOURCE_DIR/active-day.svg" "$ASSET_DIR/ActiveDay.svg"
 
-echo "Generated the 1024x1024 AppIcon.icon raster layer."
+echo "Synced four 1024x1024 SVG layers into AppIcon.icon."
