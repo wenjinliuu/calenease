@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
 body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>左列与今天</title>
+<title>定稿组合</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -36,6 +36,35 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
   --tint:#0A84FF; --danger:#FF6961; --ok:#30D158;
   --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E; --grey:#48484A; --greyInk:#98989D;
 }
+
+.themed[data-theme="light"]{
+  color-scheme:light;color:#000000;
+  --canvas:#F2F2F7; --card:#FFFFFF; --card2:#F2F2F7; --card3:#E5E5EA;
+  --sep:rgba(60,60,67,.20); --sep2:rgba(60,60,67,.08);
+  --label:#000000; --label2:rgba(60,60,67,.60); --label3:rgba(60,60,67,.28);
+  --tint:#007AFF; --danger:#D70015; --ok:#248A3D;
+  --screen:#FFFFFF; --band:#F2F2F7; --sumcard:#F5F5F7; --grey:#C7C7CC; --greyInk:#6C6C70;
+}
+.themed[data-theme="dark"]{
+  color-scheme:dark;color:#FFFFFF;
+  --canvas:#000000; --card:#1C1C1E; --card2:#2C2C2E; --card3:#3A3A3C;
+  --sep:rgba(84,84,88,.60); --sep2:rgba(84,84,88,.30);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.60); --label3:rgba(235,235,245,.28);
+  --tint:#0A84FF; --danger:#FF6961; --ok:#30D158;
+  --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E; --grey:#48484A; --greyInk:#98989D;
+}
+.final{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+.finalcard{border-radius:var(--r-l);padding:16px 12px 18px;background:var(--card)}
+.finalcard .cap{font-size:12px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--label3);text-align:center;margin-bottom:12px}
+.spec{display:grid;gap:0;margin-top:14px}
+.spec .r{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:9px 0;
+  border-bottom:.5px solid var(--sep2);font-size:13.5px}
+.spec .r:last-child{border-bottom:none}
+.spec .k{font-weight:650}
+.spec .v{color:var(--label2)}
+.spec .v code{font-family:ui-monospace,monospace;font-size:12.5px;background:var(--card2);
+  padding:1px 5px;border-radius:5px;color:var(--label)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--canvas);color:var(--label);font-family:var(--font);
   font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
@@ -141,10 +170,11 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 
 /* ---- 格子 ---- */
 .c{position:relative;display:flex;flex-direction:column;align-items:stretch;
-  padding:5px 3px;min-width:0;border-radius:10px}
+  padding:5px 9px;min-width:0;border-radius:10px}
 .airy .c{min-height:76px}
 .tight .c{min-height:60px}
-.inner{display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:9px;padding:3px 2px 4px}
+.inner{display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:9px;padding:3px 0 4px;
+  margin-inline:-6px}
 .c.top    {justify-content:flex-start}
 .c.center {justify-content:center}
 .c.bottom {justify-content:flex-end}
@@ -155,17 +185,17 @@ h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
 .c.empty{visibility:hidden}
 .c.unset .num{color:var(--label3);font-weight:450}
 /* 两侧标记列 */
-.railL,.railR{position:absolute;top:5px;width:11px;display:flex;flex-direction:column;align-items:center;gap:3px;z-index:2}
-.railL{left:1px} .railR{right:1px}
+.railL,.railR{position:absolute;top:5px;width:9px;display:flex;flex-direction:column;align-items:center;gap:2.5px;z-index:2}
+.railL{left:0} .railR{right:0}
 .ri{line-height:1.04;text-align:center;font-weight:650;width:100%}
-.rh{font-size:8px;color:var(--danger)}
-.rs{font-size:8.5px;color:var(--ok)}
-.rt{font-size:8.5px}
+.rh{font-size:7.5px;color:var(--danger)}
+.rs{font-size:8px;color:var(--ok)}
+.rt{font-size:8px}
 .rq{width:9px;height:9px;border-radius:2.5px;display:grid;place-items:center;font-size:6.5px}
-.more{font-size:7.5px;color:var(--label3);font-weight:700}
-.mk{display:flex;align-items:center;justify-content:center;gap:3px;max-width:100%;min-width:0}
+.more{font-size:7px;color:var(--label3);font-weight:700}
+.mk{display:flex;align-items:center;justify-content:center;gap:2px;max-width:100%;min-width:0}
 .sq{border-radius:4px;display:grid;place-items:center;font-weight:700;flex:none;line-height:1}
-.hrs{font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
+.hrs{font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
 .notedot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--label3)}
 /* 今天 */
 
@@ -190,9 +220,9 @@ pre i{font-style:normal;color:var(--label3)}
 
 <div class="wrap">
 <header class="top">
-  <div class="kicker">Shift Ledger · 标记列与今天</div>
-  <h1>左列与今天</h1>
-  <p>三件事：职责标签<b>挪到左列</b>试试；今天的填充<b>下面显空</b>，把对齐方式几种都试一遍；底部横杠<b>说不清属于上一格还是下一格</b>，换几种归属明确的标法。色板保留不动。</p>
+  <div class="kicker">Shift Ledger · 月历定稿</div>
+  <h1>定稿组合</h1>
+  <p><b>左职责 · 右节假日 + 顶对齐 + 整格填充 + 数字加粗</b>。下面第一节是这套组合的浅色深色整屏，后面几节保留各个维度的对照，随时还能切回去比。</p>
   <div class="locks" id="locks"></div>
 </header>
 
@@ -206,9 +236,19 @@ pre i{font-style:normal;color:var(--label3)}
   <div class="seg" id="thSeg"><button data-th="light" aria-pressed="true">浅色</button><button data-th="dark" aria-pressed="false">深色</button></div>
 </div>
 
+<section id="final">
+  <div class="shd"><div class="n">00</div><h2>定稿</h2>
+  <p>2026 年 9 月医护排法：25 号中秋、27 号调休上班，几天挂了一到四个职责标签，今天 20 号（夜班 + 备班 + 带教）。</p></div>
+  <div class="final" id="finalGrid"></div>
+  <div class="panel" style="margin-top:16px">
+    <h4>这套组合的规格</h4>
+    <div class="spec" id="specTbl"></div>
+  </div>
+</section>
+
 <section id="rail">
   <div class="shd"><div class="n">01</div><h2>标签放左边还是右边</h2>
-  <p>三种都试了。左右各留 11pt，日期数字居中在中间那块。<b>左右分工那版最讲得通</b>：左列是「这天我承担什么」（职责标签），右列是「这天在日历上是什么性质」（节假日、调休）——两类东西本来就不是一回事，分开放比挤在一列清楚。</p></div>
+  <p>三种都试了。左右各留 9pt，日期数字居中在中间那 28pt。<b>左右分工那版最讲得通</b>：左列是「这天我承担什么」（职责标签），右列是「这天在日历上是什么性质」（节假日、调休）——两类东西本来就不是一回事，分开放比挤在一列清楚。</p></div>
   <div class="opts" id="railGrid"></div>
 </section>
 
@@ -317,7 +357,7 @@ const EXT=[['朱红','#FF3B30'],['紫','#AF52DE'],['宝蓝','#1A5FE0'],['天青'
 const RAILS=[
  {id:'right',n:'全部在右',y:'一列搞定，左边完全空出来',n2:'节假日和职责挤在一列，含义不同却排在一起',
   d:'上一版的做法。节假日、调休、职责标签全部从上往下排在右列。'},
- {id:'split',n:'左职责 · 右节假日',y:'两类信息各占一边，含义分得开；数字真正居中',n2:'两边都占 11pt，中间只剩 24pt',
+ {id:'split',n:'左职责 · 右节假日',y:'两类信息各占一边，含义分得开；数字真正居中',n2:'两边各占 9pt，中间留 28pt 给日期',
   d:'左列放职责标签（这天我承担什么），右列放节假日和调休（这天在日历上是什么性质）。'},
  {id:'left',n:'全部在左',y:'右边空出来，将来可以放别的',n2:'节假日红字跑到左边，和大多数日历的习惯相反',
   d:'节假日、调休、职责标签全部挪到左列。'},
@@ -338,7 +378,7 @@ const TDS=[
  {id:'bot',n:'底部横杠',ok:false,d:'贴在格子下沿。和下一行只隔 1pt，眼睛会把它读成下一格的顶边——这就是你说的那个问题。'},
 ];
 
-let RAIL='split',ALIGN='center',TD='fill',DEN='airy';
+let RAIL='split',ALIGN='top',TD='bold',DEN='airy';
 let PICK=['#F06E15','#5856D6','#C13584','#2BA94A'];
 const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');
  return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
@@ -556,12 +596,48 @@ function renderMatrix(){
     const b=el('div','box');b.appendChild(cell(st));m.appendChild(b);
     m.appendChild(el('div','cap','<b>'+t+'</b>'+sub));g.appendChild(m)});
 }
+function screenThemed(mode,o){
+  const w=el('div','themed');w.setAttribute('data-theme',mode);
+  const was=document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme',mode);
+  w.appendChild(screen(o));
+  if(was)document.documentElement.setAttribute('data-theme',was);
+  else document.documentElement.removeAttribute('data-theme');
+  return w;
+}
+const SPEC=[
+ ['格子','46 × 76pt，圆角 10。内容<b>顶对齐</b>，日期距上沿 8pt。'],
+ ['左列','9pt。职责标签自上而下，最多 3 个，超出收成 <code>＋n</code>。纯色字，色值 <code>#6E56CF</code>。'],
+ ['右列','9pt。法定节假日红字两字竖排 <code>#D70015</code>；调休上班绿「班」<code>#248A3D</code>。'],
+ ['日期','22pt / weight 550 / 等宽数字。休息日降到三级灰 + weight 450。'],
+ ['色标','13 × 13，圆角 4。浅色用原色配白字，深色提亮到 OKLCH L 0.78 配黑字。'],
+ ['工时','10pt / weight 600 / 等宽数字，颜色是班次色压到 4.5:1 的那一阶。'],
+ ['今天','整格填充 <code>#E3F0FF</code>（深色 <code>#0E3A63</code>）+ 数字 weight 700。<b>不改数字颜色</b>。'],
+ ['默认色','白班南瓜 <code>#F06E15</code>，夜班靛 <code>#5856D6</code>。其余从十四色板里选。'],
+];
+function renderFinal(){
+  const g=document.getElementById('finalGrid');g.innerHTML='';
+  [['light','浅色'],['dark','深色']].forEach(([m,lb])=>{
+    const c=el('div','finalcard');
+    c.appendChild(el('div','cap',lb));
+    c.appendChild(screenThemed(m,{rail:'split',align:'top',td:'bold'}));
+    g.appendChild(c)});
+  const t=document.getElementById('specTbl');t.innerHTML='';
+  const tf=(()=>{const was=document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme','light');const a=todayFill();
+    document.documentElement.setAttribute('data-theme','dark');const b=todayFill();
+    if(was)document.documentElement.setAttribute('data-theme',was);
+    else document.documentElement.removeAttribute('data-theme');return[a,b]})();
+  SPEC.forEach(([k,v])=>{const r=el('div','r');
+    v=v.replace('#E3F0FF',tf[0].toUpperCase()).replace('#0E3A63',tf[1].toUpperCase());
+    r.appendChild(el('div','k',k));r.appendChild(el('div','v',v));t.appendChild(r)});
+}
 function renderScreens(){
   const g=document.getElementById('scrGrid');g.innerHTML='';
   [['当前选择',RAILS.find(x=>x.id===RAIL).n+' · '+ALIGNS.find(x=>x.id===ALIGN).n+' · '+TDS.find(x=>x.id===TD).n,{}],
-   ['左右分工 + 居中 + 整格填充','推荐组合',{rail:'split',align:'center',td:'fill'}],
-   ['左右分工 + 顶对齐 + 数字胶囊','最省地方的一版',{rail:'split',align:'top',td:'disc'}],
-   ['全部在右 + 底对齐','你想看的底对齐效果',{rail:'right',align:'bottom',td:'fill'}]]
+   ['顶对齐 + 填充，数字不加粗','看看加粗到底有多少分量',{rail:'split',align:'top',td:'fill'}],
+   ['垂直居中 + 填充 + 加粗','同一套但内容居中，填充更匀',{rail:'split',align:'center',td:'bold'}],
+   ['顶对齐 + 数字胶囊','不铺满整格的轻量版',{rail:'split',align:'top',td:'disc'}]]
   .forEach(([t,d,o],i)=>{
     const c=el('div','lay');
     const h=el('div','h');h.innerHTML='<div class="tg">'+(i===0?'当前':'对照 '+i)+'</div><b>'+t+'</b><span>'+d+'</span>';
@@ -580,9 +656,9 @@ function renderOut(){
   let s='<i>// 标记列：'+RAILS.find(x=>x.id===RAIL).n+'　对齐：'+ALIGNS.find(x=>x.id===ALIGN).n+
         '　今天：'+TDS.find(x=>x.id===TD).n+'</i>\n\n';
   s+='<i>// 格子几何（iPhone 一格约 46 × 76pt）</i>\n';
-  s+='<b>左列</b>  11pt  职责标签，自上而下最多 3 个，超出 ＋n\n';
-  s+='<b>右列</b>  11pt  节假日（红，两字竖排）/ 调休「班」（绿）\n';
-  s+='<b>中间</b>  24pt  日期 22pt → 色标 13pt + 工时 10.5pt\n';
+  s+='<b>左列</b>  9pt  职责标签，自上而下最多 3 个，超出 ＋n\n';
+  s+='<b>右列</b>  9pt  节假日（红，两字竖排）/ 调休「班」（绿）\n';
+  s+='<b>中间</b>  28pt  日期 22pt → 色标 13pt + 工时 10pt\n';
   s+='<b>对齐</b>  内容垂直居中，上下留白对称\n\n';
   s+='<b>enum</b> ShiftTone {\n';
   [['Lite','浅色',L],['Dark','深色',D]].forEach(([sfx,cn,set])=>{
@@ -611,7 +687,7 @@ function render(){
     [{d:19,k:'night',tags:['duty']},{d:20,k:'night',today:true,tags:['standby','teach']},{d:21,k:'rest'}],
     {align:x.id,td:x.id==='hug'?'hug':'fill'},3),'alignSeg','alignGrid');
   cards(TDS,()=>TD,v=>TD=v,x=>stack2({td:x.id}),'tdSeg','tdGrid');
-  renderScreens();renderMatrix();renderSwatches();renderOut();
+  renderFinal();renderScreens();renderMatrix();renderSwatches();renderOut();
 }
 document.getElementById('denSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   DEN=b.dataset.d;[...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
