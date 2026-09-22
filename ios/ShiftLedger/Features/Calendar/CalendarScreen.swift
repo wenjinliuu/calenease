@@ -11,7 +11,7 @@ struct CalendarScreen: View {
     @State private var editingDate: String?
     @State private var isGeneratorPresented = false
     @State private var batchMode = false
-    @State private var batchDates: [String] = []
+    @State private var batchDates: Set<String> = []
     @State private var isBatchEditorPresented = false
     @State private var dragOffset: CGFloat = 0
     @State private var slideEdge: Edge = .trailing
@@ -49,8 +49,12 @@ struct CalendarScreen: View {
                     Button {
                         isGeneratorPresented = true
                     } label: {
-                        Label("循环排班", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
+                        Label("循环排班", systemImage: "sparkles")
                     }
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.small)
+                    .tint(Palette.blue)
                 }
             }
             .sheet(item: Binding(get: { editingDate.map(DateKeyBox.init) },
@@ -64,7 +68,7 @@ struct CalendarScreen: View {
                 batchDates = []
                 batchMode = false
             }) {
-                BatchEditorSheet(dates: batchDates)
+                BatchEditorSheet(dates: batchDates.sorted())
             }
             .sensoryFeedback(.selection, trigger: store.focusedMonthKey)
         }
@@ -92,7 +96,7 @@ struct CalendarScreen: View {
                                   document: document,
                                   todayKey: store.todayKey,
                                   batchMode: batchMode,
-                                  batchDates: batchDates,
+                                  selectedDates: batchDates,
                                   onSelect: handleTap)
                     .id(store.focusedMonthKey)
                     .transition(.asymmetric(
@@ -167,22 +171,45 @@ struct CalendarScreen: View {
         }
     }
 
+    /// 多选时的行动条。每一格都能单独勾选，勾完按「修改这 N 天」。
     private var batchHint: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "square.dashed.inset.filled")
-                .foregroundStyle(Palette.blue)
+        HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(batchDates.isEmpty ? "请选择起始日期" : "起点：\(batchDates[0])")
+                Text(batchDates.isEmpty ? "挑出要改的日子" : "已选 \(batchDates.count) 天")
                     .font(.subheadline.weight(.semibold))
-                Text(batchDates.isEmpty ? "单日修改不会影响后续循环" : "再选截止日，将统一修改整个区间")
+                Text(batchDates.isEmpty ? "点格子勾选，可以不连续" : "再点一次取消勾选")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
+            Button(batchDates.count == monthDateKeys.count ? "全不选" : "选整月") {
+                withAnimation(.spring(response: 0.28, dampingFraction: 1)) {
+                    batchDates = batchDates.count == monthDateKeys.count ? [] : Set(monthDateKeys)
+                }
+            }
+            .font(.caption.weight(.semibold))
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .controlSize(.small)
+
+            Button("修改") { isBatchEditorPresented = true }
+                .font(.caption.weight(.semibold))
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .controlSize(.small)
+                .tint(Palette.blue)
+                .disabled(batchDates.isEmpty)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
         .background(Palette.todayFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    /// 当前月份的全部日期键，给「选整月」用。
+    private var monthDateKeys: [String] {
+        (1...ScheduleCalendar.daysInMonth(year: store.focusedYear, month: store.focusedMonth)).map {
+            ScheduleCalendar.key(year: store.focusedYear, month: store.focusedMonth, day: $0)
+        }
     }
 
     private func handleTap(_ date: String) {
@@ -190,11 +217,11 @@ struct CalendarScreen: View {
             editingDate = date
             return
         }
-        if batchDates.isEmpty {
-            batchDates = [date]
+        // 每一格独立开关，选完再按「修改」——不再是「先点起点、再点终点」那套
+        if batchDates.contains(date) {
+            batchDates.remove(date)
         } else {
-            batchDates = ScheduleCalendar.range(batchDates[0], date)
-            isBatchEditorPresented = true
+            batchDates.insert(date)
         }
     }
 
@@ -274,6 +301,14 @@ struct CalendarScreen: View {
 
     // MARK: - 本月展望
 
+    /// 与统计页 `basicDetail` 同一套措辞。
+    private func basicDetail(planned: Double, basic: Double) -> String {
+        let diff = planned - basic
+        if diff > 0 { return "计划高出 \(HoursFormatter.hours(diff))" }
+        if diff < 0 { return "计划少 \(HoursFormatter.hours(-diff))" }
+        return "与基本工时持平"
+    }
+
     private var outlookSection: some View {
         let restDays = monthRecords.filter { document.shift($0.shiftId)?.isRest == true }.count
         let completed = workRecords.filter { $0.countsAsCompleted(today: store.todayKey) }
@@ -286,28 +321,29 @@ struct CalendarScreen: View {
                                                          today: store.todayKey)
 
         return VStack(alignment: .leading, spacing: 14) {
-            SectionHeader(title: document.work.trackHours ? "排班与累计工时" : "我的班表",
-                          eyebrow: "本月展望",
-                          badge: "\(workRecords.count) 个工作日")
+            SectionHeader(title: document.work.trackHours ? "工时概览" : "出勤概览",
+                          eyebrow: "本月",
+                          badge: "\(workRecords.count) 个班")
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
                       spacing: 10) {
-                MetricTile(label: "计划工作日",
+                // 四块与统计页的「工时概览」一一对应，口径和配色都一致
+                MetricTile(label: "出勤天数",
                            value: "\(workRecords.count)天",
-                           detail: "\(restDays) 个休息日",
-                           tint: Palette.blue,
-                           symbol: "calendar")
-                MetricTile(label: "已完成班次",
-                           value: "\(completed.count)天",
-                           detail: "剩余 \(max(0, workRecords.count - completed.count)) 个班次",
+                           detail: "休息 \(restDays) 天",
                            tint: Palette.green,
-                           symbol: "checkmark.circle")
+                           symbol: "calendar")
                 if document.work.trackHours {
-                    MetricTile(label: "本月计划工时",
+                    MetricTile(label: "计划工时",
                                value: HoursFormatter.hours(projectedHours),
-                               detail: "基本工时 \(HoursFormatter.hours(basic)) · 已完成 \(HoursFormatter.hours(actualHours))",
+                               detail: "已完成 \(HoursFormatter.hours(actualHours))",
                                tint: Palette.purple,
                                symbol: "clock")
+                    MetricTile(label: "基本工时",
+                               value: HoursFormatter.hours(basic),
+                               detail: basicDetail(planned: projectedHours, basic: basic),
+                               tint: Palette.cyan,
+                               symbol: "target")
                 }
                 if document.work.trackHours && document.work.trackOvertime {
                     MetricTile(label: document.work.system == .comprehensive ? "本周期额外工时" : "本月额外工时",

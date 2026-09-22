@@ -126,6 +126,18 @@ enum ColorMath {
         return (max(x, y) + 0.05) / (min(x, y) + 0.05)
     }
 
+    /// 沿着同一个色相往下压，直到在这块底色上够到目标对比度为止。
+    /// 压不出来（底色本身已经够暗）返回 nil。
+    static func darken(_ base: String, on ground: String, target: Double) -> String? {
+        var lightness = lch(ground).l
+        for _ in 0..<140 {
+            lightness = max(0.005, lightness - 0.004)
+            let candidate = at(base, lightness: lightness)
+            if contrast(candidate, ground) >= target { return candidate }
+        }
+        return nil
+    }
+
     /// 沿着同一个色相走，直到在给定底色上够到目标对比度为止。
     /// 底色暗就往亮走，底色亮就往暗走；走不到就返回这一路上最好的一阶。
     static func step(_ base: String, on ground: String, target: Double = 4.5) -> String {
@@ -149,12 +161,10 @@ enum ColorMath {
 /// 一个班次在日历上用到的三个颜色。
 ///
 /// `mark` 是 13pt 色标的底色，`ink` 是色标里那个简称字，`text` 是格子底上的工时数字。
-/// 深色模式把色标提亮到 OKLCH 明度 0.78——纯黑底上放原色色标会显脏。
+/// 深色模式把色标提亮到 OKLCH 明度 0.78 配黑字——纯黑底上放原色色标会显脏，
+/// 提亮之后黑字最差也有 9.89:1。
 ///
-/// 简称字取黑还是取白，由 `Tone.markInk(on:)` 按实测对比度逐色决定，不写死。
-/// 原来浅色一律白字、深色一律黑字，在活力那一组上会塌掉（柠黄配白字只有 1.51:1）；
-/// 而且就算是原来的十四色，白字也只有靛、品红、砖、宝蓝四个过 4.5:1，
-/// 其余十个换成黑字都是净赚（南瓜 3.02 → 6.95，翡翠 3.05 → 6.88）。
+/// 浅色模式填充一个像素都不动，只换字：用 `Tone.markInk(on:)` 压出来的同色深色。
 struct ShiftTone {
     let mark: Color
     let ink: Color
@@ -169,12 +179,28 @@ enum Tone {
     static let todayFillLight = ColorMath.at("#007AFF", lightness: 0.93)
     static let todayFillDark = ColorMath.at("#0A84FF", lightness: 0.30)
 
-    /// 色标里那个简称字取黑还是取白：谁在这块底上对比度高就用谁。
+    /// 浅色下同色深字压到这个对比度。
+    static let inkTarget = 5.0
+    /// 每个色能压到的极限就是纯黑，贴着上限时字就塌成黑色了。
+    /// 永远离上限留这么多，保证字还看得出色相。
+    static let inkMargin = 0.4
+
+    /// 色标里那个简称字。
     ///
-    /// 平手时偏黑——这批色整体偏亮，黑字在亮底上的观感也更贴近系统控件。
+    /// 不用纯黑——黑跟填充没有任何关系，贴上去像两块不相干的东西叠在一起，
+    /// 在蓝色这种本来就深一点的填充上尤其闷。改成沿同一色相压暗出来的深色，
+    /// 它读起来就是「这个颜色的深版本」：夜班蓝配的是 #001C42 深海军蓝，
+    /// 白班橙配的是 #5B3200 深棕。
+    ///
+    /// 填充本身够暗（靛、品红、砖、宝蓝这几个，连纯黑压上去也只有 3.7–4.1）
+    /// 就压不出来了，那时候用白字，5.1–5.7，很舒服。
     static func markInk(on mark: String) -> String {
-        ColorMath.contrast("#000000", mark) >= ColorMath.contrast("#FFFFFF", mark)
-            ? "#000000" : "#FFFFFF"
+        let ceiling = ColorMath.contrast("#000000", mark)
+        let target = min(inkTarget, ceiling - inkMargin)
+        guard target >= 4.5,
+              let ink = ColorMath.darken(mark, on: mark, target: target)
+        else { return "#FFFFFF" }
+        return ink
     }
 
     static func shift(_ hexColor: String) -> ShiftTone {
@@ -182,8 +208,8 @@ enum Tone {
         let markDark = ColorMath.at(hexColor, lightness: darkMarkLightness)
         return ShiftTone(
             mark: Color(uiColor: .dynamic(light: markLight, dark: markDark)),
-            ink: Color(uiColor: .dynamic(light: markInk(on: markLight),
-                                         dark: markInk(on: markDark))),
+            // 深色下色标提亮到 0.78，黑字最差也有 9.89:1，观感也更贴近系统控件。
+            ink: Color(uiColor: .dynamic(light: markInk(on: markLight), dark: "#000000")),
             text: Color(uiColor: .dynamic(
                 light: ColorMath.step(hexColor, on: todayFillLight),
                 dark: ColorMath.step(hexColor, on: todayFillDark)))

@@ -27,32 +27,41 @@ final class ScheduleRulesTests: XCTestCase {
         XCTAssertEqual(normalized.tags[0].color, AccentHex.rose)
     }
 
-    func testMarkInkPicksWhicheverContrastsMore() {
-        // 活力组整体偏亮，白字全塌，黑字全过。
+    func testMarkInkIsATonalDarkOfTheFillOrWhiteWhenThereIsNoRoom() {
+        // 活力组填充够亮，压得出同色深字：和填充同色相、比它暗、够 4.5:1。
         for hex in AccentHex.vividPalette {
-            XCTAssertEqual(Tone.markInk(on: hex), "#000000", "\(hex) 该配黑字")
-            XCTAssertGreaterThanOrEqual(ColorMath.contrast("#000000", hex), 4.5, "\(hex) 黑字没到 4.5")
+            let ink = Tone.markInk(on: hex)
+            XCTAssertNotEqual(ink, "#000000", "\(hex) 不该退回纯黑")
+            XCTAssertNotEqual(ink, "#FFFFFF", "\(hex) 该压得出深字")
+            XCTAssertGreaterThanOrEqual(ColorMath.contrast(ink, hex), 4.5, "\(hex) 深字对比度不够")
         }
-        // 原来的十四色里，只有明度够低的那几个仍然是白字。
+        // 这几个填充本身就够暗，连纯黑也只有 3.7–4.1，压不出来——退回白字。
         for hex in [AccentHex.indigo, AccentHex.magenta, AccentHex.brick, AccentHex.royal] {
-            XCTAssertEqual(Tone.markInk(on: hex), "#FFFFFF", "\(hex) 该配白字")
+            XCTAssertEqual(Tone.markInk(on: hex), "#FFFFFF", "\(hex) 该用白字")
         }
-        XCTAssertEqual(Tone.markInk(on: AccentHex.pumpkin), "#000000")
-        XCTAssertEqual(Tone.markInk(on: AccentHex.jade), "#000000")
     }
 
-    func testAddingVividColorsLeavesTheClassicPaletteIntact() {
-        // 老色板原样保留，活力组只是接在后面——已经排上班的人看到的还是同一套。
-        XCTAssertEqual(Array(AccentHex.shiftPalette.prefix(AccentHex.classicPalette.count)),
+    func testNavyLeavesRoomForItsInkUnlikeSystemBlue() {
+        // systemBlue #007AFF 的纯黑上限只有 5.23，留 0.4 之后压到 4.83 就封顶了；
+        // 夜班蓝沿同色相提亮一档之后上限 6.25，压到 5.0 还不贴边。
+        XCTAssertLessThan(ColorMath.contrast("#000000", "#007AFF"), Tone.inkTarget + Tone.inkMargin)
+        XCTAssertGreaterThan(ColorMath.contrast("#000000", AccentHex.navy), Tone.inkTarget + Tone.inkMargin)
+    }
+
+    func testVividGroupLeadsThePaletteAndTheClassicOneIsStillThere() {
+        // 活力组排在前面（内置班次用的就是这些），原来的十四色一个没少，跟在后面。
+        XCTAssertEqual(Array(AccentHex.shiftPalette.prefix(AccentHex.vividPalette.count)),
+                       AccentHex.vividPalette)
+        XCTAssertEqual(Array(AccentHex.shiftPalette.suffix(AccentHex.classicPalette.count)),
                        AccentHex.classicPalette)
-        XCTAssertEqual(AccentHex.shiftPalette.count,
-                       AccentHex.classicPalette.count + AccentHex.vividPalette.count)
         XCTAssertEqual(Set(AccentHex.classicPalette).intersection(AccentHex.vividPalette), [])
-        // 内置班次的默认色一个都没动。
+
         let shifts = Dictionary(uniqueKeysWithValues: ShiftCatalog.all().map { ($0.id, $0.color) })
-        XCTAssertEqual(shifts[ShiftID.day], AccentHex.pumpkin)
-        XCTAssertEqual(shifts[ShiftID.night], AccentHex.indigo)
-        XCTAssertEqual(shifts[ShiftID.morning], AccentHex.jade)
+        XCTAssertEqual(shifts[ShiftID.day], AccentHex.vividOrange)
+        XCTAssertEqual(shifts[ShiftID.night], AccentHex.navy)
+        // 请假要一个偏深的，焦糖是这组里明度最低的。
+        XCTAssertEqual(shifts[ShiftID.leave], AccentHex.caramel)
+        XCTAssertEqual(shifts[ShiftID.rest], AccentHex.neutral)
     }
 
     func testPaletteMigrationMovesBuiltInShiftsToTheirNewDefaults() {
@@ -61,8 +70,8 @@ final class ScheduleRulesTests: XCTestCase {
         document.shifts = document.shifts.map { shift in
             var shift = shift
             switch shift.id {
-            case ShiftID.day: shift.color = "#f6c543"
-            case ShiftID.night: shift.color = "#3a83f6"
+            case ShiftID.day: shift.color = AccentHex.pumpkin    // 上一代的白班色
+            case ShiftID.night: shift.color = AccentHex.indigo   // 上一代的夜班色
             case ShiftID.rest, ShiftID.leave: shift.color = "#8e8e8e"
             default: break
             }
@@ -71,20 +80,21 @@ final class ScheduleRulesTests: XCTestCase {
         document.shifts.append(ShiftDefinition(id: "shift-abc123", name: "自定班", shortName: "自",
                                                color: "#ed7c37", defaultHours: 8))
         document.shifts.append(ShiftDefinition(id: "shift-def456", name: "已改过", shortName: "改",
-                                               color: AccentHex.jade, defaultHours: 8))
+                                               color: AccentHex.mint, defaultHours: 8))
         document.tags = [DutyTag(id: "tag-1", name: "带教", shortName: "教", color: "#a67df2")]
 
         let migrated = PaletteMigration.migrate(document)
         let color = { (id: String) in migrated.shifts.first { $0.id == id }?.color }
 
-        // 内置班次认 ID，不认色值：白班的 #f6c543 按色相会落到琥珀，新默认色却是南瓜橙。
-        XCTAssertEqual(color(ShiftID.day), AccentHex.pumpkin)
-        XCTAssertEqual(color(ShiftID.night), AccentHex.indigo)
+        // 内置班次认 ID，不认色值：上一代的南瓜橙要迁到这一代的活力橙。
+        XCTAssertEqual(color(ShiftID.day), AccentHex.vividOrange)
+        XCTAssertEqual(color(ShiftID.night), AccentHex.navy)
+        XCTAssertEqual(color(ShiftID.leave), AccentHex.caramel)
         XCTAssertEqual(color(ShiftID.rest), AccentHex.neutral)
         // 自定义班次没有 ID 可认，走色值映射。
         XCTAssertEqual(color("shift-abc123"), AccentHex.pumpkin)
         // 已经是新色板里的颜色，说明用户自己挑过，不覆盖。
-        XCTAssertEqual(color("shift-def456"), AccentHex.jade)
+        XCTAssertEqual(color("shift-def456"), AccentHex.mint)
         XCTAssertEqual(migrated.tags[0].color, AccentHex.purple)
     }
 
@@ -197,11 +207,12 @@ final class ScheduleRulesTests: XCTestCase {
         XCTAssertEqual(next.record(on: "2027-01-03")?.shiftId, ShiftID.morning)
     }
 
-    func testDefaultShiftsUseCoreOrderAndPresetsAddMore() {
+    func testDefaultShiftsAreTheFourCoreOnesAndPresetsAddMore() {
         let document = ScheduleDocument.makeDefault()
+        // 首启只给最常用的四个，早/中/晚在设置页按需添加。
         XCTAssertEqual(document.shifts.map(\.id),
-                       [ShiftID.day, ShiftID.night, ShiftID.rest, ShiftID.leave,
-                        ShiftID.morning, ShiftID.middle, ShiftID.late])
+                       [ShiftID.day, ShiftID.night, ShiftID.rest, ShiftID.leave])
+        XCTAssertEqual(document.tags.map(\.name), ["代班", "责班", "值班"])
 
         let transport = CareerPresets.apply(.transport, to: document)
         XCTAssertTrue(transport.shifts.contains { $0.id == ShiftID.morning })

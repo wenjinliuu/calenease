@@ -29,19 +29,24 @@ enum ShiftID {
     ]
 }
 
-/// 班次与标签的可选色板。
+/// 班次与标签的可选色板。两组共二十八个色。
 ///
-/// 十四个色，全部高饱和，全部能在 13pt 色标上配白字达到 3:1 以上——
-/// 越黄的橙越扛不住白字（systemYellow 上只有 1.51:1，压到达标时已经变成芥末），
-/// 所以暖色一律落在朱橙 / 南瓜这一族。
+/// **活力组**（`vividPalette`）是内置班次现在用的一套，明度集中在 0.70–0.78、
+/// 彩度顶在色域附近。它当初被排除过，理由是白字压不住（柠黄上只有 1.51:1）——
+/// 那个测量没错，错在只想到「把颜色压暗去迁就白字」这一条出路，压完就灰了。
+/// 现在浅色下的简称字改用 `Tone.markInk(on:)` 压出来的同色深字，颜色一个像素都不用改。
 ///
-/// `shiftPalette` 是按推荐顺序排的：前四个（南瓜 · 靛 · 品红 · 森绿）两两之间在
-/// 正常视觉、红绿色盲、红色盲三种情况下的 OKLab ΔE 最差也有 20.4，远高于 15 的门槛；
-/// 第五个开始降到 11.5，第八个只剩 5.0。色标里有简称字做第二编码，所以超过四个仍然能用，
+/// **原有十四色**（`classicPalette`）原样留在取色盘上，一个都没少。
+///
+/// 亮色之间比中等明度的色更难分：活力组前四个的最差 ΔE（普通 / 红绿色盲 / 红色盲取最小）
+/// 是 7.6，原有十四色的前四个是 12.9。色标里有简称字做第二编码，所以能接受，
 /// 但班次编辑页应该在用户选到太近的两个色时提示一下。
+///
+/// 内置班次的分配按「白班 = 活力橙、夜班 = 夜班蓝」钉死（这一对分离度 38.5，全表最开），
+/// 其余按最大化最小色差贪心排出来。
 enum AccentHex {
 
-    // 核心八色，按推荐顺序
+    // 原有十四色的核心八色
     static let pumpkin = "#F06E15"
     static let indigo = "#5856D6"
     static let magenta = "#C13584"
@@ -73,7 +78,19 @@ enum AccentHex {
     static let teal = "#30B0C7"
     static let lemon = "#FFCC00"
     static let caramel = "#A2845E"
-    static let ocean = "#007AFF"
+    /// 夜班蓝。不用 systemBlue #007AFF——它的 OKLCH 明度只有 0.603，
+    /// 同色深字压到 4.83 就撞上纯黑的 5.23 封顶了。沿同色相提亮一档到 0.644，
+    /// 深字余量回到 6.25，而且离原色只有 ΔE 4.9，肉眼看不出换了色。
+    static let navy = "#2E8BFF"
+
+    // 扩展六色：照活力组的调子生成——明度 0.72–0.78、彩度顶到该点色域的 92%，
+    // 色相挑离已有色最远的空档。
+    static let coral = "#FA8C60"
+    static let spring = "#2FC088"
+    static let peach = "#F97485"
+    static let mustard = "#BCA529"
+    static let grass = "#55D82F"
+    static let lake = "#2FBCAD"
 
     /// 休息、请假、备班这类不计工时的状态。它们是"没有班"，不是"第 N 个班次"，
     /// 所以不占彩色位。
@@ -92,12 +109,14 @@ enum AccentHex {
     /// 原来的十四色，顺序不动——已经排上班的人看到的还是同一套。
     static let classicPalette = [pumpkin, indigo, magenta, forest, rose, brick, jade, lavender,
                                  scarlet, purple, royal, sky, olive, amber]
-    /// 新补的活力八色，排在后面。
-    static let vividPalette = [vividOrange, vividGreen, vividCyan, mint,
-                               teal, lemon, caramel, ocean]
-    static let shiftPalette = classicPalette + vividPalette
-    static let tagPalette = [lavender, jade, magenta, amber, royal, forest, rose, sky,
-                             vividOrange, mint, lemon, caramel]
+    /// 活力组。内置班次现在全部从这里取色。
+    static let vividPalette = [vividOrange, navy, spring, lemon, peach, grass,
+                               coral, mint, vividCyan, mustard, vividGreen, teal,
+                               lake, caramel]
+    /// 取色盘：活力组在前（内置班次用的就是这些），原来的十四色跟在后面，一个都没少。
+    static let shiftPalette = vividPalette + classicPalette
+    static let tagPalette = [vividGreen, lake, mustard, peach, mint, coral,
+                             lavender, jade, magenta, amber, royal, rose]
 
     /// 旧数据里用过的色值，导入时统一收敛到新色板。
     static let legacyMap: [String: String] = [
@@ -127,38 +146,37 @@ enum ShiftCatalog {
     /// 全部可选的内置班次。`hours` 用于 v1 数据迁移时带入原来的时长。
     static func all(hours: [String: Double] = [:]) -> [ShiftDefinition] {
         [
-            ShiftDefinition(id: ShiftID.day, name: "白班", shortName: "白", color: AccentHex.pumpkin,
+            ShiftDefinition(id: ShiftID.day, name: "白班", shortName: "白", color: AccentHex.vividOrange,
                             startTime: "08:00", endTime: "20:00",
                             defaultHours: hours["day"] ?? 12, legacyType: "day"),
-            ShiftDefinition(id: ShiftID.night, name: "夜班", shortName: "夜", color: AccentHex.indigo,
+            ShiftDefinition(id: ShiftID.night, name: "夜班", shortName: "夜", color: AccentHex.navy,
                             startTime: "20:00", endTime: "08:00", crossesMidnight: true,
                             defaultHours: hours["night"] ?? 12, legacyType: "night"),
-            ShiftDefinition(id: ShiftID.morning, name: "早班", shortName: "早", color: AccentHex.jade,
+            ShiftDefinition(id: ShiftID.morning, name: "早班", shortName: "早", color: AccentHex.spring,
                             startTime: "08:00", endTime: "16:00",
                             defaultHours: hours["morning"] ?? 8, legacyType: "morning"),
-            ShiftDefinition(id: ShiftID.middle, name: "中班", shortName: "中", color: AccentHex.magenta,
+            ShiftDefinition(id: ShiftID.middle, name: "中班", shortName: "中", color: AccentHex.lemon,
                             startTime: "16:00", endTime: "00:00",
                             defaultHours: hours["middle"] ?? 8, legacyType: "middle"),
-            ShiftDefinition(id: ShiftID.late, name: "晚班", shortName: "晚", color: AccentHex.lavender,
+            ShiftDefinition(id: ShiftID.late, name: "晚班", shortName: "晚", color: AccentHex.peach,
                             startTime: "00:00", endTime: "08:00",
                             defaultHours: hours["late"] ?? 8, legacyType: "late"),
             ShiftDefinition(id: ShiftID.rest, name: "休息", shortName: "休", color: AccentHex.neutral,
                             isRest: true, defaultHours: 0, countsAsWork: false, legacyType: "rest"),
-            ShiftDefinition(id: ShiftID.leave, name: "请假", shortName: "假", color: AccentHex.neutral,
+            ShiftDefinition(id: ShiftID.leave, name: "请假", shortName: "假", color: AccentHex.caramel,
                             isRest: true, defaultHours: 0, countsAsWork: false, legacyType: "leave"),
-            ShiftDefinition(id: ShiftID.custom, name: "其他", shortName: "工", color: AccentHex.forest,
+            ShiftDefinition(id: ShiftID.custom, name: "其他", shortName: "工", color: AccentHex.grass,
                             defaultHours: 0, legacyType: "custom"),
-            ShiftDefinition(id: ShiftID.duty, name: "责班", shortName: "责", color: AccentHex.brick,
+            ShiftDefinition(id: ShiftID.duty, name: "责班", shortName: "责", color: AccentHex.coral,
                             startTime: "08:00", endTime: "16:00", defaultHours: 8),
-            ShiftDefinition(id: ShiftID.clinic, name: "门诊", shortName: "诊", color: AccentHex.sky,
+            ShiftDefinition(id: ShiftID.clinic, name: "门诊", shortName: "诊", color: AccentHex.mint,
                             startTime: "08:00", endTime: "16:00", defaultHours: 8),
         ]
     }
 
-    /// 首次启动带的班次。
+    /// 首次启动带的班次。只给最常用的四个，其余在设置页按需添加。
     static func base(hours: [String: Double] = [:]) -> [ShiftDefinition] {
-        let order = [ShiftID.day, ShiftID.night, ShiftID.rest, ShiftID.leave,
-                     ShiftID.morning, ShiftID.middle, ShiftID.late]
+        let order = [ShiftID.day, ShiftID.night, ShiftID.rest, ShiftID.leave]
         let catalog = Dictionary(uniqueKeysWithValues: all(hours: hours).map { ($0.id, $0) })
         return order.compactMap { catalog[$0] }
     }
@@ -167,10 +185,10 @@ enum ShiftCatalog {
     static func extra(_ id: String) -> ShiftDefinition? {
         switch id {
         case ShiftID.smallNight:
-            ShiftDefinition(id: ShiftID.smallNight, name: "小夜", shortName: "小夜", color: AccentHex.royal,
+            ShiftDefinition(id: ShiftID.smallNight, name: "小夜", shortName: "小夜", color: AccentHex.vividCyan,
                             startTime: "16:00", endTime: "00:00", defaultHours: 8)
         case ShiftID.bigNight:
-            ShiftDefinition(id: ShiftID.bigNight, name: "大夜", shortName: "大夜", color: AccentHex.purple,
+            ShiftDefinition(id: ShiftID.bigNight, name: "大夜", shortName: "大夜", color: AccentHex.mustard,
                             startTime: "00:00", endTime: "08:00", defaultHours: 8)
         case ShiftID.standby:
             ShiftDefinition(id: ShiftID.standby, name: "备班", shortName: "备", color: AccentHex.neutral,
@@ -196,19 +214,6 @@ enum ShiftCatalog {
                           caption: "白夜休休",
                           shiftIds: [day, night, rest, rest],
                           category: .manufacturing, builtIn: true),
-            CycleTemplate(id: "tpl-two-two-two", name: "2白2夜 · 休2天",
-                          caption: "白白夜夜休休",
-                          shiftIds: [day, day, night, night, rest, rest],
-                          category: .manufacturing, builtIn: true),
-            CycleTemplate(id: "tpl-work-two-rest-two", name: "做二休二",
-                          caption: "白白休休",
-                          shiftIds: [day, day, rest, rest],
-                          category: .manufacturing, builtIn: true),
-            CycleTemplate(id: "tpl-three-four", name: "3上4休 / 4上3休",
-                          caption: "白白白休休休休 · 白白白白休休休",
-                          shiftIds: [day, day, day, rest, rest, rest, rest,
-                                     day, day, day, day, rest, rest, rest],
-                          category: .manufacturing, builtIn: true),
             CycleTemplate(id: "tpl-three-shift", name: "早 → 中 → 夜 → 休",
                           caption: "早中晚休",
                           shiftIds: [morning, middle, late, rest],
@@ -228,6 +233,15 @@ enum ShiftCatalog {
     static let starterTemplateIDs: Set<String> = [
         "tpl-four-two", "tpl-two-rest-two", "tpl-one-one-two", "tpl-three-shift",
     ]
+
+    /// 首次启动带的职责标签。
+    static func baseTags() -> [DutyTag] {
+        [
+            DutyTag(id: "tag-substitute", name: "代班", shortName: "代", color: AccentHex.vividGreen),
+            DutyTag(id: "tag-charge", name: "责班", shortName: "责", color: AccentHex.lake),
+            DutyTag(id: "tag-onduty", name: "值班", shortName: "值", color: AccentHex.mustard),
+        ]
+    }
 
     static func makeId(_ prefix: String) -> String {
         "\(prefix)-\(UUID().uuidString.prefix(8).lowercased())"

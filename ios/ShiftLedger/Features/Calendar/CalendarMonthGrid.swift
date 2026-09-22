@@ -15,7 +15,7 @@ struct CalendarMonthGrid: View {
     let document: ScheduleDocument
     let todayKey: String
     var batchMode: Bool = false
-    var batchDates: [String] = []
+    var selectedDates: Set<String> = []
     let onSelect: (String) -> Void
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: DayCellMetrics.columnSpacing),
@@ -49,8 +49,7 @@ struct CalendarMonthGrid: View {
                             isToday: key == todayKey,
                             holiday: document.display.showHolidays ? Holidays.name(of: key) : "",
                             batchMode: batchMode,
-                            batchIndex: batchDates.firstIndex(of: key),
-                            batchCount: batchDates.count,
+                            isSelected: selectedDates.contains(key),
                             height: cellHeight)
                         .contentShape(RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous))
                         .onTapGesture { onSelect(key) }
@@ -92,8 +91,7 @@ private struct DayCell: View {
     let isToday: Bool
     let holiday: String
     let batchMode: Bool
-    let batchIndex: Int?
-    let batchCount: Int
+    let isSelected: Bool
     let height: CGFloat
 
     private var shift: ShiftDefinition? { record.flatMap { document.shift($0.shiftId) } }
@@ -113,7 +111,8 @@ private struct DayCell: View {
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .background {
-                if isToday {
+                // 今天和多选选中用同一层淡底；选中另外还有一圈描边，分得开
+                if isSelected || isToday {
                     RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous)
                         .fill(Palette.todayFill)
                 }
@@ -122,7 +121,7 @@ private struct DayCell: View {
             .overlay(alignment: .topTrailing) { rail(dateMarks) }
             .overlay(alignment: .bottom) { noteDot }
             .overlay {
-                if batchIndex != nil {
+                if isSelected {
                     RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous)
                         .strokeBorder(Palette.blue, lineWidth: 1.6)
                 }
@@ -163,9 +162,10 @@ private struct DayCell: View {
     private var markRow: some View {
         HStack(spacing: 3) {
             if batchMode {
-                Text(batchBadge)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(batchIndex == nil ? AnyShapeStyle(.quaternary) : AnyShapeStyle(Palette.blue))
+                // 多选时每一格都是可勾选的，勾了就是实心圆勾，没勾是空心圈
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 13, weight: isSelected ? .bold : .regular))
+                    .foregroundStyle(isSelected ? AnyShapeStyle(Palette.blue) : AnyShapeStyle(.quaternary))
             } else if isUnscheduled {
                 Color.clear
             } else if let shift, shift.isRest {
@@ -283,12 +283,6 @@ private struct DayCell: View {
 
     // MARK: - 细节
 
-    private var batchBadge: String {
-        guard let batchIndex else { return "·" }
-        if batchIndex == 0 { return "始" }
-        if batchIndex == batchCount - 1, batchCount > 1 { return "止" }
-        return "✓"
-    }
 
     private var accessibilityText: String {
         var parts = ["\(day)日"]

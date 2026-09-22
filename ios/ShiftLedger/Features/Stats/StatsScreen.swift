@@ -85,10 +85,7 @@ struct StatsScreen: View {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
                       spacing: 10) {
                 MetricTile(label: "出勤天数", value: "\(workRecords.count)天",
-                           detail: "休息 \(restDays) 天", tint: Palette.blue, symbol: "calendar")
-                MetricTile(label: "已完成", value: "\(completedRecords.count)天",
-                           detail: "剩余 \(max(0, workRecords.count - completedRecords.count)) 天",
-                           tint: Palette.green, symbol: "checkmark.circle")
+                           detail: "休息 \(restDays) 天", tint: Palette.green, symbol: "calendar")
                 if document.work.trackHours {
                     MetricTile(label: "计划工时", value: HoursFormatter.hours(plannedHours),
                                detail: "已完成 \(HoursFormatter.hours(actualHours))",

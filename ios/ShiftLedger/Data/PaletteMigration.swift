@@ -10,7 +10,10 @@ import Foundation
 enum PaletteMigration {
 
     /// 色板的代数。以后再整套换色时 +1，老设备会再迁一次。
-    static let version = 1
+    ///
+    /// 2：内置班次换到活力组（白班 #FF9500、夜班 #2E8BFF……），
+    ///    请假从中性灰换成焦糖。
+    static let version = 2
     static let defaultsKey = "palette.migration.version"
 
     /// 内置班次的新默认色，按班次 ID 取。
@@ -25,9 +28,12 @@ enum PaletteMigration {
         return map
     }()
 
-    /// 新色板里的全部色值，小写。
+    /// 这一代色板里的色值，小写。
+    ///
+    /// 只认活力组：内置班次的新默认色都在这里面。老的十四色虽然还留在取色盘上，
+    /// 但如果一个内置班次还停在老色上，说明它是上一代的默认值，应该跟着迁。
     private static let palette: Set<String> = Set(
-        (AccentHex.shiftPalette + AccentHex.tagPalette + [AccentHex.neutral]).map { $0.lowercased() })
+        (AccentHex.vividPalette + AccentHex.tagPalette + [AccentHex.neutral]).map { $0.lowercased() })
 
     static func isNeeded(defaults: UserDefaults = .standard) -> Bool {
         defaults.integer(forKey: defaultsKey) < version

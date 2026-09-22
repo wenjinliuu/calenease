@@ -90,8 +90,11 @@ struct ShiftDefinition: Identifiable, Codable, Hashable, Sendable {
 /// 工时数字的统一写法：整数不带小数，其余保留一位。
 enum HoursFormatter {
     static func compact(_ value: Double) -> String {
-        if value == value.rounded() { return String(Int(value)) }
-        return String(format: "%.1f", value)
+        // 负数用真正的减号，不用连字符——工时可以是负的（上不满基本工时）
+        let sign = value < 0 ? "−" : ""
+        let magnitude = abs(value)
+        if magnitude == magnitude.rounded() { return sign + String(Int(magnitude)) }
+        return sign + String(format: "%.1f", magnitude)
     }
 
     /// 带单位的写法，用于统计卡片。
