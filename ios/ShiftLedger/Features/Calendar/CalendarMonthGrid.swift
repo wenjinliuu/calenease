@@ -9,7 +9,11 @@ import SwiftUI
 ///
 /// 格子高度贴合内容，留白放在行与行之间——行距 17pt。
 /// 反过来做（格子撑高、行距 1pt）会让「今天」那一格的填充下方空出一大块。
-struct CalendarMonthGrid: View {
+///
+/// 网格是 `Equatable` 的：左右滑动时外层每一帧都在变，但只要这个月的数据没变，
+/// 网格就不用重算——比较时跳过 `onSelect` 这个闭包（闭包没法比较，
+/// 带着它 SwiftUI 只能每帧都重画整月）。
+struct CalendarMonthGrid: View, Equatable {
     let year: Int
     let month: Int
     let document: ScheduleDocument
@@ -18,12 +22,30 @@ struct CalendarMonthGrid: View {
     var selectedDates: Set<String> = []
     let onSelect: (String) -> Void
 
+    nonisolated static func == (lhs: CalendarMonthGrid, rhs: CalendarMonthGrid) -> Bool {
+        lhs.year == rhs.year && lhs.month == rhs.month && lhs.todayKey == rhs.todayKey
+            && lhs.batchMode == rhs.batchMode && lhs.selectedDates == rhs.selectedDates
+            && lhs.document == rhs.document
+    }
+
     private let columns = Array(repeating: GridItem(.flexible(), spacing: DayCellMetrics.columnSpacing),
                                 count: 7)
 
     private var cellHeight: CGFloat { DayCellMetrics.height(for: document.display) }
 
+    /// 这个月的记录按日期建一次索引。`document.record(on:)` 是整表线性查找，
+    /// 一个月三十格就要把全部记录扫三十遍。
+    private var monthRecords: [String: DayRecord] {
+        let prefix = ScheduleCalendar.monthKey(year: year, month: month)
+        var map: [String: DayRecord] = [:]
+        for record in document.records where record.monthKey == prefix {
+            map[record.date] = record
+        }
+        return map
+    }
+
     var body: some View {
+        let records = monthRecords
         VStack(spacing: 10) {
             HStack(spacing: DayCellMetrics.columnSpacing) {
                 ForEach(Array(ScheduleCalendar.weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
@@ -44,7 +66,7 @@ struct CalendarMonthGrid: View {
                     let key = ScheduleCalendar.key(year: year, month: month, day: day)
                     DayCell(day: day,
                             key: key,
-                            record: document.record(on: key),
+                            record: records[key],
                             document: document,
                             isToday: key == todayKey,
                             holiday: document.display.showHolidays ? Holidays.name(of: key) : "",
@@ -56,6 +78,16 @@ struct CalendarMonthGrid: View {
                 }
             }
         }
+    }
+
+    /// 整块网格的高度（星期表头 + 表头间距 + 每行格子与行距）。
+    /// 滑动切月时要在两个月的高度之间插值，所以单独拿出来。
+    static func height(year: Int, month: Int, display: CalendarDisplaySettings) -> CGFloat {
+        let blanks = ScheduleCalendar.leadingBlanks(year: year, month: month)
+        let days = ScheduleCalendar.daysInMonth(year: year, month: month)
+        let rows = CGFloat((blanks + days + 6) / 7)
+        let cell = DayCellMetrics.height(for: display)
+        return 13 + 10 + rows * cell + (rows - 1) * DayCellMetrics.rowSpacing
     }
 }
 
@@ -121,11 +153,28 @@ private struct DayCell: View {
             .overlay(alignment: .topTrailing) { rail(dateMarks) }
             .overlay(alignment: .bottom) { noteDot }
             .overlay {
-                if isSelected {
+                // 多选时格子内容一个不藏——班次、工时、标签照常显示，改之前看得见原来是什么。
+                // 可选的状态只靠外框表达：没选是一圈淡描边，选中是蓝框 + 底部一枚勾。
+                if batchMode {
                     RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous)
-                        .strokeBorder(Palette.blue, lineWidth: 1.6)
+                        .strokeBorder(isSelected ? AnyShapeStyle(Palette.blue) : AnyShapeStyle(Palette.hairline),
+                                      lineWidth: isSelected ? 1.6 : 1)
                 }
             }
+            .overlay(alignment: .bottom) {
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, Palette.blue)
+                        .background(Circle().fill(Palette.card).padding(1))
+                        // 落在行与行之间的留白里，不挡格子里的字
+                        .offset(y: 8)
+                        .transition(.scale(scale: 0.4).combined(with: .opacity))
+                        .accessibilityHidden(true)
+                }
+            }
+            .animation(.spring(response: 0.26, dampingFraction: 0.7), value: isSelected)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("day-\(key)")
             .accessibilityLabel(accessibilityText)
@@ -161,12 +210,7 @@ private struct DayCell: View {
     @ViewBuilder
     private var markRow: some View {
         HStack(spacing: 3) {
-            if batchMode {
-                // 多选时每一格都是可勾选的，勾了就是实心圆勾，没勾是空心圈
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 13, weight: isSelected ? .bold : .regular))
-                    .foregroundStyle(isSelected ? AnyShapeStyle(Palette.blue) : AnyShapeStyle(.quaternary))
-            } else if isUnscheduled {
+            if isUnscheduled {
                 Color.clear
             } else if let shift, shift.isRest {
                 Text(shift.shortName)
@@ -287,6 +331,7 @@ private struct DayCell: View {
     private var accessibilityText: String {
         var parts = ["\(day)日"]
         if isToday { parts.append("今天") }
+        if batchMode { parts.append(isSelected ? "已选中" : "未选中") }
         if !holiday.isEmpty { parts.append(holiday) }
         if let shift {
             parts.append(shift.name)

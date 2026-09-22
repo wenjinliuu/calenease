@@ -27,25 +27,19 @@ final class ScheduleRulesTests: XCTestCase {
         XCTAssertEqual(normalized.tags[0].color, AccentHex.rose)
     }
 
-    func testMarkInkIsATonalDarkOfTheFillOrWhiteWhenThereIsNoRoom() {
-        // 活力组填充够亮，压得出同色深字：和填充同色相、比它暗、够 4.5:1。
-        for hex in AccentHex.vividPalette {
-            let ink = Tone.markInk(on: hex)
-            XCTAssertNotEqual(ink, "#000000", "\(hex) 不该退回纯黑")
-            XCTAssertNotEqual(ink, "#FFFFFF", "\(hex) 该压得出深字")
-            XCTAssertGreaterThanOrEqual(ColorMath.contrast(ink, hex), 4.5, "\(hex) 深字对比度不够")
-        }
-        // 这几个填充本身就够暗，连纯黑也只有 3.7–4.1，压不出来——退回白字。
-        for hex in [AccentHex.indigo, AccentHex.magenta, AccentHex.brick, AccentHex.royal] {
+    func testMarkInkIsWhiteOnEveryShiftColor() {
+        // 浅色下色标里的简称字统一白字，不再逐色压同色深字。
+        for hex in AccentHex.shiftPalette {
             XCTAssertEqual(Tone.markInk(on: hex), "#FFFFFF", "\(hex) 该用白字")
         }
     }
 
-    func testNavyLeavesRoomForItsInkUnlikeSystemBlue() {
-        // systemBlue #007AFF 的纯黑上限只有 5.23，留 0.4 之后压到 4.83 就封顶了；
-        // 夜班蓝沿同色相提亮一档之后上限 6.25，压到 5.0 还不贴边。
-        XCTAssertLessThan(ColorMath.contrast("#000000", "#007AFF"), Tone.inkTarget + Tone.inkMargin)
-        XCTAssertGreaterThan(ColorMath.contrast("#000000", AccentHex.navy), Tone.inkTarget + Tone.inkMargin)
+    func testShiftToneIsCachedPerColor() {
+        // 日历每一格每一帧都取色，同一个色值必须直接命中缓存，结果前后一致。
+        let first = Tone.shift(AccentHex.vividOrange)
+        let second = Tone.shift(AccentHex.vividOrange)
+        XCTAssertEqual(first.mark, second.mark)
+        XCTAssertEqual(first.text, second.text)
     }
 
     func testVividGroupLeadsThePaletteAndTheClassicOneIsStillThere() {

@@ -2,9 +2,13 @@ import Charts
 import SwiftUI
 
 /// 统计页。按功能开关切换成三种形态：仅排班、仅工时、工时与加班。
+///
+/// 顶上先分「月度 / 年度」，下面一条和日历页同款的切换条：左右箭头逐月或逐年度翻，
+/// 点中间的标题弹出年月选择器。查看的月份和日历页是同一个，两边切了互相跟着走。
 struct StatsScreen: View {
     @Environment(ScheduleStore.self) private var store
     @State private var scope: StatsScope = .month
+    @State private var isPeriodPickerPresented = false
 
     private var document: ScheduleDocument { store.document }
 
@@ -12,7 +16,7 @@ struct StatsScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-                    scopePicker
+                    periodPanel
                     summarySection
                     if document.work.trackHours {
                         progressSection
@@ -27,6 +31,8 @@ struct StatsScreen: View {
             .background(Palette.canvas)
             .navigationTitle("统计")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $isPeriodPickerPresented) { periodPicker }
+            .sensoryFeedback(.selection, trigger: store.focusedMonthKey)
         }
     }
 
@@ -35,7 +41,7 @@ struct StatsScreen: View {
     enum StatsScope: String, CaseIterable, Identifiable {
         case month, year
         var id: String { rawValue }
-        var label: String { self == .month ? "本月" : "年度周期" }
+        var label: String { self == .month ? "月度" : "年度" }
     }
 
     private var cycle: AnnualCycle {
@@ -72,6 +78,45 @@ struct StatsScreen: View {
             }
         }
         .pickerStyle(.segmented)
+    }
+
+    /// 月度 / 年度 + 前后切换。
+    private var periodPanel: some View {
+        VStack(spacing: 12) {
+            scopePicker
+            MonthSwitcher(label: scopeLabel,
+                          previousLabel: scope == .month ? "上个月" : "上个年度",
+                          nextLabel: scope == .month ? "下个月" : "下个年度",
+                          todayTitle: scope == .month ? "本月" : "本年度",
+                          onPrevious: { step(-1) },
+                          onNext: { step(1) },
+                          onToday: {
+                              withAnimation(.smooth(duration: 0.3)) { store.goToCurrentMonth() }
+                          },
+                          onPickLabel: { isPeriodPickerPresented = true })
+        }
+        .card(cornerRadius: 22, padding: 12)
+    }
+
+    /// 按月时前后一个月，按年度时前后一整个年度（12 个月）。
+    private func step(_ direction: Int) {
+        withAnimation(.smooth(duration: 0.3)) {
+            store.changeMonth(by: direction * (scope == .month ? 1 : 12))
+        }
+    }
+
+    private var periodPicker: some View {
+        let current = store.currentMonthIndex
+        let annualStart = cycle.startMonth + 1
+        let currentCycle = WorkHours.reportingCycle(for: document, year: current / 12, month: current % 12)
+        return PeriodPickerSheet(mode: scope == .month ? .month : .year,
+                                 selectedYear: scope == .month ? store.focusedYear : cycle.startYear,
+                                 selectedMonth: store.focusedMonth,
+                                 currentYear: scope == .month ? current / 12 : currentCycle.startYear,
+                                 currentMonth: current % 12,
+                                 annualStartMonth: annualStart) { year, month in
+            withAnimation(.smooth(duration: 0.3)) { store.focus(year: year, month: month) }
+        }
     }
 
     // MARK: - 概览

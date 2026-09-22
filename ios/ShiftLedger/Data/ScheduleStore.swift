@@ -133,29 +133,38 @@ final class ScheduleStore {
 
     var focusedMonthKey: String { ScheduleCalendar.monthKey(year: focusedYear, month: focusedMonth) }
 
+    /// 当前查看的月份写成「年 × 12 + 零基月」，前后相邻的月份就是 ±1。
+    var focusedIndex: Int { focusedYear * 12 + focusedMonth }
+
+    /// 本月的同一种写法。
+    var currentMonthIndex: Int {
+        let parts = ScheduleCalendar.calendar.dateComponents([.year, .month], from: Date())
+        return (parts.year ?? focusedYear) * 12 + (parts.month ?? 1) - 1
+    }
+
     /// 当前查看的月份是否早于本月（决定「今天」按钮该往哪个方向滑）。
     func isFocusedBefore(today: Bool = true) -> Bool {
-        let parts = ScheduleCalendar.calendar.dateComponents([.year, .month], from: Date())
-        let current = (parts.year ?? focusedYear) * 12 + (parts.month ?? 1) - 1
-        return focusedYear * 12 + focusedMonth < current
+        focusedIndex < currentMonthIndex
     }
 
     func changeMonth(by delta: Int) {
-        let absolute = focusedYear * 12 + focusedMonth + delta
-        focusedYear = absolute / 12
-        focusedMonth = absolute % 12
-        if focusedMonth < 0 {
-            focusedMonth += 12
-            focusedYear -= 1
-        }
+        focus(index: focusedIndex + delta)
+    }
+
+    /// 跳到指定月份。日历翻页、月份选择器、统计页的前后切换都走这里。
+    func focus(index: Int) {
+        guard index != focusedIndex else { return }
+        focusedYear = Int((Double(index) / 12).rounded(.down))
+        focusedMonth = index - focusedYear * 12
         materializeFocusedYears()
     }
 
+    func focus(year: Int, month: Int) {
+        focus(index: year * 12 + month)
+    }
+
     func goToCurrentMonth() {
-        let parts = ScheduleCalendar.calendar.dateComponents([.year, .month], from: Date())
-        focusedYear = parts.year ?? focusedYear
-        focusedMonth = (parts.month ?? 1) - 1
-        materializeFocusedYears()
+        focus(index: currentMonthIndex)
     }
 
     /// 补齐当前统计年度覆盖到的循环记录，让日历往后翻永远有班。

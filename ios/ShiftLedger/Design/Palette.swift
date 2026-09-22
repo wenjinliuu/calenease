@@ -164,7 +164,7 @@ enum ColorMath {
 /// 深色模式把色标提亮到 OKLCH 明度 0.78 配黑字——纯黑底上放原色色标会显脏，
 /// 提亮之后黑字最差也有 9.89:1。
 ///
-/// 浅色模式填充一个像素都不动，只换字：用 `Tone.markInk(on:)` 压出来的同色深色。
+/// 浅色模式填充一个像素都不动，简称字统一用白色。
 struct ShiftTone {
     let mark: Color
     let ink: Color
@@ -179,41 +179,31 @@ enum Tone {
     static let todayFillLight = ColorMath.at("#007AFF", lightness: 0.93)
     static let todayFillDark = ColorMath.at("#0A84FF", lightness: 0.30)
 
-    /// 浅色下同色深字压到这个对比度。
-    static let inkTarget = 5.0
-    /// 每个色能压到的极限就是纯黑，贴着上限时字就塌成黑色了。
-    /// 永远离上限留这么多，保证字还看得出色相。
-    static let inkMargin = 0.4
-
     /// 色标里那个简称字。
     ///
-    /// 不用纯黑——黑跟填充没有任何关系，贴上去像两块不相干的东西叠在一起，
-    /// 在蓝色这种本来就深一点的填充上尤其闷。改成沿同一色相压暗出来的深色，
-    /// 它读起来就是「这个颜色的深版本」：夜班蓝配的是 #001C42 深海军蓝，
-    /// 白班橙配的是 #5B3200 深棕。
-    ///
-    /// 填充本身够暗（靛、品红、砖、宝蓝这几个，连纯黑压上去也只有 3.7–4.1）
-    /// 就压不出来了，那时候用白字，5.1–5.7，很舒服。
-    static func markInk(on mark: String) -> String {
-        let ceiling = ColorMath.contrast("#000000", mark)
-        let target = min(inkTarget, ceiling - inkMargin)
-        guard target >= 4.5,
-              let ink = ColorMath.darken(mark, on: mark, target: target)
-        else { return "#FFFFFF" }
-        return ink
-    }
+    /// 浅色下一律白字。同色深字（夜班蓝配 #001C42、白班橙配 #5B3200）数值上够线，
+    /// 但实际看下来白字在这批活力色上更清爽，夜班蓝尤其明显——深海军蓝压在蓝底上
+    /// 反而糊成一片。整月的色标都是白字，读起来也更统一。
+    static func markInk(on mark: String) -> String { "#FFFFFF" }
+
+    // 色彩运算每次要跑几千步 OKLab 换算，日历每一格每一帧都要取色——
+    // 不缓存的话左右滑动时主线程全耗在这里。色值就那么十几个，按色值记住。
+    private static let cacheLock = NSLock()
+    private static var shiftCache: [String: ShiftTone] = [:]
+    private static var surfaceCache: [String: Color] = [:]
 
     static func shift(_ hexColor: String) -> ShiftTone {
+        if let cached = cacheLock.withLock({ shiftCache[hexColor] }) { return cached }
         let markLight = hexColor
         let markDark = ColorMath.at(hexColor, lightness: darkMarkLightness)
-        return ShiftTone(
+        let tone = ShiftTone(
             mark: Color(uiColor: .dynamic(light: markLight, dark: markDark)),
             // 深色下色标提亮到 0.78，黑字最差也有 9.89:1，观感也更贴近系统控件。
             ink: Color(uiColor: .dynamic(light: markInk(on: markLight), dark: "#000000")),
-            text: Color(uiColor: .dynamic(
-                light: ColorMath.step(hexColor, on: todayFillLight),
-                dark: ColorMath.step(hexColor, on: todayFillDark)))
+            text: onSurface(hexColor)
         )
+        cacheLock.withLock { shiftCache[hexColor] = tone }
+        return tone
     }
 
     /// 直接给一个色值要压在它上面的字色。色球、循环预览的小方块、取色盘的对勾都用它——
@@ -224,8 +214,11 @@ enum Tone {
 
     /// 职责标签、班次名这类"压在格子底上的彩色文字"。
     static func onSurface(_ hexColor: String) -> Color {
-        Color(uiColor: .dynamic(light: ColorMath.step(hexColor, on: todayFillLight),
-                                dark: ColorMath.step(hexColor, on: todayFillDark)))
+        if let cached = cacheLock.withLock({ surfaceCache[hexColor] }) { return cached }
+        let color = Color(uiColor: .dynamic(light: ColorMath.step(hexColor, on: todayFillLight),
+                                            dark: ColorMath.step(hexColor, on: todayFillDark)))
+        cacheLock.withLock { surfaceCache[hexColor] = color }
+        return color
     }
 }
 
