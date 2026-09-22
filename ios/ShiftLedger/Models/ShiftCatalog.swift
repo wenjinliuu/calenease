@@ -199,7 +199,6 @@ enum ShiftCatalog {
     /// 内置循环模板。
     static func builtInTemplates() -> [CycleTemplate] {
         let day = ShiftID.day, night = ShiftID.night, rest = ShiftID.rest
-        let morning = ShiftID.morning, middle = ShiftID.middle, late = ShiftID.late
         return [
             CycleTemplate(id: "tpl-four-two", name: "4白2休 · 4夜2休",
                           caption: "白白白白休休 · 夜夜夜夜休休",
@@ -213,24 +212,18 @@ enum ShiftCatalog {
                           caption: "白夜休休",
                           shiftIds: [day, night, rest, rest],
                           category: .manufacturing, builtIn: true),
-            CycleTemplate(id: "tpl-three-shift", name: "早 → 中 → 夜 → 休",
-                          caption: "早中晚休",
-                          shiftIds: [morning, middle, late, rest],
-                          category: .threeShift, builtIn: true),
-            CycleTemplate(id: "tpl-double-three", name: "夜夜 → 中中 → 早早 → 休休",
-                          caption: "晚晚中中早早休休",
-                          shiftIds: [late, late, middle, middle, morning, morning, rest, rest],
-                          category: .threeShift, builtIn: true),
-            CycleTemplate(id: "tpl-four-team-three-shift", name: "四班三倒 · 8小时",
-                          caption: "早早中中晚晚休休",
-                          shiftIds: [morning, morning, middle, middle, late, late, rest, rest],
-                          category: .threeShift, builtIn: true),
         ]
     }
 
-    /// 首次启动预置的四个模板。
+    /// 首次启动预置的模板。
     static let starterTemplateIDs: Set<String> = [
-        "tpl-four-two", "tpl-two-rest-two", "tpl-one-one-two", "tpl-three-shift",
+        "tpl-four-two", "tpl-two-rest-two", "tpl-one-one-two",
+    ]
+
+    /// 下线的内置模板。三班倒那三套用的人少，列表里只留两班倒的三套；
+    /// 老数据里存着的也在读盘时一并清掉（用户自己存的模板 ID 是随机的，不会误删）。
+    static let retiredTemplateIDs: Set<String> = [
+        "tpl-three-shift", "tpl-double-three", "tpl-four-team-three-shift",
     ]
 
     /// 首次启动带的职责标签。

@@ -8,8 +8,20 @@ import Foundation
 /// 这样两端对同一天的结论永远相同。
 enum Holidays {
 
+    /// 查过的日期记下来。日历每翻一页就要把三十来天各判一遍，
+    /// 判一次要推好几次日期，同一天没必要算第二遍。
+    private static let cacheLock = NSLock()
+    private static var nameCache: [String: String] = [:]
+
     /// 返回法定节假日名称，普通日子返回空串。
     static func name(of key: String) -> String {
+        if let cached = cacheLock.withLock({ nameCache[key] }) { return cached }
+        let name = computeName(of: key)
+        cacheLock.withLock { nameCache[key] = name }
+        return name
+    }
+
+    private static func computeName(of key: String) -> String {
         guard let parts = ScheduleCalendar.components(from: key) else { return "" }
         let month = parts.month + 1
         let day = parts.day

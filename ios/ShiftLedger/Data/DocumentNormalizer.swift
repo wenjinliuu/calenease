@@ -37,6 +37,7 @@ enum DocumentNormalizer {
         document.careerPreset = CareerPreset(rawValue: object["careerPreset"] as? String ?? "") ?? .manufacturing
 
         let templates = unique((object["cycleTemplates"] as? [Any] ?? []).compactMap { template(from: $0, shiftIds: shiftIds) })
+            .filter { !ShiftCatalog.retiredTemplateIDs.contains($0.id) }
         document.cycleTemplates = templates.isEmpty
             ? ShiftCatalog.builtInTemplates().filter { $0.shiftIds.allSatisfy(shiftIds.contains) }
             : templates

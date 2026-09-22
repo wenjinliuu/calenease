@@ -24,6 +24,10 @@ final class ScheduleStore {
 
     private let fileURL: URL
     private var saveTask: Task<Void, Never>?
+    /// 已经补齐过循环记录的「循环 ID|年份」。翻月时同一年不必重算——
+    /// 重算一次要生成一整年的记录、全表排序再整份比较，连续翻月时会一下一下地卡。
+    /// 文档被别的途径改动（编辑、导入、换循环）时清空。
+    @ObservationIgnored private var materializedYears: Set<String> = []
 
     init(fileURL: URL? = nil, document: ScheduleDocument? = nil) {
         let parts = ScheduleCalendar.calendar.dateComponents([.year, .month], from: Date())
@@ -50,6 +54,7 @@ final class ScheduleStore {
     // MARK: - 读写
 
     func load() {
+        materializedYears.removeAll()
         // 截图流程用示例数据启动，既不读也不写用户文件。
         if DemoData.isEnabled {
             document = DemoData.document()
@@ -71,10 +76,18 @@ final class ScheduleStore {
             // 文件在那儿但读不懂，别用默认数据把它盖掉。
             return
         }
-        // 读盘到此为止，后面两步的改动要能落盘。
+        // 读盘到此为止，后面几步的改动要能落盘。
         isReady = true
+        dropRetiredTemplates()
         migratePaletteIfNeeded()
         materializeFocusedYears()
+    }
+
+    /// 下线的内置模板从老数据里清掉。
+    private func dropRetiredTemplates() {
+        let retired = ShiftCatalog.retiredTemplateIDs
+        guard document.cycleTemplates.contains(where: { retired.contains($0.id) }) else { return }
+        update { $0.cycleTemplates.removeAll { retired.contains($0.id) } }
     }
 
     /// 换色板之后，老文件里存的还是旧色值，补迁一次。
@@ -84,6 +97,7 @@ final class ScheduleStore {
         let next = PaletteMigration.migrate(document)
         guard next != document else { return }
         document = next
+        materializedYears.removeAll()
         // 标记已经写下了，这一份必须同步落盘，不能只排一次防抖写。
         flush()
     }
@@ -113,6 +127,7 @@ final class ScheduleStore {
         var next = document
         transform(&next)
         document = next
+        materializedYears.removeAll()
         scheduleSave()
     }
 
@@ -169,10 +184,14 @@ final class ScheduleStore {
 
     /// 补齐当前统计年度覆盖到的循环记录，让日历往后翻永远有班。
     func materializeFocusedYears() {
-        guard document.activeCycle != nil else { return }
+        guard let cycle = document.activeCycle else { return }
+        let reporting = WorkHours.reportingCycle(for: document, year: focusedYear, month: focusedMonth)
+        let keys = Set([reporting.startYear, reporting.endYear]).map { "\(cycle.id)|\($0)" }
+        guard !keys.allSatisfy(materializedYears.contains) else { return }
         let next = CycleGenerator.materializeReportingYears(document,
                                                             year: focusedYear,
                                                             month: focusedMonth)
+        materializedYears.formUnion(keys)
         guard next != document else { return }
         document = next
         scheduleSave()

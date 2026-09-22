@@ -44,9 +44,22 @@ struct CalendarScreen: View {
                             batchDates = []
                         }
                     } label: {
-                        Label(batchMode ? "退出多选" : "批量修改",
-                              systemImage: batchMode ? "xmark.circle" : "checklist")
+                        // 图标原地变形（清单 ⇄ 叉），不是整颗按钮一闪换掉；
+                        // 进入多选时按钮染成强调蓝，一眼看得出现在处在多选里。
+                        Image(systemName: batchMode ? "xmark" : "checklist")
+                            .font(.body.weight(.semibold))
+                            .contentTransition(.symbolEffect(.replace.downUp.byLayer, options: .nonRepeating))
+                            .foregroundStyle(batchMode ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                            .frame(width: 30, height: 30)
+                            .background {
+                                Circle()
+                                    .fill(Palette.blue)
+                                    .scaleEffect(batchMode ? 1 : 0.2)
+                                    .opacity(batchMode ? 1 : 0)
+                            }
                     }
+                    .accessibilityLabel(batchMode ? "退出多选" : "批量修改")
+                    .sensoryFeedback(.impact(weight: .light), trigger: batchMode)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

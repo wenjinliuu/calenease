@@ -210,7 +210,14 @@ final class ScheduleRulesTests: XCTestCase {
 
         let transport = CareerPresets.apply(.transport, to: document)
         XCTAssertTrue(transport.shifts.contains { $0.id == ShiftID.morning })
-        XCTAssertTrue(transport.cycleTemplates.contains { $0.category == .threeShift })
+        // 三班倒的三套内置模板已经下线，职业预设不会再把它们加回来。
+        XCTAssertFalse(transport.cycleTemplates.contains { ShiftCatalog.retiredTemplateIDs.contains($0.id) })
+    }
+
+    func testOnlyTheThreeTwoShiftTemplatesAreBuiltIn() {
+        XCTAssertEqual(ShiftCatalog.builtInTemplates().map(\.id),
+                       ["tpl-four-two", "tpl-two-rest-two", "tpl-one-one-two"])
+        XCTAssertEqual(ScheduleDocument.makeDefault().cycleTemplates.count, 3)
     }
 
     // MARK: - 年度周期

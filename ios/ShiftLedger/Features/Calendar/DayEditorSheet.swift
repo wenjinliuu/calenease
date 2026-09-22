@@ -89,6 +89,11 @@ struct DayEditorSheet: View {
             }
             .onAppear(perform: loadDraft)
         }
+        // 默认半屏：大多数时候只是点一下换个班次，班次网格在上半屏就够了；
+        // 要写备注、调工时时往上一拉就是全屏。
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(28)
     }
 
     /// 标题写「9月9日 周三」，是法定节假日再缀上名字。

@@ -28,9 +28,6 @@ struct CalendarMonthGrid: View, Equatable {
             && lhs.document == rhs.document
     }
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: DayCellMetrics.columnSpacing),
-                                count: 7)
-
     private var cellHeight: CGFloat { DayCellMetrics.height(for: document.display) }
 
     /// 这个月的记录按日期建一次索引。`document.record(on:)` 是整表线性查找，
@@ -56,38 +53,68 @@ struct CalendarMonthGrid: View, Equatable {
                 }
             }
 
-            LazyVGrid(columns: columns, spacing: DayCellMetrics.rowSpacing) {
-                ForEach(Array(0..<ScheduleCalendar.leadingBlanks(year: year, month: month)), id: \.self) { index in
-                    Color.clear
-                        .frame(height: cellHeight)
-                        .id("blank-\(index)")
-                }
-                ForEach(Array(1...ScheduleCalendar.daysInMonth(year: year, month: month)), id: \.self) { day in
-                    let key = ScheduleCalendar.key(year: year, month: month, day: day)
-                    DayCell(day: day,
-                            key: key,
-                            record: records[key],
-                            document: document,
-                            isToday: key == todayKey,
-                            holiday: document.display.showHolidays ? Holidays.name(of: key) : "",
-                            batchMode: batchMode,
-                            isSelected: selectedDates.contains(key),
-                            height: cellHeight)
-                        .contentShape(RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous))
-                        .onTapGesture { onSelect(key) }
+            // 一个月最多 42 格，直接排出来。原来用 `LazyVGrid`，放在横向分页里等于
+            // 懒加载套懒加载，每翻进一页都要多走一轮测量，得不偿失。
+            let blanks = ScheduleCalendar.leadingBlanks(year: year, month: month)
+            let days = ScheduleCalendar.daysInMonth(year: year, month: month)
+            VStack(spacing: DayCellMetrics.rowSpacing) {
+                ForEach(0..<Self.rows(blanks: blanks, days: days), id: \.self) { row in
+                    HStack(spacing: DayCellMetrics.columnSpacing) {
+                        ForEach(0..<7, id: \.self) { column in
+                            let day = row * 7 + column - blanks + 1
+                            if day >= 1 && day <= days {
+                                cell(day: day, records: records)
+                            } else {
+                                Color.clear
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: cellHeight)
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    /// 整块网格的高度（星期表头 + 表头间距 + 每行格子与行距）。
-    /// 滑动切月时要在两个月的高度之间插值，所以单独拿出来。
-    static func height(year: Int, month: Int, display: CalendarDisplaySettings) -> CGFloat {
-        let blanks = ScheduleCalendar.leadingBlanks(year: year, month: month)
-        let days = ScheduleCalendar.daysInMonth(year: year, month: month)
-        let rows = CGFloat((blanks + days + 6) / 7)
+    private func cell(day: Int, records: [String: DayRecord]) -> some View {
+        let key = ScheduleCalendar.key(year: year, month: month, day: day)
+        return DayCell(day: day,
+                       key: key,
+                       record: records[key],
+                       document: document,
+                       isToday: key == todayKey,
+                       holiday: document.display.showHolidays ? Holidays.name(of: key) : "",
+                       batchMode: batchMode,
+                       isSelected: selectedDates.contains(key),
+                       height: cellHeight)
+            .contentShape(RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous))
+            .onTapGesture { onSelect(key) }
+    }
+
+    static func rows(blanks: Int, days: Int) -> Int { (blanks + days + 6) / 7 }
+
+    private static let rowsLock = NSLock()
+    private static var rowsCache: [Int: Int] = [:]
+
+    /// `index` 是「年 × 12 + 零基月」。翻页时每一帧都要问相邻两个月各几行，记下来不重算。
+    static func rows(index: Int) -> Int {
+        if let cached = rowsLock.withLock({ rowsCache[index] }) { return cached }
+        let year = index / 12, month = index % 12
+        let value = rows(blanks: ScheduleCalendar.leadingBlanks(year: year, month: month),
+                         days: ScheduleCalendar.daysInMonth(year: year, month: month))
+        rowsLock.withLock { rowsCache[index] = value }
+        return value
+    }
+
+    /// 整块网格的高度（星期表头 + 表头间距 + 每行格子与行距）。行数可以带小数，
+    /// 滑动切月时在 5 行和 6 行之间插值用。
+    static func height(rows: CGFloat, display: CalendarDisplaySettings) -> CGFloat {
         let cell = DayCellMetrics.height(for: display)
-        return 13 + 10 + rows * cell + (rows - 1) * DayCellMetrics.rowSpacing
+        return 13 + 10 + rows * cell + max(rows - 1, 0) * DayCellMetrics.rowSpacing
+    }
+
+    static func height(year: Int, month: Int, display: CalendarDisplaySettings) -> CGFloat {
+        height(rows: CGFloat(rows(index: year * 12 + month)), display: display)
     }
 }
 

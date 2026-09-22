@@ -4,12 +4,15 @@ import Foundation
 /// 和 web 版的 `dateKey` 一致，备份文件、循环推算、SwiftUI 选择态都用它。
 enum ScheduleCalendar {
     /// 排班用的日历：公历 + 当前时区，周一为一周之始。
-    static var calendar: Calendar {
+    ///
+    /// 只建一次。原来是计算属性，每取一次就新建一个 `Calendar`——日历一格要判节假日、
+    /// 推日期好几次，翻一个月就是几百次，滑动时全耗在这上面。
+    static let calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
+        calendar.timeZone = .autoupdatingCurrent
         calendar.firstWeekday = 2
         return calendar
-    }
+    }()
 
     static func key(_ date: Date) -> String {
         let parts = calendar.dateComponents([.year, .month, .day], from: date)
