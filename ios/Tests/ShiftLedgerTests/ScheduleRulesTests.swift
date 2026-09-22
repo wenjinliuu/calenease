@@ -27,6 +27,34 @@ final class ScheduleRulesTests: XCTestCase {
         XCTAssertEqual(normalized.tags[0].color, AccentHex.rose)
     }
 
+    func testMarkInkPicksWhicheverContrastsMore() {
+        // 活力组整体偏亮，白字全塌，黑字全过。
+        for hex in AccentHex.vividPalette {
+            XCTAssertEqual(Tone.markInk(on: hex), "#000000", "\(hex) 该配黑字")
+            XCTAssertGreaterThanOrEqual(ColorMath.contrast("#000000", hex), 4.5, "\(hex) 黑字没到 4.5")
+        }
+        // 原来的十四色里，只有明度够低的那几个仍然是白字。
+        for hex in [AccentHex.indigo, AccentHex.magenta, AccentHex.brick, AccentHex.royal] {
+            XCTAssertEqual(Tone.markInk(on: hex), "#FFFFFF", "\(hex) 该配白字")
+        }
+        XCTAssertEqual(Tone.markInk(on: AccentHex.pumpkin), "#000000")
+        XCTAssertEqual(Tone.markInk(on: AccentHex.jade), "#000000")
+    }
+
+    func testAddingVividColorsLeavesTheClassicPaletteIntact() {
+        // 老色板原样保留，活力组只是接在后面——已经排上班的人看到的还是同一套。
+        XCTAssertEqual(Array(AccentHex.shiftPalette.prefix(AccentHex.classicPalette.count)),
+                       AccentHex.classicPalette)
+        XCTAssertEqual(AccentHex.shiftPalette.count,
+                       AccentHex.classicPalette.count + AccentHex.vividPalette.count)
+        XCTAssertEqual(Set(AccentHex.classicPalette).intersection(AccentHex.vividPalette), [])
+        // 内置班次的默认色一个都没动。
+        let shifts = Dictionary(uniqueKeysWithValues: ShiftCatalog.all().map { ($0.id, $0.color) })
+        XCTAssertEqual(shifts[ShiftID.day], AccentHex.pumpkin)
+        XCTAssertEqual(shifts[ShiftID.night], AccentHex.indigo)
+        XCTAssertEqual(shifts[ShiftID.morning], AccentHex.jade)
+    }
+
     func testPaletteMigrationMovesBuiltInShiftsToTheirNewDefaults() {
         var document = ScheduleDocument.makeDefault()
         // 换色板之前装过的用户，文件里存的是上一代色值。

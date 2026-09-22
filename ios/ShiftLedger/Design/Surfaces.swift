@@ -162,7 +162,7 @@ struct ShiftOrb: View {
     var body: some View {
         Text(shift.shortName)
             .font(.system(size: size * 0.38, weight: .bold))
-            .foregroundStyle(.white)
+            .foregroundStyle(shift.inkOnTint)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
             .padding(.horizontal, 2)

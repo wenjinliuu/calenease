@@ -202,7 +202,8 @@ struct ColorPaletteRow: View {
                             if selection.lowercased() == hex.lowercased() {
                                 Image(systemName: "checkmark")
                                     .font(.footnote.weight(.bold))
-                                    .foregroundStyle(.white)
+                                    // 白勾在柠黄上只有 1.51:1，看不见
+                                    .foregroundStyle(Tone.ink(on: hex))
                             }
                         }
                 }

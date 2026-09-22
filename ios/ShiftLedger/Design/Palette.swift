@@ -149,9 +149,12 @@ enum ColorMath {
 /// 一个班次在日历上用到的三个颜色。
 ///
 /// `mark` 是 13pt 色标的底色，`ink` 是色标里那个简称字，`text` 是格子底上的工时数字。
-/// 浅色模式用原色配白字；深色模式把色标提亮到 OKLCH 明度 0.78 再配黑字——
-/// 纯黑底上放原色色标会显脏，而提亮之后白字的余量就没了（实测早班青只剩 2.72:1，
-/// 同一块底配黑字有 7.71:1）。
+/// 深色模式把色标提亮到 OKLCH 明度 0.78——纯黑底上放原色色标会显脏。
+///
+/// 简称字取黑还是取白，由 `Tone.markInk(on:)` 按实测对比度逐色决定，不写死。
+/// 原来浅色一律白字、深色一律黑字，在活力那一组上会塌掉（柠黄配白字只有 1.51:1）；
+/// 而且就算是原来的十四色，白字也只有靛、品红、砖、宝蓝四个过 4.5:1，
+/// 其余十个换成黑字都是净赚（南瓜 3.02 → 6.95，翡翠 3.05 → 6.88）。
 struct ShiftTone {
     let mark: Color
     let ink: Color
@@ -166,16 +169,31 @@ enum Tone {
     static let todayFillLight = ColorMath.at("#007AFF", lightness: 0.93)
     static let todayFillDark = ColorMath.at("#0A84FF", lightness: 0.30)
 
+    /// 色标里那个简称字取黑还是取白：谁在这块底上对比度高就用谁。
+    ///
+    /// 平手时偏黑——这批色整体偏亮，黑字在亮底上的观感也更贴近系统控件。
+    static func markInk(on mark: String) -> String {
+        ColorMath.contrast("#000000", mark) >= ColorMath.contrast("#FFFFFF", mark)
+            ? "#000000" : "#FFFFFF"
+    }
+
     static func shift(_ hexColor: String) -> ShiftTone {
         let markLight = hexColor
         let markDark = ColorMath.at(hexColor, lightness: darkMarkLightness)
         return ShiftTone(
             mark: Color(uiColor: .dynamic(light: markLight, dark: markDark)),
-            ink: Color(uiColor: .dynamic(light: "#FFFFFF", dark: "#000000")),
+            ink: Color(uiColor: .dynamic(light: markInk(on: markLight),
+                                         dark: markInk(on: markDark))),
             text: Color(uiColor: .dynamic(
                 light: ColorMath.step(hexColor, on: todayFillLight),
                 dark: ColorMath.step(hexColor, on: todayFillDark)))
         )
+    }
+
+    /// 直接给一个色值要压在它上面的字色。色球、循环预览的小方块、取色盘的对勾都用它——
+    /// 这些地方的底是原色（不随深浅切换），所以按原色判定，不能拿动态的 `ShiftTone.ink`。
+    static func ink(on hexColor: String) -> Color {
+        Color(hexString: markInk(on: hexColor))
     }
 
     /// 职责标签、班次名这类"压在格子底上的彩色文字"。
@@ -242,6 +260,8 @@ enum Palette {
 extension ShiftDefinition {
     var tint: Color { Color(hexString: color) }
     var tone: ShiftTone { Tone.shift(color) }
+    /// 压在 `tint` 上的字色。
+    var inkOnTint: Color { Tone.ink(on: color) }
 }
 
 extension DutyTag {

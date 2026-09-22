@@ -172,7 +172,7 @@ struct CycleStrip: View {
                     VStack(spacing: 2) {
                         Text(shift?.shortName ?? "?")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(shift?.inkOnTint ?? .white)
                             .frame(width: 26, height: 26)
                             .background(shift.map { AnyShapeStyle($0.tint) } ?? AnyShapeStyle(Color.gray),
                                         in: RoundedRectangle(cornerRadius: 8, style: .continuous))

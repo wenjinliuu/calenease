@@ -59,6 +59,22 @@ enum AccentHex {
     static let olive = "#7F9B14"
     static let amber = "#CC8300"
 
+    // 活力组：苹果系统色里最亮的那一批，2026-09 补进来。
+    //
+    // 这一组当初没进色板，理由是白字压不住——systemYellow 上的白字只有 1.51:1。
+    // 那个判断本身没错，错在只想到「把颜色压暗去迁就白字」这一条出路，压完就灰了。
+    // 另一条出路是把色标里的字换成黑的：这批色本来就亮，黑字轻松过线
+    // （柠黄 13.89、薄荷 9.91、活力橙 9.55），颜色一个像素都不用改。
+    // 取黑还是取白由 `Tone.markInk(on:)` 按实测对比度逐色决定，不是一刀切。
+    static let vividOrange = "#FF9500"
+    static let vividGreen = "#34C759"
+    static let vividCyan = "#32ADE6"
+    static let mint = "#00C7BE"
+    static let teal = "#30B0C7"
+    static let lemon = "#FFCC00"
+    static let caramel = "#A2845E"
+    static let ocean = "#007AFF"
+
     /// 休息、请假、备班这类不计工时的状态。它们是"没有班"，不是"第 N 个班次"，
     /// 所以不占彩色位。
     static let neutral = "#8E8E93"
@@ -73,9 +89,15 @@ enum AccentHex {
     static let red = scarlet
     static let gray = neutral
 
-    static let shiftPalette = [pumpkin, indigo, magenta, forest, rose, brick, jade, lavender,
-                               scarlet, purple, royal, sky, olive, amber]
-    static let tagPalette = [lavender, jade, magenta, amber, royal, forest, rose, sky]
+    /// 原来的十四色，顺序不动——已经排上班的人看到的还是同一套。
+    static let classicPalette = [pumpkin, indigo, magenta, forest, rose, brick, jade, lavender,
+                                 scarlet, purple, royal, sky, olive, amber]
+    /// 新补的活力八色，排在后面。
+    static let vividPalette = [vividOrange, vividGreen, vividCyan, mint,
+                               teal, lemon, caramel, ocean]
+    static let shiftPalette = classicPalette + vividPalette
+    static let tagPalette = [lavender, jade, magenta, amber, royal, forest, rose, sky,
+                             vividOrange, mint, lemon, caramel]
 
     /// 旧数据里用过的色值，导入时统一收敛到新色板。
     static let legacyMap: [String: String] = [
