@@ -1,0 +1,15 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <g id="calendar-days" fill="#D7D9DE">
+    <circle id="day-01" cx="252" cy="528" r="40"/>
+    <circle id="day-02" cx="426" cy="528" r="40"/>
+    <circle id="day-03" cx="600" cy="528" r="40"/>
+    <circle id="day-04" cx="774" cy="528" r="40"/>
+    <circle id="day-05" cx="252" cy="676" r="40"/>
+    <circle id="day-07" cx="600" cy="676" r="40"/>
+    <circle id="day-08" cx="774" cy="676" r="40"/>
+    <circle id="day-09" cx="252" cy="824" r="40"/>
+    <circle id="day-10" cx="426" cy="824" r="40"/>
+    <circle id="day-11" cx="600" cy="824" r="40"/>
+    <circle id="day-12" cx="774" cy="824" r="40"/>
+  </g>
+</svg>

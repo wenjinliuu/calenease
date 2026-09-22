@@ -1,25 +1,61 @@
 {
   "color-space-for-untagged-svg-colors" : "display-p3",
-  "fill" : {
-    "solid" : "display-p3:1.00000,1.00000,1.00000,1.00000"
-  },
+  "fill-specializations" : [
+    {
+      "value" : {
+        "solid" : "display-p3:1.00000,1.00000,1.00000,1.00000"
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : "system-dark"
+    }
+  ],
   "groups" : [
     {
-      "blur-material" : 0,
+      "blur-material" : 0.08,
       "hidden" : false,
       "layers" : [
         {
-          "glass" : false,
+          "glass" : true,
           "hidden" : false,
-          "image-name" : "PixelGridCheck.png",
-          "name" : "PixelGridCheck",
-          "position" : {
-            "scale" : 2.5641,
-            "translation-in-points" : [
-              0,
-              0
-            ]
-          }
+          "image-name" : "ActiveDay.svg",
+          "name" : "ActiveDay"
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "none",
+        "opacity" : 0
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.06
+      }
+    },
+    {
+      "blur-material" : 0.04,
+      "hidden" : false,
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "display-p3:0.84314,0.85098,0.87059,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "display-p3:0.33333,0.35686,0.40392,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "DateDots.svg",
+          "name" : "DateDots"
         }
       ],
       "lighting" : "individual",
@@ -29,8 +65,65 @@
       },
       "specular" : false,
       "translucency" : {
-        "enabled" : false,
-        "value" : 0
+        "enabled" : true,
+        "value" : 0.04
+      }
+    },
+    {
+      "blur-material" : 0.12,
+      "hidden" : false,
+      "layers" : [
+        {
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "CalendarHeader.svg",
+          "name" : "CalendarHeader"
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "layer-color",
+        "opacity" : 0.08
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.08
+      }
+    },
+    {
+      "blur-material" : 0.08,
+      "hidden" : false,
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "display-p3:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "display-p3:0.08235,0.09804,0.13333,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "CalendarBackground.svg",
+          "name" : "CalendarBackground"
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "none",
+        "opacity" : 0
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.06
       }
     }
   ],

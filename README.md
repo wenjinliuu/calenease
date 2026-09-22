@@ -67,3 +67,11 @@ Bundle ID 为 `com.wenjinliu.shiftledger`，仅 iPhone、仅竖屏，最低 iOS 
 ## 免责声明
 
 本工具用于个人排班记录和工时预估，最终工时以公司考勤记录和适用制度为准。
+
+## 源码许可
+
+© 2026 Wenjin Liu. All rights reserved.
+
+本项目采用 **PolyForm Noncommercial License 1.0.0**。源码可用于个人学习、研究、实验和其他非商业用途；商业使用不在该许可授权范围内。官方商业发行权由版权所有者保留。
+
+项目名称、App 名称、Logo、图标及品牌资产不因源码许可而获得复用授权。完整许可条款见 [LICENSE](LICENSE)，版权与品牌声明见 [NOTICE](NOTICE)。
