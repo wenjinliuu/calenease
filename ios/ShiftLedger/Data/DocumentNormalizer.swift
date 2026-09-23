@@ -37,6 +37,7 @@ enum DocumentNormalizer {
         document.careerPreset = CareerPreset(rawValue: object["careerPreset"] as? String ?? "") ?? .manufacturing
 
         let templates = unique((object["cycleTemplates"] as? [Any] ?? []).compactMap { template(from: $0, shiftIds: shiftIds) })
+            .filter { !ShiftCatalog.retiredTemplateIDs.contains($0.id) }
         document.cycleTemplates = templates.isEmpty
             ? ShiftCatalog.builtInTemplates().filter { $0.shiftIds.allSatisfy(shiftIds.contains) }
             : templates
@@ -180,6 +181,7 @@ enum DocumentNormalizer {
         return DayRecord(
             date: date,
             shiftId: shiftId,
+            secondaryShiftId: (item["secondaryShiftId"] as? String).flatMap { shiftIds.contains($0) ? $0 : nil },
             hours: max(0, number(item["hours"]) ?? 0),
             tagIds: (item["tagIds"] as? [Any] ?? []).compactMap { $0 as? String }.filter(tagIds.contains),
             completed: item["completed"] as? Bool ?? false,
@@ -197,7 +199,8 @@ enum DocumentNormalizer {
             showTags: raw["showTags"] as? Bool ?? true,
             showShiftTime: raw["showShiftTime"] as? Bool ?? false,
             showHours: raw["showHours"] as? Bool ?? false,
-            showHolidays: raw["showHolidays"] as? Bool ?? true
+            showHolidays: raw["showHolidays"] as? Bool ?? true,
+            showLunar: raw["showLunar"] as? Bool ?? false
         )
     }
 

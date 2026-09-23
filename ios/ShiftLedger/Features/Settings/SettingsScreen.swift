@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 设置页：职业预设、班次与标签、工时制度、日历显示、基本工时修正、备份与关于。
+/// 设置页：班次与标签、工时制度、日历显示、基本工时修正、备份与关于。
 struct SettingsScreen: View {
     @Environment(ScheduleStore.self) private var store
     @Environment(AppPreferences.self) private var preferences
@@ -20,7 +20,6 @@ struct SettingsScreen: View {
                 workSection
                 shiftsSection
                 tagsSection
-                careerSection
                 displaySection
                 appearanceSection
 
@@ -53,6 +52,7 @@ struct SettingsScreen: View {
                     }
                 }
             }
+            .pageBackground()
             .navigationTitle("设置")
             .sheet(item: $editingShift) { shift in
                 ShiftEditorView(shift: shift)
@@ -82,27 +82,6 @@ struct SettingsScreen: View {
         }
     }
 
-    // MARK: - 职业预设
-
-    private var careerSection: some View {
-        Section {
-            Picker("工作类型", selection: Binding(
-                get: { document.careerPreset },
-                set: { preset in
-                    store.applyCareerPreset(preset)
-                    showToast("已切换为\(preset.label)预设")
-                }
-            )) {
-                ForEach(CareerPreset.allCases) { preset in
-                    Text(preset.label).tag(preset)
-                }
-            }
-        } header: {
-            Text("工作类型")
-        } footer: {
-            Text("只影响推荐的班次、标签和循环模板，不限制任何功能；切换只做加法，正在用的标签不会丢。")
-        }
-    }
 
     // MARK: - 班次
 
@@ -333,12 +312,15 @@ struct SettingsScreen: View {
     // MARK: - 显示
 
     private var displaySection: some View {
-        Section("日历显示") {
+        Section {
             Toggle("显示班次简称", isOn: displayBind(\.showShift))
             Toggle("显示职责标签", isOn: displayBind(\.showTags))
             Toggle("显示班次时间", isOn: displayBind(\.showShiftTime))
             Toggle("显示当日工时", isOn: displayBind(\.showHours))
-            Toggle("显示法定节假日", isOn: displayBind(\.showHolidays))
+            Toggle("显示农历", isOn: displayBind(\.showLunar))
+            Toggle("显示放假与调休", isOn: displayBind(\.showHolidays))
+        } header: {
+            Text("日历显示")
         }
     }
 

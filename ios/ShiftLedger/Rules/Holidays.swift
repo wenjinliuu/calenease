@@ -1,15 +1,28 @@
 import Foundation
 
-/// 法定节假日判定。口径与 web 版 `app/lib/holidays.ts` 一致：
-/// 只认《全国年节及纪念日放假办法》规定的 13 个法定日，不含调休和补班。
+/// 本地推算的法定节假日。口径与 web 版 `app/lib/holidays.ts` 一致：
+/// 只认《全国年节及纪念日放假办法》规定的法定日，不含调休和补班。
 ///
-/// 农历日期在本机计算，不联网。2000–2100 年用一张与 web 版
-/// `lunar-typescript` 逐年核对过的表，超出范围再回落到系统农历，
-/// 这样两端对同一天的结论永远相同。
+/// iOS 端现在的主数据是国务院公布的放假安排（`HolidayCalendar`），节日名走系统农历
+/// （`Festivals`）。这里只剩两个用处：
+/// - 某一年还没有公布安排、也没下载到数据时，基本工时退回这套本地推算；
+/// - 清明是节气，系统农历没有节气接口，`Festivals` 从这里查清明的日子。
 enum Holidays {
+
+    /// 查过的日期记下来。日历每翻一页就要把三十来天各判一遍，
+    /// 判一次要推好几次日期，同一天没必要算第二遍。
+    private static let cacheLock = NSLock()
+    private static var nameCache: [String: String] = [:]
 
     /// 返回法定节假日名称，普通日子返回空串。
     static func name(of key: String) -> String {
+        if let cached = cacheLock.withLock({ nameCache[key] }) { return cached }
+        let name = computeName(of: key)
+        cacheLock.withLock { nameCache[key] = name }
+        return name
+    }
+
+    private static func computeName(of key: String) -> String {
         guard let parts = ScheduleCalendar.components(from: key) else { return "" }
         let month = parts.month + 1
         let day = parts.day
@@ -30,6 +43,12 @@ enum Holidays {
         if dragonBoat(year: parts.year) == key { return "端午节" }
         if midAutumn(year: parts.year) == key { return "中秋节" }
         return ""
+    }
+
+    /// 这一天是不是清明。
+    static func isQingming(_ key: String) -> Bool {
+        guard let parts = ScheduleCalendar.components(from: key) else { return false }
+        return parts.month == 3 && parts.day == qingmingDay(year: parts.year)
     }
 
     /// 日历格子上的短名，例如"劳动节"显示成"劳动"。

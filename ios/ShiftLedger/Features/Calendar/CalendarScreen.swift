@@ -2,8 +2,8 @@ import SwiftUI
 
 /// 日历页：月度排班 + 本月展望。
 ///
-/// 左右拖动切月：手指按住时整块日历 1:1 跟手，越界处递减阻尼；
-/// 松手按投影位置决定切换还是弹回，收尾用临界阻尼弹簧，中途可以随时抓回。
+/// 左右滑动切月交给 `MonthPager`（系统分页滚动，相邻月份跟着滑进来）；
+/// 点月份标题可以直接跳到任意年月。
 struct CalendarScreen: View {
     @Environment(ScheduleStore.self) private var store
     @Environment(\.showToast) private var showToast
@@ -11,10 +11,13 @@ struct CalendarScreen: View {
     @State private var editingDate: String?
     @State private var isGeneratorPresented = false
     @State private var batchMode = false
-    @State private var batchDates: [String] = []
+    @State private var batchDates: Set<String> = []
     @State private var isBatchEditorPresented = false
-    @State private var dragOffset: CGFloat = 0
-    @State private var slideEdge: Edge = .trailing
+    @State private var isPeriodPickerPresented = false
+
+    /// 进出多选用的弹簧：略带一点回弹，行动条展开、网格下移、格子描边淡入都走这一条，
+    /// 几样东西同一节奏动，看起来是一个整体在让位，而不是各动各的。
+    private let batchAnimation = Animation.spring(response: 0.42, dampingFraction: 0.84)
 
     private var document: ScheduleDocument { store.document }
 
@@ -36,21 +39,38 @@ struct CalendarScreen: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 1)) {
+                        withAnimation(batchAnimation) {
                             batchMode.toggle()
                             batchDates = []
                         }
                     } label: {
-                        Label(batchMode ? "退出多选" : "批量修改",
-                              systemImage: batchMode ? "xmark.circle" : "checklist")
+                        // 图标原地变形（清单 ⇄ 叉），不是整颗按钮一闪换掉；
+                        // 进入多选时按钮染成强调蓝，一眼看得出现在处在多选里。
+                        Image(systemName: batchMode ? "xmark" : "checklist")
+                            .font(.body.weight(.semibold))
+                            .contentTransition(.symbolEffect(.replace.downUp.byLayer, options: .nonRepeating))
+                            .foregroundStyle(batchMode ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                            .frame(width: 30, height: 30)
+                            .background {
+                                Circle()
+                                    .fill(Palette.blue)
+                                    .scaleEffect(batchMode ? 1 : 0.2)
+                                    .opacity(batchMode ? 1 : 0)
+                            }
                     }
+                    .accessibilityLabel(batchMode ? "退出多选" : "批量修改")
+                    .sensoryFeedback(.impact(weight: .light), trigger: batchMode)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isGeneratorPresented = true
                     } label: {
-                        Label("循环排班", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
+                        Label("循环排班", systemImage: "sparkles")
                     }
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.small)
+                    .tint(Palette.blue)
                 }
             }
             .sheet(item: Binding(get: { editingDate.map(DateKeyBox.init) },
@@ -61,10 +81,22 @@ struct CalendarScreen: View {
                 CycleGeneratorSheet()
             }
             .sheet(isPresented: $isBatchEditorPresented, onDismiss: {
-                batchDates = []
-                batchMode = false
+                withAnimation(batchAnimation) {
+                    batchDates = []
+                    batchMode = false
+                }
             }) {
-                BatchEditorSheet(dates: batchDates)
+                BatchEditorSheet(dates: batchDates.sorted())
+            }
+            .sheet(isPresented: $isPeriodPickerPresented) {
+                let current = store.currentMonthIndex
+                PeriodPickerSheet(mode: .month,
+                                  selectedYear: store.focusedYear,
+                                  selectedMonth: store.focusedMonth,
+                                  currentYear: current / 12,
+                                  currentMonth: current % 12) { year, month in
+                    withAnimation(.smooth(duration: 0.3)) { store.focus(year: year, month: month) }
+                }
             }
             .sensoryFeedback(.selection, trigger: store.focusedMonthKey)
         }
@@ -73,121 +105,95 @@ struct CalendarScreen: View {
     // MARK: - 月历
 
     private var monthPanel: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             MonthSwitcher(label: store.focusedMonthLabel,
                           onPrevious: { changeMonth(-1) },
                           onNext: { changeMonth(1) },
                           onToday: {
-                              slideEdge = store.isFocusedBefore(today: true) ? .trailing : .leading
-                              withAnimation(.spring(response: 0.34, dampingFraction: 0.92)) {
-                                  store.goToCurrentMonth()
-                              }
-                          })
+                              withAnimation(.smooth(duration: 0.3)) { store.goToCurrentMonth() }
+                          },
+                          onPickLabel: { isPeriodPickerPresented = true })
+                .padding(.bottom, 12)
 
-            if batchMode { batchHint }
+            // 行动条一直在布局里，只是收起时高度为零并裁掉：展开时从上往下拉开，
+            // 下面的网格跟着同一条弹簧平滑下移，而不是先整块顶下去再淡入。
+            batchBar
+                .padding(.bottom, 12)
+                .frame(height: batchMode ? nil : 0, alignment: .top)
+                .clipped()
+                .opacity(batchMode ? 1 : 0)
+                .scaleEffect(batchMode ? 1 : 0.96, anchor: .top)
+                .allowsHitTesting(batchMode)
+                .accessibilityHidden(!batchMode)
 
-            GeometryReader { proxy in
-                CalendarMonthGrid(year: store.focusedYear,
-                                  month: store.focusedMonth,
-                                  document: document,
-                                  todayKey: store.todayKey,
-                                  batchMode: batchMode,
-                                  batchDates: batchDates,
-                                  onSelect: handleTap)
-                    .id(store.focusedMonthKey)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: slideEdge).combined(with: .opacity),
-                        removal: .move(edge: slideEdge == .trailing ? .leading : .trailing).combined(with: .opacity)
-                    ))
-                    .offset(x: dragOffset)
-                    // 和纵向滚动共存：手势自己判断方向，纵向的交回给 ScrollView
-                    .simultaneousGesture(monthDrag(width: proxy.size.width))
-            }
-            .frame(height: gridHeight)
-            .clipped()
+            MonthPager(focusedIndex: store.focusedIndex,
+                       batchMode: batchMode,
+                       selectedDates: batchDates,
+                       onSelect: handleTap)
 
             Text("‹ 左右滑动切换月份 ›")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+                .padding(.top, 12)
         }
-        .card()
-    }
-
-    /// 网格高度随行数和显示开关变化，提前算好，避免拖动时高度跳变。
-    private var gridHeight: CGFloat {
-        let blanks = ScheduleCalendar.leadingBlanks(year: store.focusedYear, month: store.focusedMonth)
-        let days = ScheduleCalendar.daysInMonth(year: store.focusedYear, month: store.focusedMonth)
-        let rows = CGFloat((blanks + days + 6) / 7)
-        var cell: CGFloat = DayCellMetrics.date + DayCellMetrics.holiday + DayCellMetrics.shift
-        if document.display.showShiftTime { cell += DayCellMetrics.time }
-        if (document.display.showHours && document.work.trackHours) || document.display.showTags {
-            cell += DayCellMetrics.footer
-        }
-        cell += DayCellMetrics.verticalPadding * 2 + DayCellMetrics.spacing * 3
-        // 星期表头 + 表头间距 + 每行格子与行距
-        return 16 + 8 + rows * cell + (rows - 1) * 4
-    }
-
-    private func monthDrag(width: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 14)
-            .onChanged { value in
-                guard !batchMode, isHorizontal(value.translation) else { return }
-                dragOffset = rubberband(value.translation.width, limit: width)
-            }
-            .onEnded { value in
-                guard !batchMode, isHorizontal(value.translation) else {
-                    dragOffset = 0
-                    return
-                }
-                // 用速度把落点投影出去，快速轻扫也能切月
-                let projected = value.translation.width + value.velocity.width * 0.12
-                if projected < -width * 0.28 {
-                    changeMonth(1)
-                } else if projected > width * 0.28 {
-                    changeMonth(-1)
-                } else {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 1)) { dragOffset = 0 }
-                }
-            }
-    }
-
-    /// 明显偏水平才算切月，否则这一下是在纵向滚页面。
-    private func isHorizontal(_ translation: CGSize) -> Bool {
-        abs(translation.width) > abs(translation.height) * 1.4
-    }
-
-    /// 越界后递减跟手，靠近边界像被拉住而不是撞墙。
-    private func rubberband(_ offset: CGFloat, limit: CGFloat) -> CGFloat {
-        let constant: CGFloat = 0.55
-        let magnitude = abs(offset)
-        let damped = (magnitude * limit * constant) / (limit + constant * magnitude)
-        return offset < 0 ? -damped : damped
+        .card(cornerRadius: 22, padding: 14)
     }
 
     private func changeMonth(_ delta: Int) {
-        slideEdge = delta > 0 ? .trailing : .leading
-        withAnimation(.spring(response: 0.34, dampingFraction: 0.92)) {
-            dragOffset = 0
+        withAnimation(.smooth(duration: 0.38)) {
             store.changeMonth(by: delta)
         }
     }
 
-    private var batchHint: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "square.dashed.inset.filled")
-                .foregroundStyle(Palette.blue)
+    /// 多选时的行动条。每一格都能单独勾选，勾完按「修改」。
+    private var batchBar: some View {
+        HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(batchDates.isEmpty ? "请选择起始日期" : "起点：\(batchDates[0])")
+                Text(batchDates.isEmpty ? "挑出要改的日子" : "已选 \(batchDates.count) 天")
                     .font(.subheadline.weight(.semibold))
-                Text(batchDates.isEmpty ? "单日修改不会影响后续循环" : "再选截止日，将统一修改整个区间")
-                    .font(.caption2)
+                    .contentTransition(.numericText())
+                Text(batchDates.isEmpty ? "点格子勾选，可以不连续" : "再点一次取消勾选")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
+            Button(isWholeMonthSelected ? "全不选" : "选整月") {
+                withAnimation(.snappy(duration: 0.28)) {
+                    if isWholeMonthSelected {
+                        batchDates.subtract(monthDateKeys)
+                    } else {
+                        batchDates.formUnion(monthDateKeys)
+                    }
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .controlSize(.regular)
+
+            Button("修改") { isBatchEditorPresented = true }
+                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .controlSize(.regular)
+                .tint(Palette.blue)
+                .disabled(batchDates.isEmpty)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .insetSurface(cornerRadius: 12, tint: Palette.blue)
+        .padding(.vertical, 10)
+        .background(Palette.todayFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    /// 当前月份是不是已经整月勾上了。多选可以跨月，所以只看这个月的日子。
+    private var isWholeMonthSelected: Bool {
+        batchDates.isSuperset(of: monthDateKeys)
+    }
+
+    /// 当前月份的全部日期键，给「选整月」用。
+    private var monthDateKeys: [String] {
+        (1...ScheduleCalendar.daysInMonth(year: store.focusedYear, month: store.focusedMonth)).map {
+            ScheduleCalendar.key(year: store.focusedYear, month: store.focusedMonth, day: $0)
+        }
     }
 
     private func handleTap(_ date: String) {
@@ -195,11 +201,13 @@ struct CalendarScreen: View {
             editingDate = date
             return
         }
-        if batchDates.isEmpty {
-            batchDates = [date]
-        } else {
-            batchDates = ScheduleCalendar.range(batchDates[0], date)
-            isBatchEditorPresented = true
+        // 每一格独立开关，选完再按「修改」——不再是「先点起点、再点终点」那套
+        withAnimation(.snappy(duration: 0.25)) {
+            if batchDates.contains(date) {
+                batchDates.remove(date)
+            } else {
+                batchDates.insert(date)
+            }
         }
     }
 
@@ -279,40 +287,51 @@ struct CalendarScreen: View {
 
     // MARK: - 本月展望
 
+    /// 与统计页 `basicDetail` 同一套措辞。
+    private func basicDetail(planned: Double, basic: Double) -> String {
+        let diff = planned - basic
+        if diff > 0 { return "计划高出 \(HoursFormatter.hours(diff))" }
+        if diff < 0 { return "计划少 \(HoursFormatter.hours(-diff))" }
+        return "与基本工时持平"
+    }
+
     private var outlookSection: some View {
         let restDays = monthRecords.filter { document.shift($0.shiftId)?.isRest == true }.count
         let completed = workRecords.filter { $0.countsAsCompleted(today: store.todayKey) }
         let projectedHours = workRecords.reduce(0) { $0 + $1.hours }
         let actualHours = completed.reduce(0) { $0 + $1.hours }
-        let basic = WorkHours.monthlyTarget(document, year: store.focusedYear, month: store.focusedMonth)
+        // 显式传入 store.holidays：放假安排下载更新后，这张卡跟着重算。
+        let basic = WorkHours.monthlyTarget(document, year: store.focusedYear, month: store.focusedMonth,
+                                            holidays: store.holidays)
         let overtime = WorkHours.overtimeForCalendarMonth(document,
                                                          year: store.focusedYear,
                                                          month: store.focusedMonth,
                                                          today: store.todayKey)
 
         return VStack(alignment: .leading, spacing: 14) {
-            SectionHeader(title: document.work.trackHours ? "排班与累计工时" : "我的班表",
-                          eyebrow: "本月展望",
-                          badge: "\(workRecords.count) 个工作日")
+            SectionHeader(title: document.work.trackHours ? "工时概览" : "出勤概览",
+                          eyebrow: "本月",
+                          badge: "\(workRecords.count) 个班")
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
                       spacing: 10) {
-                MetricTile(label: "计划工作日",
+                // 四块与统计页的「工时概览」一一对应，口径和配色都一致
+                MetricTile(label: "出勤天数",
                            value: "\(workRecords.count)天",
-                           detail: "\(restDays) 个休息日",
-                           tint: Palette.blue,
-                           symbol: "calendar")
-                MetricTile(label: "已完成班次",
-                           value: "\(completed.count)天",
-                           detail: "剩余 \(max(0, workRecords.count - completed.count)) 个班次",
+                           detail: "休息 \(restDays) 天",
                            tint: Palette.green,
-                           symbol: "checkmark.circle")
+                           symbol: "calendar")
                 if document.work.trackHours {
-                    MetricTile(label: "本月计划工时",
+                    MetricTile(label: "计划工时",
                                value: HoursFormatter.hours(projectedHours),
-                               detail: "基本工时 \(HoursFormatter.hours(basic)) · 已完成 \(HoursFormatter.hours(actualHours))",
+                               detail: "已完成 \(HoursFormatter.hours(actualHours))",
                                tint: Palette.purple,
                                symbol: "clock")
+                    MetricTile(label: "基本工时",
+                               value: HoursFormatter.hours(basic),
+                               detail: basicDetail(planned: projectedHours, basic: basic),
+                               tint: Palette.cyan,
+                               symbol: "target")
                 }
                 if document.work.trackHours && document.work.trackOvertime {
                     MetricTile(label: document.work.system == .comprehensive ? "本周期额外工时" : "本月额外工时",
@@ -323,7 +342,7 @@ struct CalendarScreen: View {
                 }
             }
         }
-        .card()
+        .card(cornerRadius: 22, padding: 16)
     }
 }
 
@@ -333,12 +352,16 @@ struct DateKeyBox: Identifiable {
     var id: String { key }
 }
 
-/// 月份切换条。
+/// 月份切换条。日历页和统计页共用：左右箭头逐期切换，点中间的标题弹出年月选择器。
 struct MonthSwitcher: View {
     let label: String
+    var previousLabel = "上个月"
+    var nextLabel = "下个月"
+    var todayTitle = "今天"
     let onPrevious: () -> Void
     let onNext: () -> Void
     let onToday: () -> Void
+    var onPickLabel: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -346,21 +369,39 @@ struct MonthSwitcher: View {
                 Image(systemName: "chevron.left").font(.footnote.weight(.bold))
             }
             .buttonStyle(SecondaryButton())
-            .accessibilityLabel("上个月")
+            .accessibilityLabel(previousLabel)
 
-            Text(label)
-                .font(.title3.weight(.bold))
-                .contentTransition(.numericText())
-                .monospacedDigit()
+            Button {
+                onPickLabel?()
+            } label: {
+                HStack(spacing: 4) {
+                    Text(label)
+                        .font(.title3.weight(.bold))
+                        .contentTransition(.numericText())
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    if onPickLabel != nil {
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(onPickLabel == nil)
+            .accessibilityHint(onPickLabel == nil ? "" : "选择年月")
 
             Button(action: onNext) {
                 Image(systemName: "chevron.right").font(.footnote.weight(.bold))
             }
             .buttonStyle(SecondaryButton())
-            .accessibilityLabel("下个月")
+            .accessibilityLabel(nextLabel)
 
-            Button("今天", action: onToday)
+            Button(todayTitle, action: onToday)
                 .buttonStyle(SecondaryButton(tint: Palette.green))
         }
     }

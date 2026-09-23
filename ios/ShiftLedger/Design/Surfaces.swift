@@ -7,12 +7,26 @@ import SwiftUI
 /// 纯色背景下大面积玻璃没有可折射的内容，只会显脏。
 extension View {
 
-    /// 卡片：日历面板、统计卡、分组容器。
+    /// 页面底色。`Form` 默认那层分组灰要先隐掉，否则盖不住。
+    func pageBackground() -> some View {
+        self
+            .scrollContentBackground(.hidden)
+            .background(Palette.canvas)
+    }
+
+    /// 卡片：日历页的浮层、统计卡、分组容器。
+    ///
+    /// 页面是近白、卡片是纯白，两者只差 4% 亮度，所以边界交给描边。
+    /// 不用阴影——近白底上的阴影会脏，描边干净得多。
     func card(cornerRadius: CGFloat = 22, padding: CGFloat = 16) -> some View {
         self
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.card, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(Palette.cardStroke, lineWidth: 1)
+            }
     }
 
     /// 卡片里的内层面：日历格、指标块。
@@ -148,7 +162,7 @@ struct ShiftOrb: View {
     var body: some View {
         Text(shift.shortName)
             .font(.system(size: size * 0.38, weight: .bold))
-            .foregroundStyle(.white)
+            .foregroundStyle(shift.inkOnTint)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
             .padding(.horizontal, 2)

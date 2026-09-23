@@ -16,6 +16,12 @@ final class ScheduleStore {
     private(set) var isReady = false
     private(set) var lastSaveError: String?
 
+    /// 当前生效的放假与调休安排。日历格子、基本工时都从这里取；
+    /// 下载到新数据时替换，读它的视图跟着重画。
+    private(set) var holidays: HolidayCalendar = .empty
+    @ObservationIgnored private var holidaySnapshot = HolidayData.Snapshot()
+    @ObservationIgnored private var holidayRefreshTask: Task<Void, Never>?
+
     /// 当前查看的月份（零基）。
     var focusedYear: Int
     var focusedMonth: Int
@@ -24,6 +30,10 @@ final class ScheduleStore {
 
     private let fileURL: URL
     private var saveTask: Task<Void, Never>?
+    /// 已经补齐过循环记录的「循环 ID|年份」。翻月时同一年不必重算——
+    /// 重算一次要生成一整年的记录、全表排序再整份比较，连续翻月时会一下一下地卡。
+    /// 文档被别的途径改动（编辑、导入、换循环）时清空。
+    @ObservationIgnored private var materializedYears: Set<String> = []
 
     init(fileURL: URL? = nil, document: ScheduleDocument? = nil) {
         let parts = ScheduleCalendar.calendar.dateComponents([.year, .month], from: Date())
@@ -50,6 +60,8 @@ final class ScheduleStore {
     // MARK: - 读写
 
     func load() {
+        materializedYears.removeAll()
+        loadHolidays()
         // 截图流程用示例数据启动，既不读也不写用户文件。
         if DemoData.isEnabled {
             document = DemoData.document()
@@ -57,14 +69,84 @@ final class ScheduleStore {
             return
         }
         defer { isReady = true }
-        guard let data = try? Data(contentsOf: fileURL) else { return }
+        guard let data = try? Data(contentsOf: fileURL) else {
+            // 新装：默认数据本来就是新色板，不用再迁。
+            PaletteMigration.markDone()
+            return
+        }
         if let decoded = try? JSONDecoder().decode(ScheduleDocument.self, from: data) {
             document = decoded
         } else if let raw = try? JSONSerialization.jsonObject(with: data) {
             // 文件是更早的结构（或手工放进来的网页版备份）时走清洗流程。
             document = DocumentNormalizer.document(fromBackup: raw)
+        } else {
+            // 文件在那儿但读不懂，别用默认数据把它盖掉。
+            return
         }
+        // 读盘到此为止，后面几步的改动要能落盘。
+        isReady = true
+        dropRetiredTemplates()
+        migratePaletteIfNeeded()
         materializeFocusedYears()
+    }
+
+    // MARK: - 放假安排
+
+    /// 单元测试跑在宿主 App 里。别让 App 自己装上放假数据——测试要的是可复现的本地推算，
+    /// 用到真实安排的测试自己构造 `HolidayCalendar` 传进去。
+    private static var isRunningTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
+    /// 读包里的快照和本机缓存。
+    private func loadHolidays() {
+        guard !Self.isRunningTests else { return }
+        installHolidays(HolidayData.loadLocal())
+    }
+
+    private func installHolidays(_ snapshot: HolidayData.Snapshot) {
+        holidaySnapshot = snapshot
+        let calendar = snapshot.calendar
+        HolidayCalendar.shared = calendar
+        if calendar != holidays { holidays = calendar }
+    }
+
+    /// 联网检查放假安排有没有更新。距上次成功检查不到半天就跳过；失败了下次回到前台再试。
+    func refreshHolidaysIfNeeded() {
+        guard !Self.isRunningTests, !DemoData.isEnabled, holidayRefreshTask == nil else { return }
+        let key = "holidays.lastCheckedAt"
+        let last = UserDefaults.standard.double(forKey: key)
+        guard Date().timeIntervalSince1970 - last >= HolidayData.refreshInterval else { return }
+        let current = holidaySnapshot
+        holidayRefreshTask = Task { [weak self] in
+            do {
+                let next = try await HolidayData.refresh(from: current)
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: key)
+                if let next { self?.installHolidays(next) }
+            } catch {
+                // 没网、超时、格式不对：保留本地数据，下次再试。
+            }
+            self?.holidayRefreshTask = nil
+        }
+    }
+
+    /// 下线的内置模板从老数据里清掉。
+    private func dropRetiredTemplates() {
+        let retired = ShiftCatalog.retiredTemplateIDs
+        guard document.cycleTemplates.contains(where: { retired.contains($0.id) }) else { return }
+        update { $0.cycleTemplates.removeAll { retired.contains($0.id) } }
+    }
+
+    /// 换色板之后，老文件里存的还是旧色值，补迁一次。
+    private func migratePaletteIfNeeded() {
+        guard PaletteMigration.isNeeded() else { return }
+        defer { PaletteMigration.markDone() }
+        let next = PaletteMigration.migrate(document)
+        guard next != document else { return }
+        document = next
+        materializedYears.removeAll()
+        // 标记已经写下了，这一份必须同步落盘，不能只排一次防抖写。
+        flush()
     }
 
     /// 合并写盘：连续编辑只落一次。
@@ -92,6 +174,7 @@ final class ScheduleStore {
         var next = document
         transform(&next)
         document = next
+        materializedYears.removeAll()
         scheduleSave()
     }
 
@@ -112,37 +195,50 @@ final class ScheduleStore {
 
     var focusedMonthKey: String { ScheduleCalendar.monthKey(year: focusedYear, month: focusedMonth) }
 
+    /// 当前查看的月份写成「年 × 12 + 零基月」，前后相邻的月份就是 ±1。
+    var focusedIndex: Int { focusedYear * 12 + focusedMonth }
+
+    /// 本月的同一种写法。
+    var currentMonthIndex: Int {
+        let parts = ScheduleCalendar.calendar.dateComponents([.year, .month], from: Date())
+        return (parts.year ?? focusedYear) * 12 + (parts.month ?? 1) - 1
+    }
+
     /// 当前查看的月份是否早于本月（决定「今天」按钮该往哪个方向滑）。
     func isFocusedBefore(today: Bool = true) -> Bool {
-        let parts = ScheduleCalendar.calendar.dateComponents([.year, .month], from: Date())
-        let current = (parts.year ?? focusedYear) * 12 + (parts.month ?? 1) - 1
-        return focusedYear * 12 + focusedMonth < current
+        focusedIndex < currentMonthIndex
     }
 
     func changeMonth(by delta: Int) {
-        let absolute = focusedYear * 12 + focusedMonth + delta
-        focusedYear = absolute / 12
-        focusedMonth = absolute % 12
-        if focusedMonth < 0 {
-            focusedMonth += 12
-            focusedYear -= 1
-        }
+        focus(index: focusedIndex + delta)
+    }
+
+    /// 跳到指定月份。日历翻页、月份选择器、统计页的前后切换都走这里。
+    func focus(index: Int) {
+        guard index != focusedIndex else { return }
+        focusedYear = Int((Double(index) / 12).rounded(.down))
+        focusedMonth = index - focusedYear * 12
         materializeFocusedYears()
     }
 
+    func focus(year: Int, month: Int) {
+        focus(index: year * 12 + month)
+    }
+
     func goToCurrentMonth() {
-        let parts = ScheduleCalendar.calendar.dateComponents([.year, .month], from: Date())
-        focusedYear = parts.year ?? focusedYear
-        focusedMonth = (parts.month ?? 1) - 1
-        materializeFocusedYears()
+        focus(index: currentMonthIndex)
     }
 
     /// 补齐当前统计年度覆盖到的循环记录，让日历往后翻永远有班。
     func materializeFocusedYears() {
-        guard document.activeCycle != nil else { return }
+        guard let cycle = document.activeCycle else { return }
+        let reporting = WorkHours.reportingCycle(for: document, year: focusedYear, month: focusedMonth)
+        let keys = Set([reporting.startYear, reporting.endYear]).map { "\(cycle.id)|\($0)" }
+        guard !keys.allSatisfy(materializedYears.contains) else { return }
         let next = CycleGenerator.materializeReportingYears(document,
                                                             year: focusedYear,
                                                             month: focusedMonth)
+        materializedYears.formUnion(keys)
         guard next != document else { return }
         document = next
         scheduleSave()
@@ -261,6 +357,9 @@ final class ScheduleStore {
         update { document in
             document.shifts.removeAll { $0.id == shift.id }
             document.records.removeAll { $0.shiftId == shift.id }
+            for index in document.records.indices where document.records[index].secondaryShiftId == shift.id {
+                document.records[index].secondaryShiftId = nil
+            }
             document.cycleTemplates.removeAll { $0.shiftIds.contains(shift.id) }
             if document.activeCycle?.shiftIds.contains(shift.id) == true {
                 document.activeCycle = nil

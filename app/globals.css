@@ -13149,3 +13149,53 @@ select:focus-visible {
 .legal-page a {
   color: #1e6fe8;
 }
+
+.legal-page ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  font-size: 15px;
+}
+
+.legal-page li {
+  margin-bottom: 6px;
+}
+
+.legal-page code {
+  font-size: 12.5px;
+  word-break: break-all;
+}
+
+/* 技术支持页的常见问题：一条一个折叠块，纯 CSS */
+.support-faq details {
+  border-top: 1px solid #e6e8ee;
+  padding: 10px 0;
+}
+
+.support-faq details:last-child {
+  border-bottom: 1px solid #e6e8ee;
+}
+
+.support-faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  list-style: none;
+}
+
+.support-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.support-faq summary::after {
+  content: "＋";
+  float: right;
+  color: #6b7080;
+}
+
+.support-faq details[open] summary::after {
+  content: "－";
+}
+
+.support-faq details p {
+  margin: 8px 0 0;
+}

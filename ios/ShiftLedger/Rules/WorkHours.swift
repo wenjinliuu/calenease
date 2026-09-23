@@ -4,26 +4,37 @@ import Foundation
 /// `estimateMonthlyTarget` / `getMonthlyTarget` / `getPeriodOvertime` 等一组函数。
 enum WorkHours {
 
-    /// 某月的预计基本工时：周一至周五 × 日标准工时 − 落在工作日的法定节假日。
+    /// 某月的预计基本工时：这个月的工作日 × 日标准工时。
     ///
-    /// 每年的调休与补班另行公布、并非固定规则，所以这里只给推算值，
-    /// 设置页保留逐月手动修正入口。
-    static func estimateMonthlyTarget(year: Int, month: Int, dailyStandard: Double) -> Double {
+    /// 工作日按国务院公布的放假与调休算——放假的日子不算，周末调休上班的日子算。
+    /// 这一年还没有公布安排（也没下载到数据）时退回本地推算：周一至周五减去落在
+    /// 工作日的法定节假日，不含调休。设置页另有逐月手动修正入口。
+    static func estimateMonthlyTarget(year: Int,
+                                      month: Int,
+                                      dailyStandard: Double,
+                                      holidays: HolidayCalendar = .shared) -> Double {
+        let published = holidays.covers(year: year)
         var workdays = 0
         for day in 1...ScheduleCalendar.daysInMonth(year: year, month: month) {
             let key = ScheduleCalendar.key(year: year, month: month, day: day)
-            if !ScheduleCalendar.isWeekend(key), !Holidays.isHoliday(key) { workdays += 1 }
+            let isWorkday = published
+                ? holidays.isWorkday(key) ?? false
+                : !ScheduleCalendar.isWeekend(key) && !Holidays.isHoliday(key)
+            if isWorkday { workdays += 1 }
         }
         return Double(workdays) * dailyStandard
     }
 
     /// 某月的基本工时：有手动修正就用修正值。
-    static func monthlyTarget(_ document: ScheduleDocument, year: Int, month: Int) -> Double {
+    static func monthlyTarget(_ document: ScheduleDocument,
+                              year: Int,
+                              month: Int,
+                              holidays: HolidayCalendar = .shared) -> Double {
         let key = ScheduleCalendar.monthKey(year: year, month: month)
         if let override = document.targets[key] { return override }
         // 综合计算工时的基本工时按法定的每日 8 小时算，不随个人日标准工时变化。
         let daily = document.work.system == .comprehensive ? 8 : document.work.dailyStandard
-        return estimateMonthlyTarget(year: year, month: month, dailyStandard: daily)
+        return estimateMonthlyTarget(year: year, month: month, dailyStandard: daily, holidays: holidays)
     }
 
     static func monthlyTarget(_ document: ScheduleDocument, month: ReportingMonth) -> Double {

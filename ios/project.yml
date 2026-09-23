@@ -25,9 +25,16 @@ targets:
     platform: iOS
     sources:
       - path: ShiftLedger
+      # 放假安排快照：仓库根目录的 holidays/v1/ 原样打进包里（由 Update China holidays
+      # 工作流维护），第一次打开没网也有数据。App 运行时再从腾讯云更新。
+      - path: ../holidays
+        type: folder
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.wenjinliu.shiftledger
+        # iCloud 备份要的 entitlements。容器标识符和 `ICloudBackupStore.containerID` 必须一字不差。
+        CODE_SIGN_ENTITLEMENTS: ShiftLedger/Resources/ShiftLedger.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1"
@@ -47,6 +54,15 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
+        # 本机备份放在 Documents/Backups，在「文件」App 里看得见、拷得走。
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        # iCloud 云盘里显示成一个叫「循环班表」的文件夹，而不是一串容器标识符。
+        NSUbiquitousContainers:
+          iCloud.com.wenjinliu.shiftledger:
+            NSUbiquitousContainerIsDocumentScopePublic: true
+            NSUbiquitousContainerName: 循环班表
+            NSUbiquitousContainerSupportedFolderLevels: Any
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
 

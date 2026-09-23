@@ -23,6 +23,7 @@ struct ScheduleDocument: Codable, Hashable, Sendable {
         let shiftIds = Set(shifts.map(\.id))
         var document = ScheduleDocument()
         document.shifts = shifts
+        document.tags = ShiftCatalog.baseTags()
         document.cycleTemplates = ShiftCatalog.builtInTemplates().filter {
             ShiftCatalog.starterTemplateIDs.contains($0.id)
                 && $0.shiftIds.allSatisfy(shiftIds.contains)

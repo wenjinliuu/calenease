@@ -110,6 +110,7 @@ struct CycleGeneratorSheet: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .pageBackground()
             .navigationTitle("循环排班")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -125,9 +126,15 @@ struct CycleGeneratorSheet: View {
         }
     }
 
+    /// 内置模板按一轮天数从短到长排在前面（4 → 8 → 12 天），自己存的跟在后面保持原顺序。
+    /// 老数据里模板的存储顺序是旧版定的，所以这里按天数重排，不靠存储顺序。
     private var templates: [CycleTemplate] {
         let available = Set(document.shifts.map(\.id))
-        return document.cycleTemplates.filter { $0.shiftIds.allSatisfy(available.contains) }
+        let usable = document.cycleTemplates.filter {
+            $0.shiftIds.allSatisfy(available.contains) && !ShiftCatalog.retiredTemplateIDs.contains($0.id)
+        }
+        let builtIn = usable.filter(\.builtIn).sorted { $0.shiftIds.count < $1.shiftIds.count }
+        return builtIn + usable.filter { !$0.builtIn }
     }
 
     private var startKey: String { ScheduleCalendar.key(startDate) }
@@ -171,9 +178,9 @@ struct CycleStrip: View {
                     VStack(spacing: 2) {
                         Text(shift?.shortName ?? "?")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(shift?.inkOnTint ?? .white)
                             .frame(width: 26, height: 26)
-                            .background(shift.map { AnyShapeStyle($0.gradient) } ?? AnyShapeStyle(Color.gray),
+                            .background(shift.map { AnyShapeStyle($0.tint) } ?? AnyShapeStyle(Color.gray),
                                         in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                         if showsIndex {
                             Text("\(index + 1)")

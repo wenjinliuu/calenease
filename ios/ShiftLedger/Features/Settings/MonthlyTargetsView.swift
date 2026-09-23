@@ -25,7 +25,8 @@ struct MonthlyTargetsView: View {
                 ForEach(0..<12, id: \.self) { month in
                     let key = ScheduleCalendar.monthKey(year: year, month: month)
                     let override = document.targets[key]
-                    let value = WorkHours.monthlyTarget(document, year: year, month: month)
+                    let value = WorkHours.monthlyTarget(document, year: year, month: month,
+                                                        holidays: store.holidays)
                     Button {
                         editing = ReportingMonth(year: year, month: month)
                     } label: {
@@ -50,6 +51,7 @@ struct MonthlyTargetsView: View {
                 Text("推算值不含当年调休与补班安排；如果公司按官方公布的月计薪天数执行，可以在这里手动改。")
             }
         }
+        .pageBackground()
         .navigationTitle("每月基本工时")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editing) { month in
@@ -86,6 +88,7 @@ private struct MonthlyTargetEditor: View {
                     }
                 }
             }
+            .pageBackground()
             .navigationTitle("修正基本工时")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -41,6 +41,7 @@ struct TagEditorView: View {
                     }
                 }
             }
+            .pageBackground()
             .navigationTitle(isNew ? "新增标签" : "编辑标签")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

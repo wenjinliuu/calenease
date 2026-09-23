@@ -1,9 +1,9 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bay-gradient" x1="386" y1="636" x2="466" y2="716" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bay-gradient" x1="372.97" y1="648.83" x2="461.24" y2="737.1" gradientUnits="userSpaceOnUse">
       <stop stop-color="#0879F9"/>
       <stop offset="1" stop-color="#2F9BFF"/>
     </linearGradient>
   </defs>
-  <circle id="active-day" cx="426" cy="676" r="40" fill="url(#bay-gradient)"/>
+  <circle id="active-day" cx="417.1" cy="692.97" r="44.14" fill="url(#bay-gradient)"/>
 </svg>

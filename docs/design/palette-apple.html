@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>定稿组合</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --canvas:#F2F2F7; --card:#FFFFFF; --card2:#F2F2F7; --card3:#E5E5EA;
+  --sep:rgba(60,60,67,.20); --sep2:rgba(60,60,67,.08);
+  --label:#000000; --label2:rgba(60,60,67,.60); --label3:rgba(60,60,67,.28);
+  --tint:#007AFF; --danger:#D70015; --ok:#248A3D;
+  --screen:#FFFFFF; --band:#F2F2F7; --sumcard:#F5F5F7; --grey:#C7C7CC; --greyInk:#6C6C70;
+  --r-m:16px; --r-l:22px;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Inter','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --canvas:#000000; --card:#1C1C1E; --card2:#2C2C2E; --card3:#3A3A3C;
+  --sep:rgba(84,84,88,.60); --sep2:rgba(84,84,88,.30);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.60); --label3:rgba(235,235,245,.28);
+  --tint:#0A84FF; --danger:#FF6961; --ok:#30D158;
+  --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E; --grey:#48484A; --greyInk:#98989D;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --canvas:#000000; --card:#1C1C1E; --card2:#2C2C2E; --card3:#3A3A3C;
+  --sep:rgba(84,84,88,.60); --sep2:rgba(84,84,88,.30);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.60); --label3:rgba(235,235,245,.28);
+  --tint:#0A84FF; --danger:#FF6961; --ok:#30D158;
+  --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E; --grey:#48484A; --greyInk:#98989D;
+}
+
+.themed[data-theme="light"]{
+  color-scheme:light;color:#000000;
+  --canvas:#F2F2F7; --card:#FFFFFF; --card2:#F2F2F7; --card3:#E5E5EA;
+  --sep:rgba(60,60,67,.20); --sep2:rgba(60,60,67,.08);
+  --label:#000000; --label2:rgba(60,60,67,.60); --label3:rgba(60,60,67,.28);
+  --tint:#007AFF; --danger:#D70015; --ok:#248A3D;
+  --screen:#FFFFFF; --band:#F2F2F7; --sumcard:#F5F5F7; --grey:#C7C7CC; --greyInk:#6C6C70;
+}
+.themed[data-theme="dark"]{
+  color-scheme:dark;color:#FFFFFF;
+  --canvas:#000000; --card:#1C1C1E; --card2:#2C2C2E; --card3:#3A3A3C;
+  --sep:rgba(84,84,88,.60); --sep2:rgba(84,84,88,.30);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.60); --label3:rgba(235,235,245,.28);
+  --tint:#0A84FF; --danger:#FF6961; --ok:#30D158;
+  --screen:#000000; --band:#1C1C1E; --sumcard:#1C1C1E; --grey:#48484A; --greyInk:#98989D;
+}
+.final{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+.finalcard{border-radius:var(--r-l);padding:16px 12px 18px;background:var(--card)}
+.finalcard .cap{font-size:12px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--label3);text-align:center;margin-bottom:12px}
+.spec{display:grid;gap:0;margin-top:14px}
+.spec .r{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:9px 0;
+  border-bottom:.5px solid var(--sep2);font-size:13.5px}
+.spec .r:last-child{border-bottom:none}
+.spec .k{font-weight:650}
+.spec .v{color:var(--label2)}
+.spec .v code{font-family:ui-monospace,monospace;font-size:12.5px;background:var(--card2);
+  padding:1px 5px;border-radius:5px;color:var(--label)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--label);font-family:var(--font);
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 80px}
+h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.022em}
+
+header.top{padding-block:40px 16px}
+.kicker{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--tint);text-transform:uppercase;margin-bottom:9px}
+h1{font-size:clamp(31px,6.2vw,48px);font-weight:700;line-height:1.08;letter-spacing:-.032em}
+header.top p{color:var(--label2);max-width:64ch;margin:13px 0 0;font-size:16.5px}
+.locks{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+.lock{background:var(--card);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:550;display:flex;align-items:center;gap:7px}
+.lock i{width:9px;height:9px;border-radius:3px;display:block}
+.lock em{font-style:normal;color:var(--label3);font-size:11.5px}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;background:var(--canvas);
+  border-bottom:.5px solid var(--sep);margin-inline:-16px;padding:9px 16px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.seg{display:inline-flex;background:var(--card3);border-radius:9px;padding:2px;gap:2px}
+.seg button{font:inherit;font-size:12.5px;font-weight:500;border:none;background:transparent;color:var(--label);
+  padding:4px 9px;border-radius:7px;cursor:pointer;transition:.15s;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.14);font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--tint);outline-offset:1px}
+.blab{font-size:11px;font-weight:600;color:var(--label3);text-transform:uppercase;letter-spacing:.05em}
+
+section{padding-block:38px 0;scroll-margin-top:70px}
+.shd{margin-bottom:18px}
+.shd .n{font-size:12px;font-weight:600;color:var(--label3);letter-spacing:.05em}
+.shd h2{font-size:26px;font-weight:700;margin-top:2px}
+.shd p{color:var(--label2);font-size:15px;max-width:70ch;margin:8px 0 0}
+h3.sub{font-size:17px;font-weight:650;margin:28px 0 10px}
+.panel{background:var(--card);border-radius:var(--r-m);padding:15px 16px;display:grid;gap:11px}
+.panel h4{font-size:14.5px;font-weight:650}
+.panel .hint{font-size:12.8px;color:var(--label2);line-height:1.55;margin:-3px 0 0}
+.bad{color:var(--danger)}
+.good{color:var(--ok)}
+
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.opt{background:var(--card);border-radius:var(--r-m);padding:13px;display:grid;gap:10px;cursor:pointer;
+  border:2px solid transparent;transition:.15s}
+.opt.on{border-color:var(--tint)}
+.opt:focus-visible{outline:2px solid var(--tint);outline-offset:2px}
+.opt .nm b{font-size:14.5px;font-weight:650;display:block}
+.opt .nm span{font-size:12px;color:var(--label2);line-height:1.5;display:block;margin-top:3px}
+.opt .verdict{font-size:11.5px;font-weight:600;display:flex;gap:6px;align-items:flex-start}
+.opt .verdict i{font-style:normal;flex:none;font-size:10px;padding:1px 6px;border-radius:99px;margin-top:1px}
+.opt .verdict i.y{background:rgba(36,138,61,.15);color:var(--ok)}
+.opt .verdict i.n{background:var(--card2);color:var(--label2)}
+.stagebox{background:var(--screen);border-radius:12px;padding:8px 4px;display:grid;gap:2px;border:.5px solid var(--sep2)}
+.rhythms{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:15px;align-items:start}
+.rhy{background:var(--card);border-radius:var(--r-l);overflow:hidden;cursor:pointer;border:2px solid transparent;transition:.15s}
+.rhy.on{border-color:var(--tint)}
+.rhy .h{padding:14px 16px 10px}
+.rhy .h b{font-size:16.5px;font-weight:650;display:block}
+.rhy .h span{font-size:12.4px;color:var(--label2);line-height:1.5;display:block;margin-top:4px}
+.rhy .nums{display:flex;gap:12px;flex-wrap:wrap;padding:0 16px 10px;font-size:11px;color:var(--label3);
+  font-variant-numeric:tabular-nums;font-weight:600}
+.rhy .nums b{color:var(--label);font-weight:650}
+.rhy .body{padding:0 10px 14px}
+.rhy .phone{max-width:none;border:none;border-radius:16px}
+.stagebox.n4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.stagebox.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+/* 两行网格，用来看"横杠到底属于上一格还是下一格" */
+.stack2{background:var(--screen);border-radius:12px;padding:6px 4px;display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;border:.5px solid var(--sep2)}
+
+.matrix{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.mcell{background:var(--card);border-radius:14px;padding:9px 7px 10px;display:grid;gap:7px;justify-items:center}
+.mcell .box{background:var(--screen);border-radius:9px;width:100%;display:grid;
+  grid-template-columns:minmax(0,1fr);border:.5px solid var(--sep2);padding:3px 2px}
+.mcell .cap{font-size:11px;color:var(--label2);text-align:center;line-height:1.35}
+.mcell .cap b{display:block;color:var(--label);font-weight:600;font-size:11.5px}
+
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:9px}
+.sw{border-radius:13px;padding:10px 9px 11px;display:grid;gap:6px;cursor:pointer;position:relative;
+  border:2.5px solid transparent;transition:.15s;align-content:space-between;min-height:88px}
+.sw .q{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:14px;font-weight:700;color:#fff}
+.sw .t{font-size:12.5px;font-weight:650}
+.sw code{font-family:ui-monospace,monospace;font-size:9px;opacity:.55;font-weight:600;display:block}
+.sw .pick{position:absolute;top:7px;right:7px;width:17px;height:17px;border-radius:50%;
+  display:grid;place-items:center;font-size:10px;font-weight:700;opacity:0;transition:.15s}
+.sw.on .pick{opacity:1}
+.sw.locked{cursor:default}
+.sw .lk{position:absolute;bottom:9px;right:9px;font-size:9px;font-weight:600;opacity:.45}
+.clash{background:var(--card);border-radius:var(--r-m);padding:14px 16px;margin-top:12px;display:grid;gap:8px}
+.clash .row{display:flex;align-items:center;gap:9px;font-size:13px;flex-wrap:wrap}
+.clash .row i{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:700}
+.clash .tagv{font-size:11px;font-weight:650;padding:2px 7px;border-radius:99px;font-variant-numeric:tabular-nums}
+.clash .warn{background:rgba(215,0,21,.12);color:var(--danger)}
+.clash .fine{background:rgba(36,138,61,.14);color:var(--ok)}
+
+.lays{display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:15px;align-items:start}
+.lay{background:var(--card);border-radius:var(--r-l);overflow:hidden}
+.lay .h{padding:14px 16px 11px}
+.lay .h .tg{font-size:11px;font-weight:650;color:var(--tint)}
+.lay .h b{font-size:17px;font-weight:650;display:block;margin-top:1px}
+.lay .h span{font-size:12.6px;color:var(--label2);line-height:1.5;display:block;margin-top:5px}
+.lay .body{padding:0 10px 14px}
+.lay .phone{max-width:none;border:none;border-radius:16px}
+
+.phone{width:100%;max-width:330px;margin:0 auto;background:var(--screen);border-radius:26px;overflow:hidden;
+  border:.5px solid var(--sep);display:flex;flex-direction:column}
+.pnav{display:flex;align-items:center;justify-content:center;gap:16px;padding:13px 14px 11px;position:relative}
+.pnav .mo{font-size:13px;color:var(--label3);font-weight:500}
+.pnav .mo.cur{font-size:19px;font-weight:700;color:var(--label);letter-spacing:-.02em}
+.pnav .bk{position:absolute;left:14px;color:var(--label2);font-size:17px}
+.pnav .mr{position:absolute;right:14px;width:22px;height:22px;border-radius:50%;background:var(--card2)}
+.pband{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--band);padding:8px 0}
+.pband span{text-align:center;font-size:10.5px;font-weight:550;color:var(--label2)}
+.pgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:3px 3px 6px;column-gap:1px;row-gap:1px}
+.psum{margin:6px 12px 14px;background:var(--sumcard);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:16px}
+.psum .k{font-size:11.5px;color:var(--label2);line-height:1.3}
+.psum .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:1px}
+.psum .go{margin-left:auto;font-size:12.5px;color:var(--label2);white-space:nowrap}
+
+/* ---- 格子 ---- */
+.c{position:relative;display:flex;flex-direction:column;align-items:stretch;
+  padding:5px 9px;min-width:0;border-radius:10px}
+.rh-loose .c{min-height:76px}
+.rh-dense .c{min-height:60px}
+.rh-hug   .c{min-height:58px}
+.rh-open  .c{min-height:56px}
+.rh-loose .pgrid{row-gap:1px}
+.rh-dense .pgrid{row-gap:1px}
+.rh-hug   .pgrid{row-gap:11px}
+.rh-open  .pgrid{row-gap:17px}
+.inner{display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:9px;padding:3px 0 4px;
+  margin-inline:-6px}
+.c.top    {justify-content:flex-start}
+.c.center {justify-content:center}
+.c.bottom {justify-content:flex-end}
+.c .num{font-size:22px;font-weight:550;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;
+  position:relative;display:inline-grid;place-items:center}
+.rh-dense .c .num{font-size:20px}
+.rh-open .c .num{font-size:22px}
+.c.rest .num{color:var(--label3);font-weight:450}
+.c.empty{visibility:hidden}
+.c.unset .num{color:var(--label3);font-weight:450}
+/* 两侧标记列 */
+.railL,.railR{position:absolute;top:5px;width:9px;display:flex;flex-direction:column;align-items:center;gap:2.5px;z-index:2}
+.railL{left:0} .railR{right:0}
+.ri{line-height:1.04;text-align:center;font-weight:650;width:100%}
+.rh{font-size:7.5px;color:var(--danger)}
+.rs{font-size:8px;color:var(--ok)}
+.rt{font-size:8px}
+.rq{width:9px;height:9px;border-radius:2.5px;display:grid;place-items:center;font-size:6.5px}
+.more{font-size:7px;color:var(--label3);font-weight:700}
+.mk{display:flex;align-items:center;justify-content:center;gap:2px;max-width:100%;min-width:0}
+.sq{border-radius:4px;display:grid;place-items:center;font-weight:700;flex:none;line-height:1}
+.hrs{font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
+.notedot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--label3)}
+/* 今天 */
+
+.numline{width:18px;height:3px;border-radius:99px;flex:none;margin-top:-1px}
+.sidebar{position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 99px 99px 0}
+.botbar{position:absolute;left:50%;transform:translateX(-50%);bottom:4px;width:20px;height:3px;border-radius:99px}
+
+.crt{display:grid;gap:0}
+.crt .r{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;
+  padding:8px 0;border-bottom:.5px solid var(--sep2);font-size:13px}
+.crt .r:last-child{border-bottom:none}
+.crt .sqv{width:25px;height:25px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:700;font-style:normal}
+pre{background:var(--card);border-radius:var(--r-m);padding:16px;overflow-x:auto;margin:12px 0 0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.65;color:var(--label)}
+pre b{font-weight:600;color:var(--tint)}
+pre i{font-style:normal;color:var(--label3)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<header class="top">
+  <div class="kicker">Shift Ledger · 月历定稿</div>
+  <h1>定稿组合</h1>
+  <p><b>左职责 · 右节假日 + 顶对齐 + 整格填充 + 数字加粗</b>，格子贴合内容、空气放在行距里。第一节先说清「填充之后下面为什么空」，第二节是定稿的浅色深色整屏。</p>
+  <div class="locks" id="locks"></div>
+</header>
+
+<div class="bar">
+  <span class="blab">标记列</span><div class="seg" id="railSeg"></div>
+  <span class="blab">对齐</span><div class="seg" id="alignSeg"></div>
+  <span class="blab">今天</span><div class="seg" id="tdSeg"></div>
+  <span class="blab">节奏</span><div class="seg" id="rhySeg"></div>
+  <span class="blab">外观</span>
+  <div class="seg" id="thSeg"><button data-th="light" aria-pressed="true">浅色</button><button data-th="dark" aria-pressed="false">深色</button></div>
+</div>
+
+<section id="final">
+  <div class="shd"><div class="n">02</div><h2>定稿</h2>
+  <p>2026 年 9 月医护排法：25 号中秋、27 号调休上班，几天挂了一到四个职责标签，今天 20 号（夜班 + 备班 + 带教）。</p></div>
+  <div class="final" id="finalGrid"></div>
+  <div class="panel" style="margin-top:16px">
+    <h4>这套组合的规格</h4>
+    <div class="spec" id="specTbl"></div>
+  </div>
+</section>
+
+<section id="rhythm">
+  <div class="shd"><div class="n">01</div><h2>空气放在哪</h2>
+  <p>你说的两件事其实是同一个毛病的两面：<b>现在行距只有 1pt，整页想松就只能把格子撑高</b>。格子撑到 76pt，可里面的内容只有 56pt，多出的 20pt 就是"填充之后下面空"；缩到 60pt 不空了，行和行又贴在一起，就挤。<br><br>
+  正解是<b>把空气从格子内部挪到行与行之间</b>——格子贴合内容（56–58pt，上下内边距对称），行距拉到 11–17pt。整月总高几乎不变，但填充会紧紧裹住内容，整页反而更透气。</p></div>
+  <div class="rhythms" id="rhyGrid"></div>
+</section>
+
+<section id="rail">
+  <div class="shd"><div class="n">03</div><h2>标签放左边还是右边</h2>
+  <p>三种都试了。左右各留 9pt，日期数字居中在中间那 28pt。<b>左右分工那版最讲得通</b>：左列是「这天我承担什么」（职责标签），右列是「这天在日历上是什么性质」（节假日、调休）——两类东西本来就不是一回事，分开放比挤在一列清楚。</p></div>
+  <div class="opts" id="railGrid"></div>
+</section>
+
+<section id="align">
+  <div class="shd"><div class="n">04</div><h2>内容怎么对齐</h2>
+  <p>你看到的"下面空"其实不是填充的问题——<b>格子高 76pt，内容只有 45pt，一直是顶对齐</b>，所以底下本来就留了 30pt。平时格子没底色看不出来，一填充就露馅了。四种对齐都带着今天的填充，直接比。</p></div>
+  <div class="opts" id="alignGrid"></div>
+</section>
+
+<section id="today">
+  <div class="shd"><div class="n">05</div><h2>今天怎么标</h2>
+  <p>底部横杠的问题你说得对：<b>它贴在格子下沿，和下一行的格子只隔 1pt，眼睛会把它读成下一格的顶边</b>。凡是"贴着格子边缘"的标记都有这个毛病。下面每张卡片都画成<b>两行三列</b>，中间那格是今天——能直接看出这个标记到底归谁。</p></div>
+  <div class="opts" id="tdGrid"></div>
+  <div class="panel" style="margin-top:14px">
+    <h4>判断标准</h4>
+    <p class="hint">一个"今天"的标记要同时满足三条：<b>归属明确</b>（一眼知道是这一格的，不会读成邻格）、<b>不改数字颜色</b>（颜色留给班次和节假日）、<b>不和格子里别的东西打架</b>（右上角红字、左列标签、色标都还在）。整格填充和数字胶囊两种都过；底部横杠和左侧竖杠都卡在第一条。</p>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="shd"><div class="n">06</div><h2>整屏</h2>
+  <p>2026 年 9 月医护排法。25 号中秋、27 号调休上班，几天挂了一到四个职责标签，今天 20 号。</p></div>
+  <div class="lays" id="scrGrid"></div>
+</section>
+
+<section id="matrix">
+  <div class="shd"><div class="n">07</div><h2>格子状态全集</h2></div>
+  <div class="matrix" id="matrixGrid"></div>
+</section>
+
+<section id="pal">
+  <div class="shd"><div class="n">08</div><h2>自定义色板</h2>
+  <p>保留不动。十四个色全部白字 ≥3:1、全部高饱和。点色块试选，页面会实时算所选色两两的距离并提示。</p></div>
+  <h3 class="sub">核心八色 · 按推荐顺序</h3>
+  <div class="swatches" id="coreGrid"></div>
+  <h3 class="sub">扩展六色</h3>
+  <div class="swatches" id="extGrid"></div>
+  <div class="clash" id="clashBox"></div>
+</section>
+
+<section id="out">
+  <div class="shd"><div class="n">09</div><h2>规格与色值</h2></div>
+  <pre id="swiftOut"></pre>
+</section>
+</div>
+
+<script>
+/* ===== OKLCH ===== */
+const g2l=v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);
+const l2g=v=>v<=.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-.055;
+const hx=h=>{h=h.replace('#','');return[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255)};
+const HX=a=>'#'+a.map(v=>Math.round(Math.max(0,Math.min(1,v))*255).toString(16).padStart(2,'0')).join('');
+function toOk([r,g,b]){r=g2l(r);g=g2l(g);b=g2l(b);
+ const l=Math.cbrt(.4122214708*r+.5363325363*g+.0514459929*b),
+       m=Math.cbrt(.2119034982*r+.6806995451*g+.1073969566*b),
+       s=Math.cbrt(.0883024619*r+.2817188376*g+.6299787005*b);
+ return[.2104542553*l+.7936177850*m-.0040720468*s,
+        1.9779984951*l-2.4285922050*m+.4505937099*s,
+        .0259040371*l+.7827717662*m-.8086757660*s]}
+function fromOk([L,a,b]){
+ const l=Math.pow(L+.3963377774*a+.2158037573*b,3),
+       m=Math.pow(L-.1055613458*a-.0638541728*b,3),
+       s=Math.pow(L-.0894841775*a-1.2914855480*b,3);
+ return[l2g(4.0767416621*l-3.3077115913*m+.2309699292*s),
+        l2g(-1.2684380046*l+2.6097574011*m-.3413193965*s),
+        l2g(-.0041960863*l-.7034186147*m+1.7076147010*s)]}
+const inG=c=>c.every(v=>v>=-.001&&v<=1.001);
+const lch=h=>{const[L,a,b]=toOk(hx(h));return[L,Math.hypot(a,b),Math.atan2(b,a)]};
+const rgbOf=(L,C,h)=>fromOk([L,C*Math.cos(h),C*Math.sin(h)]);
+function maxC(L,h){let lo=0,hi=.45;for(let i=0;i<22;i++){const m=(lo+hi)/2;inG(rgbOf(L,m,h))?lo=m:hi=m}return lo}
+function atL(base,Lt){const[L,C,h]=lch(base);
+ const rel=Math.min(C/Math.max(maxC(L,h),1e-6),1);
+ return HX(rgbOf(Lt,maxC(Lt,h)*rel,h))}
+const lum=h=>{const[r,g,b]=hx(h).map(g2l);return .2126*r+.7152*g+.0722*b};
+const CR=(a,b)=>{const x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+function onGround(base,ground,target){
+  const up=lum(ground)<.30;let L=lch(ground)[0],best=base,bc=CR(base,ground);
+  for(let i=0;i<26;i++){L=up?Math.min(.99,L+.035):Math.max(.05,L-.035);
+    const c=atL(base,L),v=CR(c,ground);if(v>=target)return c;if(v>bc){bc=v;best=c}}
+  return best}
+const dE=(a,b)=>100*Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+const M1=[[.31399,.63951,.04649],[.15537,.75789,.08670],[.01776,.10945,.87247]];
+const M2=[[5.47221,-4.6419,.16963],[-1.1252,2.29317,-.1678],[.02980,-.19318,1.16364]];
+const mv=(m,v)=>m.map(r=>r[0]*v[0]+r[1]*v[1]+r[2]*v[2]);
+function sim(hex,type){const lin=hx(hex).map(g2l),lms=mv(M1,lin);
+ const o=type==='deutan'?[lms[0],.494207*lms[0]+1.24827*lms[2],lms[2]]
+                        :[2.02344*lms[1]-2.52581*lms[2],lms[1],lms[2]];
+ return mv(M2,o).map(v=>Math.max(0,Math.min(1,v)))}
+const dist=(a,b)=>Math.min(dE(toOk(hx(a)),toOk(hx(b))),
+  dE(toOk(sim(a,'deutan')),toOk(sim(b,'deutan'))),dE(toOk(sim(a,'protan')),toOk(sim(b,'protan'))));
+
+/* ===== 数据 ===== */
+const HUE={day:'#F06E15',night:'#5856D6',morn:'#00A59E',mid:'#C13584',late:'#8A5CF0',tag:'#6E56CF'};
+const SHIFT={
+ day:{n:'白班',s:'白',h:12},night:{n:'夜班',s:'夜',h:12},
+ morn:{n:'早班',s:'早',h:8},mid:{n:'中班',s:'中',h:8},
+ bignight:{n:'大夜',s:'大夜',h:8,hue:'late'},
+ rest:{n:'休息',s:'休',h:0,rest:true},leave:{n:'请假',s:'假',h:0,rest:true,leave:true},
+};
+const TAGS={duty:'责',standby:'备',teach:'教',clinic:'诊',meet:'会'};
+const CORE=[['南瓜','#F06E15'],['靛','#5856D6'],['品红','#C13584'],['森绿','#2BA94A'],
+            ['玫红','#FF2D55'],['砖','#C2410C'],['翡翠','#00A59E'],['薰衣草','#8A5CF0']];
+const EXT=[['朱红','#FF3B30'],['紫','#AF52DE'],['宝蓝','#1A5FE0'],['天青','#099BE3'],
+           ['橄榄','#7F9B14'],['琥珀','#CC8300']];
+
+const RAILS=[
+ {id:'right',n:'全部在右',y:'一列搞定，左边完全空出来',n2:'节假日和职责挤在一列，含义不同却排在一起',
+  d:'上一版的做法。节假日、调休、职责标签全部从上往下排在右列。'},
+ {id:'split',n:'左职责 · 右节假日',y:'两类信息各占一边，含义分得开；数字真正居中',n2:'两边各占 9pt，中间留 28pt 给日期',
+  d:'左列放职责标签（这天我承担什么），右列放节假日和调休（这天在日历上是什么性质）。'},
+ {id:'left',n:'全部在左',y:'右边空出来，将来可以放别的',n2:'节假日红字跑到左边，和大多数日历的习惯相反',
+  d:'节假日、调休、职责标签全部挪到左列。'},
+];
+const ALIGNS=[
+ {id:'top',n:'顶对齐',d:'现在的做法。内容贴着格子上沿，底下留 30pt。不填色时看不出来，一填色就显空。'},
+ {id:'center',n:'垂直居中',d:'内容在格子里居中，上下留白对称。填充之后最匀，缩略图上每一格的重心也一致。'},
+ {id:'bottom',n:'底对齐',d:'你想试的那种。日期贴着格子下沿——整月扫视时数字的基线还是齐的，但格子顶上空一大块，反而更怪。'},
+ {id:'hug',n:'填充只包内容',d:'保持顶对齐，但今天的填充只裹住内容那一块，不铺满整格。空的地方就不上色了。'},
+];
+const TDS=[
+ {id:'fill',n:'整格填充',ok:true,d:'整格铺一层淡色。边界就是格子本身，归属没有歧义。配"垂直居中"最好看。'},
+ {id:'hug',n:'内容填充',ok:true,d:'只裹住日期和色标那一小块，做成圆角。比整格轻，归属一样明确。'},
+ {id:'disc',n:'数字胶囊',ok:true,d:'只在日期数字外面套一个胶囊，像系统日历的今天。占地最小，归属最明确——它长在数字上。'},
+ {id:'line',n:'数字下划线',ok:true,d:'紧贴在数字下面 5pt 处的一道短线。因为离数字近、离格子边远，读起来是"这个数字的"。'},
+ {id:'bold',n:'填充 + 加粗',ok:true,d:'整格填充之上把数字加粗到 700。最强，适合怕用户看不见的情况。'},
+ {id:'side',n:'左侧竖杠',ok:false,d:'格子左边一道竖杠。竖向的东西不会被读成上下相邻格，但会和左列的职责标签抢位置。'},
+ {id:'bot',n:'底部横杠',ok:false,d:'贴在格子下沿。和下一行只隔 1pt，眼睛会把它读成下一格的顶边——这就是你说的那个问题。'},
+];
+
+let RAIL='split',ALIGN='top',TD='bold',RHY='hug';
+let PICK=['#F06E15','#5856D6','#C13584','#2BA94A'];
+const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');
+ return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+const todayFill=()=>isDark()?atL('#0A84FF',.30):atL('#007AFF',.93);
+function tone(hueKey,ground){
+  const dk=isDark(),base=HUE[hueKey]||(typeof hueKey==='string'&&hueKey[0]==='#'?hueKey:HUE.day);
+  const mark=dk?atL(base,.78):base, ink=dk?'#000000':'#FFFFFF';
+  const g=ground||(dk?'#000000':'#FFFFFF');
+  return{base,mark,ink,cr:CR(ink,mark),text:onGround(base,g,4.5)};
+}
+
+/* ===== 格子 ===== */
+function cell(st,o={}){
+  const rail=o.rail||RAIL, align=o.align||ALIGN, td=o.td||TD;
+  const sh=SHIFT[st.k]||{rest:true,n:'',s:''};
+  const today=!!st.today, tags=st.tags||[];
+  const filled = today&&(td==='fill'||td==='bold');
+  const ground = filled?todayFill():(isDark()?'#000000':'#FFFFFF');
+  const T=tone(sh.hue||st.k||'day',ground), tagT=tone('tag',ground);
+  const useAlign = (today&&td==='hug')?'top':align;
+  const e=el('div','c '+(align==='hug'?'top':useAlign)+(sh.rest?' rest':'')+(st.unset?' unset':''));
+  if(filled)e.style.background=ground;
+
+  const mkRail=(cls,items)=>{if(!items.length)return;const R=el('div',cls);
+    items.forEach(f=>R.appendChild(f()));e.appendChild(R)};
+  const holItem=()=>el('span','ri rh',st.hol);
+  const swapItem=()=>el('span','ri rs','班');
+  const tagItem=t=>()=>{const x=el('span','ri rt',TAGS[t]);x.style.color=tagT.text;return x};
+  const moreItem=n=>()=>el('span','ri more','＋'+n);
+
+  const dateItems=[];
+  if(st.hol)dateItems.push(holItem); else if(st.swap)dateItems.push(swapItem);
+  const tagItems=tags.slice(0,3).map(tagItem);
+  if(tags.length>3)tagItems.push(moreItem(tags.length-3));
+
+  if(rail==='right')      mkRail('railR',[...dateItems,...tagItems]);
+  else if(rail==='left')  mkRail('railL',[...dateItems,...tagItems]);
+  else { mkRail('railL',tagItems); mkRail('railR',dateItems); }
+
+  /* 内容块 */
+  const inner=el('div','inner');
+  if(today&&(td==='hug'))inner.style.background=todayFill();
+  const num=el('span','num',st.d);
+  if(today&&td==='bold')num.style.fontWeight='700';
+  if(today&&td==='disc'){num.style.background=todayFill();num.style.padding='3px 9px';
+    num.style.borderRadius='99px';num.style.marginBlock='-3px'}
+  inner.appendChild(num);
+  if(today&&td==='line'){const l=el('span','numline');
+    l.style.background=isDark()?'#0A84FF':'#007AFF';inner.appendChild(l)}
+
+  if(!st.unset){
+    if(sh.rest){
+      const m=el('div','mk');const q=el('span',null,sh.s);
+      q.style.cssText='font-size:12px;font-weight:650;color:var(--greyInk)'+
+        (sh.leave?';box-shadow:inset 0 0 0 1px var(--grey);border-radius:4px;padding:1px 4px;font-size:10px':'');
+      m.appendChild(q);inner.appendChild(m);
+    }else{
+      const two=sh.s.length>1;
+      const q=el('span','sq',sh.s);
+      q.style.cssText='height:13px;font-size:'+(two?7.3:9.5)+'px;background:'+T.mark+';color:'+T.ink+
+        (two?';width:auto;padding:0 3px':';width:13px');
+      const m=el('div','mk');m.appendChild(q);
+      const h=el('span','hrs',(st.hrs!==undefined?st.hrs:sh.h)+'h');h.style.color=T.text;m.appendChild(h);
+      inner.appendChild(m);
+    }
+  }
+  e.appendChild(inner);
+  if(today&&td==='side'){const b=el('span','sidebar');b.style.background=isDark()?'#0A84FF':'#007AFF';e.appendChild(b)}
+  if(today&&td==='bot'){const b=el('span','botbar');b.style.background=isDark()?'#0A84FF':'#007AFF';e.appendChild(b)}
+  if(st.note)e.appendChild(el('span','notedot'));
+  return e;
+}
+
+/* 9 月数据 */
+const PLAN={};
+{const cyc=['day','day','day','day','rest','rest','night','night','night','night','rest','rest'];
+ for(let d=1;d<=30;d++)PLAN[d]={d,k:cyc[(d-1)%12]};}
+PLAN[2].tags=['standby'];
+PLAN[3].k='morn'; PLAN[3].tags=['clinic'];
+PLAN[8].tags=['duty','standby'];
+PLAN[9].tags=['duty'];
+PLAN[15].tags=['teach','duty','standby'];
+PLAN[16].k='mid'; PLAN[16].tags=['clinic','teach'];
+PLAN[19].tags=['duty'];
+PLAN[20].today=true; PLAN[20].tags=['standby','teach'];
+PLAN[22].tags=['standby','duty','teach','meet'];
+PLAN[24]={d:24,k:'rest',hol:'中秋'};
+PLAN[25]={d:25,k:'rest',hol:'中秋'};
+PLAN[27]={d:27,k:'day',swap:true,tags:['duty']};
+PLAN[29].tags=['clinic']; PLAN[29].note=true;
+PLAN[11]={d:11,k:'leave'};
+const LEAD=1,DAYS=30;
+
+function screen(o={}){
+  const p=el('div','phone rh-'+(o.rhy||RHY));
+  const nav=el('div','pnav');
+  nav.innerHTML='<span class="bk">‹</span><span class="mo">8月</span><span class="mo cur">9月</span><span class="mo">10月</span><span class="mr"></span>';
+  p.appendChild(nav);
+  const band=el('div','pband');['周一','周二','周三','周四','周五','周六','周日'].forEach(d=>band.appendChild(el('span',null,d)));
+  p.appendChild(band);
+  const g=el('div','pgrid');
+  for(let i=0;i<LEAD;i++)g.appendChild(el('div','c empty'));
+  for(let d=1;d<=DAYS;d++)g.appendChild(cell(PLAN[d],o));
+  p.appendChild(g);
+  const s=el('div','psum');
+  s.innerHTML='<div><div class="k">已工作小时</div><div class="v">140.0</div></div>'+
+              '<div><div class="k">额外工时</div><div class="v">56.0</div></div>'+
+              '<span class="go">查看明细 ›</span>';
+  p.appendChild(s);return p;
+}
+function boxN(states,o,n){
+  const b=el('div','stagebox n'+(n||states.length));
+  states.forEach(st=>b.appendChild(cell(st,o)));return b;
+}
+/* 两行三列，中间是今天——用来看标记归谁 */
+function stack2(o){
+  const b=el('div','stack2');
+  [{d:12,k:'day'},{d:13,k:'night',tags:['duty']},{d:14,k:'day'},
+   {d:19,k:'night'},{d:20,k:'night',today:true,tags:['standby']},{d:21,k:'rest'},
+   {d:26,k:'day'},{d:27,k:'day',swap:true},{d:28,k:'rest'}]
+  .forEach(st=>b.appendChild(cell(st,o)));
+  return b;
+}
+
+/* ===== 渲染 ===== */
+function renderLocks(){
+  const b=document.getElementById('locks');b.innerHTML='';
+  [['白班 南瓜','#F06E15','#F06E15'],['夜班 靛','#5856D6','#5856D6'],
+   ['标记列',RAILS.find(x=>x.id===RAIL).n,null],
+   ['今天',TDS.find(x=>x.id===TD).n+' · '+ALIGNS.find(x=>x.id===ALIGN).n,null]].forEach(([a,c,col])=>{
+    const l=el('div','lock');
+    if(col){const i=el('i');i.style.background=col;l.appendChild(i)}
+    l.innerHTML+='<span>'+a+'</span><em>'+c.toUpperCase()+'</em>';b.appendChild(l)});
+}
+function cards(list,cur,set,build,segId,gridId){
+  const g=document.getElementById(gridId);g.innerHTML='';
+  list.forEach(x=>{
+    const c=el('div','opt'+(x.id===cur()?' on':''));c.tabIndex=0;c.setAttribute('role','button');
+    const nm=el('div','nm');nm.innerHTML='<b>'+x.n+'</b><span>'+x.d+'</span>';c.appendChild(nm);
+    c.appendChild(build(x));
+    if(x.y){const v1=el('div','verdict');v1.innerHTML='<i class="y">取</i><span>'+x.y+'</span>';c.appendChild(v1);
+      const v2=el('div','verdict');v2.innerHTML='<i class="n">舍</i><span>'+x.n2+'</span>';c.appendChild(v2)}
+    if(x.ok!==undefined){const v=el('div','verdict');
+      v.innerHTML=x.ok?'<i class="y">归属明确</i>':'<i class="n">归属有歧义</i>';c.appendChild(v)}
+    const go=()=>{set(x.id);render()};
+    c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
+    g.appendChild(c)});
+  const s=document.getElementById(segId);s.innerHTML='';
+  list.forEach(x=>{const b=el('button',null,x.n);b.setAttribute('aria-pressed',x.id===cur());
+    b.onclick=()=>{set(x.id);render()};s.appendChild(b)});
+}
+function renderSwatches(){
+  const mk=(list,gridId,core)=>{
+    const g=document.getElementById(gridId);g.innerHTML='';
+    list.forEach(([n,c],i)=>{
+      const dk=isDark(),mark=dk?atL(c,.78):c,ink=dk?'#000':'#fff';
+      const locked=(n==='南瓜'||n==='靛'), on=PICK.includes(c);
+      const d=el('div','sw'+(on?' on':'')+(locked?' locked':''));
+      d.style.background=dk?'#1C1C1E':'#F7F7F9';
+      d.style.borderColor=on?mark:'transparent';
+      const q=el('div','q',n[0]);q.style.background=mark;q.style.color=ink;d.appendChild(q);
+      d.appendChild(el('div','t',n));
+      d.appendChild(el('code',null,c.toUpperCase()+(core?' · '+(i+1):'')));
+      const p=el('div','pick','✓');p.style.background=mark;p.style.color=ink;d.appendChild(p);
+      if(locked)d.appendChild(el('div','lk',n==='南瓜'?'白班':'夜班'));
+      if(!locked){d.tabIndex=0;d.setAttribute('role','button');
+        const go=()=>{const j=PICK.indexOf(c);if(j>=0)PICK.splice(j,1);else PICK.push(c);render()};
+        d.onclick=go;d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}}
+      g.appendChild(d)});
+  };
+  mk(CORE,'coreGrid',true); mk(EXT,'extGrid',false);
+  const NAME={};[...CORE,...EXT].forEach(([n,c])=>NAME[c]=n);
+  const box=document.getElementById('clashBox');box.innerHTML='';
+  const hd=el('div','row');hd.innerHTML='<b style="font-size:13.5px;font-weight:650">已选 '+PICK.length+' 个班次色</b>';
+  PICK.forEach(c=>{const dk=isDark();const i=el('i');i.style.background=dk?atL(c,.78):c;
+    i.style.color=dk?'#000':'#fff';i.textContent=(NAME[c]||'')[0]||'';hd.appendChild(i)});
+  box.appendChild(hd);
+  const pairs=[];
+  for(let i=0;i<PICK.length;i++)for(let j=i+1;j<PICK.length;j++){
+    const v=dist(PICK[i],PICK[j]); if(v<15)pairs.push([NAME[PICK[i]],NAME[PICK[j]],v])}
+  pairs.sort((a,b)=>a[2]-b[2]);
+  if(!pairs.length){const r=el('div','row');
+    r.innerHTML='<span class="tagv fine">全部分得开</span><span style="color:var(--label2);font-size:12.5px">'+
+      '任意两色在正常视觉、红绿色盲、红色盲下的 ΔE 都 ≥ 15</span>';box.appendChild(r)}
+  else pairs.forEach(([a,b,v])=>{const r=el('div','row');
+    r.innerHTML='<span class="tagv warn">ΔE '+v.toFixed(1)+'</span><span style="font-size:12.5px"><b>'+a+
+      '</b> 和 <b>'+b+'</b> 容易混——'+(v<8?'色盲下几乎一样，建议换一个':'色盲下接近，靠简称字勉强能分')+'</span>';
+    box.appendChild(r)});
+}
+const STATES=[
+ [{d:12,k:'day'},'普通上班','色标 + 工时'],
+ [{d:9,k:'day',tags:['duty']},'1 个标签','左列第一格'],
+ [{d:8,k:'night',tags:['duty','standby']},'2 个标签','左列上下排'],
+ [{d:15,k:'day',tags:['teach','duty','standby']},'3 个标签','左列排满'],
+ [{d:22,k:'night',tags:['standby','duty','teach','meet']},'4 个标签','第四个收成 ＋1'],
+ [{d:20,k:'night',today:true},'今天',''],
+ [{d:20,k:'night',today:true,tags:['standby','teach']},'今天 + 标签','两样叠一起'],
+ [{d:5,k:'rest'},'休息日','灰字'],
+ [{d:25,k:'rest',hol:'中秋'},'休息 + 节假日','红字在右列'],
+ [{d:27,k:'day',swap:true},'调休上班','绿「班」在右列'],
+ [{d:27,k:'day',swap:true,tags:['duty','teach']},'调休 + 两标签','左右各一列'],
+ [{d:3,k:'morn'},'早班','自定义色'],
+ [{d:11,k:'leave'},'请假','描边灰'],
+ [{d:7,k:'bignight'},'两字简称','撑成胶囊'],
+ [{d:14,k:'day',hrs:11.5},'小数工时','11.5h 最宽'],
+ [{d:24,k:'day',hol:'中秋'},'节假日还上班','红字 + 正常色标'],
+ [{d:29,k:'day',tags:['clinic'],note:true},'有备注','底部一点'],
+ [{d:30,unset:true},'未排班','只有浅灰数字'],
+];
+function renderMatrix(){
+  const g=document.getElementById('matrixGrid');g.innerHTML='';
+  STATES.forEach(([st,t,sub])=>{
+    const m=el('div','mcell');
+    const b=el('div','box');b.appendChild(cell(st));m.appendChild(b);
+    m.appendChild(el('div','cap','<b>'+t+'</b>'+sub));g.appendChild(m)});
+}
+function screenThemed(mode,o){
+  const w=el('div','themed');w.setAttribute('data-theme',mode);
+  const was=document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme',mode);
+  w.appendChild(screen(o));
+  if(was)document.documentElement.setAttribute('data-theme',was);
+  else document.documentElement.removeAttribute('data-theme');
+  return w;
+}
+const SPEC=[
+ ['格子','46 × <b>58</b>pt，圆角 10。内容顶对齐，上下内边距对称各 5pt——格子只比内容高 2pt，填充不会留空。'],
+ ['行距','<b>11pt</b>。空气放在行与行之间，不放在格子里。整月五行总高 '+(58*5+11*4)+'pt。'],
+ ['左列','9pt。职责标签自上而下，最多 3 个，超出收成 <code>＋n</code>。纯色字，色值 <code>#6E56CF</code>。'],
+ ['右列','9pt。法定节假日红字两字竖排 <code>#D70015</code>；调休上班绿「班」<code>#248A3D</code>。'],
+ ['日期','22pt / weight 550 / 等宽数字。休息日降到三级灰 + weight 450。'],
+ ['色标','13 × 13，圆角 4。浅色用原色配白字，深色提亮到 OKLCH L 0.78 配黑字。'],
+ ['工时','10pt / weight 600 / 等宽数字，颜色是班次色压到 4.5:1 的那一阶。'],
+ ['今天','整格填充 <code>#E3F0FF</code>（深色 <code>#0E3A63</code>）+ 数字 weight 700。<b>不改数字颜色</b>。'],
+ ['默认色','白班南瓜 <code>#F06E15</code>，夜班靛 <code>#5856D6</code>。其余从十四色板里选。'],
+];
+function renderFinal(){
+  const g=document.getElementById('finalGrid');g.innerHTML='';
+  [['light','浅色'],['dark','深色']].forEach(([m,lb])=>{
+    const c=el('div','finalcard');
+    c.appendChild(el('div','cap',lb));
+    c.appendChild(screenThemed(m,{rail:'split',align:'top',td:'bold'}));
+    g.appendChild(c)});
+  const t=document.getElementById('specTbl');t.innerHTML='';
+  const tf=(()=>{const was=document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme','light');const a=todayFill();
+    document.documentElement.setAttribute('data-theme','dark');const b=todayFill();
+    if(was)document.documentElement.setAttribute('data-theme',was);
+    else document.documentElement.removeAttribute('data-theme');return[a,b]})();
+  SPEC.forEach(([k,v])=>{const r=el('div','r');
+    v=v.replace('#E3F0FF',tf[0].toUpperCase()).replace('#0E3A63',tf[1].toUpperCase());
+    r.appendChild(el('div','k',k));r.appendChild(el('div','v',v));t.appendChild(r)});
+}
+const RHYS=[
+ {id:'hug',n:'贴合 + 行距 11',cell:58,gap:11,
+  d:'推荐。格子只比内容高 2pt，填充紧紧裹住日期和色标，一点空档都没有；空气全部放到行与行之间。'},
+ {id:'open',n:'贴合 + 行距 17',cell:56,gap:17,
+  d:'更松的一版。格子压到刚好等于内容，行距拉到 17pt。整页最透气，接近参考图那种呼吸感。'},
+ {id:'loose',n:'现状 · 疏',cell:76,gap:1,
+  d:'格子 76pt、行距 1pt。空气全在格子里——这就是"填充之后下面空"的来源。'},
+ {id:'dense',n:'现状 · 紧',cell:60,gap:1,
+  d:'格子 60pt、行距 1pt。格内不空了，但行和行只隔 1pt，整页发闷。'},
+];
+function renderRhythm(){
+  const g=document.getElementById('rhyGrid');g.innerHTML='';
+  RHYS.forEach(R=>{
+    const c=el('div','rhy'+(R.id===RHY?' on':''));c.tabIndex=0;c.setAttribute('role','button');
+    const h=el('div','h');h.innerHTML='<b>'+R.n+'</b><span>'+R.d+'</span>';c.appendChild(h);
+    const inner=56, blank=Math.max(0,R.cell-inner), total=R.cell*5+R.gap*4;
+    const nums=el('div','nums');
+    nums.innerHTML='格高 <b>'+R.cell+'</b>　行距 <b>'+R.gap+'</b>　格内空白 <b>'+blank+
+      '</b>　整月总高 <b>'+total+'</b>';
+    c.appendChild(nums);
+    const b=el('div','body');b.appendChild(screen({rhy:R.id}));c.appendChild(b);
+    const go=()=>{RHY=R.id;render()};
+    c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
+    g.appendChild(c)});
+  const sg=document.getElementById('rhySeg');sg.innerHTML='';
+  RHYS.forEach(R=>{const b=el('button',null,R.n.replace('贴合 + 行距 ','贴合').replace('现状 · ',''));
+    b.setAttribute('aria-pressed',R.id===RHY);b.onclick=()=>{RHY=R.id;render()};sg.appendChild(b)});
+}
+function renderScreens(){
+  const g=document.getElementById('scrGrid');g.innerHTML='';
+  [['当前选择',RAILS.find(x=>x.id===RAIL).n+' · '+ALIGNS.find(x=>x.id===ALIGN).n+' · '+TDS.find(x=>x.id===TD).n,{}],
+   ['顶对齐 + 填充，数字不加粗','看看加粗到底有多少分量',{rail:'split',align:'top',td:'fill'}],
+   ['垂直居中 + 填充 + 加粗','同一套但内容居中，填充更匀',{rail:'split',align:'center',td:'bold'}],
+   ['顶对齐 + 数字胶囊','不铺满整格的轻量版',{rail:'split',align:'top',td:'disc'}]]
+  .forEach(([t,d,o],i)=>{
+    const c=el('div','lay');
+    const h=el('div','h');h.innerHTML='<div class="tg">'+(i===0?'当前':'对照 '+i)+'</div><b>'+t+'</b><span>'+d+'</span>';
+    c.appendChild(h);
+    const b=el('div','body');b.appendChild(screen(o));c.appendChild(b);g.appendChild(c)});
+}
+function renderOut(){
+  const was=document.documentElement.getAttribute('data-theme');
+  const grab=m=>{document.documentElement.setAttribute('data-theme',m);
+    const o={};['day','night','morn','mid','tag'].forEach(k=>o[k]=tone(k));o.today=todayFill();return o};
+  const L=grab('light'),D=grab('dark');
+  if(was)document.documentElement.setAttribute('data-theme',was);
+  else document.documentElement.removeAttribute('data-theme');
+  const NM={day:'白班',night:'夜班',morn:'早班',mid:'中班',tag:'职责标签'};
+  const pad=s=>s+' '.repeat(Math.max(0,10-s.length));
+  let s='<i>// 标记列：'+RAILS.find(x=>x.id===RAIL).n+'　对齐：'+ALIGNS.find(x=>x.id===ALIGN).n+
+        '　今天：'+TDS.find(x=>x.id===TD).n+'</i>\n\n';
+  s+='<i>// 格子几何（iPhone 一格约 46 × 76pt）</i>\n';
+  s+='<b>左列</b>  9pt  职责标签，自上而下最多 3 个，超出 ＋n\n';
+  s+='<b>右列</b>  9pt  节假日（红，两字竖排）/ 调休「班」（绿）\n';
+  s+='<b>中间</b>  28pt  日期 22pt → 色标 13pt + 工时 10pt\n';
+  s+='<b>对齐</b>  内容垂直居中，上下留白对称\n\n';
+  s+='<b>enum</b> ShiftTone {\n';
+  [['Lite','浅色',L],['Dark','深色',D]].forEach(([sfx,cn,set])=>{
+    s+='    <i>// '+cn+'</i>\n';
+    Object.keys(NM).forEach(k=>{const t=set[k];
+      s+='    <b>static let</b> '+pad(k+sfx)+' = (mark: "'+t.mark.toUpperCase()+'", ink: "'+t.ink.toUpperCase()+
+         '", text: "'+t.text.toUpperCase()+'")  <i>// '+NM[k]+'</i>\n'});
+    s+='    <b>static let</b> '+pad('today'+sfx)+' = "'+set.today.toUpperCase()+'"  <i>// 今天填充</i>\n\n'});
+  s+='    <b>static let</b> holiday  = "#D70015" / "#FF6961"\n';
+  s+='    <b>static let</b> swapWork = "#248A3D" / "#30D158"\n';
+  s+='    <b>static let</b> rest     = "#6C6C70" / "#98989D"\n}\n\n';
+  s+='<b>enum</b> ShiftPalette {   <i>// 自定义班次可选，按推荐顺序</i>\n';
+  s+='    <b>static let</b> core = ['+CORE.map(c=>'"'+c[1].toUpperCase()+'"').join(', ')+']\n';
+  s+='    <i>//           '+CORE.map(c=>c[0]).join('  ')+'　前四个两两 ΔE ≥ 20.4</i>\n';
+  s+='    <b>static let</b> extended = ['+EXT.map(c=>'"'+c[1].toUpperCase()+'"').join(', ')+']\n';
+  s+='    <i>// 深色模式统一 atL(base, 0.78) 提亮 + 黑字</i>\n}\n';
+  document.getElementById('swiftOut').innerHTML=s;
+}
+function render(){
+  renderLocks();
+  cards(RAILS,()=>RAIL,v=>RAIL=v,x=>boxN(
+    [{d:9,k:'day',tags:['duty']},{d:15,k:'night',tags:['teach','duty','standby']},
+     {d:25,k:'rest',hol:'中秋'},{d:27,k:'day',swap:true,tags:['duty','teach']}],{rail:x.id},4),
+    'railSeg','railGrid');
+  cards(ALIGNS,()=>ALIGN,v=>ALIGN=v,x=>boxN(
+    [{d:19,k:'night',tags:['duty']},{d:20,k:'night',today:true,tags:['standby','teach']},{d:21,k:'rest'}],
+    {align:x.id,td:x.id==='hug'?'hug':'fill'},3),'alignSeg','alignGrid');
+  cards(TDS,()=>TD,v=>TD=v,x=>stack2({td:x.id}),'tdSeg','tdGrid');
+  renderRhythm();renderFinal();renderScreens();renderMatrix();renderSwatches();renderOut();
+}
+
+document.getElementById('thSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  document.documentElement.setAttribute('data-theme',b.dataset.th);
+  [...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+  if(!document.documentElement.getAttribute('data-theme'))render()});
+render();
+</script>
+
+</body>
+</html>

@@ -2,79 +2,152 @@ import SwiftUI
 
 /// 月历网格。
 ///
-/// 每个格子的信息都落在固定槽位上，自上而下：日期与状态点、法定节假日、
-/// 班次时间、班次、工时与标签。同一列信息在整月里始终在同一高度，
-/// 不靠自动伸缩去挤，也就不会出现有的格子错位、有的被压扁。
-struct CalendarMonthGrid: View {
+/// 格子本身不填底色（除了「今天」那一格），整块网格坐在一张白卡上。日期数字是主角，
+/// 颜色只剩一枚 13pt 色标。格子左右各留一条 9pt 的标记列：
+/// 左列放职责标签（这天我承担什么），右列放「休 / 班」（这天在日历上是什么性质）。
+/// 两类信息含义不同，分开放比挤在一列清楚，日期也因此真正居中。
+///
+/// 格子高度贴合内容，留白放在行与行之间——行距 17pt。
+/// 反过来做（格子撑高、行距 1pt）会让「今天」那一格的填充下方空出一大块。
+///
+/// 网格是 `Equatable` 的：左右滑动时外层每一帧都在变，但只要这个月的数据没变，
+/// 网格就不用重算——比较时跳过 `onSelect` 这个闭包（闭包没法比较，
+/// 带着它 SwiftUI 只能每帧都重画整月）。
+struct CalendarMonthGrid: View, Equatable {
     let year: Int
     let month: Int
     let document: ScheduleDocument
     let todayKey: String
     var batchMode: Bool = false
-    var batchDates: [String] = []
+    var selectedDates: Set<String> = []
+    var holidays: HolidayCalendar = .empty
     let onSelect: (String) -> Void
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
-
-    /// 槽位高度。开关关掉的信息整月一起消失，格子高度仍然统一。
-    private var cellHeight: CGFloat {
-        var height: CGFloat = DayCellMetrics.date + DayCellMetrics.holiday + DayCellMetrics.shift
-        if document.display.showShiftTime { height += DayCellMetrics.time }
-        if showsFooter { height += DayCellMetrics.footer }
-        return height + DayCellMetrics.verticalPadding * 2 + DayCellMetrics.spacing * 3
+    nonisolated static func == (lhs: CalendarMonthGrid, rhs: CalendarMonthGrid) -> Bool {
+        lhs.year == rhs.year && lhs.month == rhs.month && lhs.todayKey == rhs.todayKey
+            && lhs.batchMode == rhs.batchMode && lhs.selectedDates == rhs.selectedDates
+            && lhs.holidays == rhs.holidays && lhs.document == rhs.document
     }
 
-    private var showsFooter: Bool {
-        (document.display.showHours && document.work.trackHours) || document.display.showTags
+    private var cellHeight: CGFloat { DayCellMetrics.height(for: document.display) }
+
+    /// 这个月的记录按日期建一次索引。`document.record(on:)` 是整表线性查找，
+    /// 一个月三十格就要把全部记录扫三十遍。
+    private var monthRecords: [String: DayRecord] {
+        let prefix = ScheduleCalendar.monthKey(year: year, month: month)
+        var map: [String: DayRecord] = [:]
+        for record in document.records where record.monthKey == prefix {
+            map[record.date] = record
+        }
+        return map
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 4) {
-                ForEach(Array(ScheduleCalendar.weekdaySymbols.enumerated()), id: \.offset) { index, symbol in
+        let records = monthRecords
+        VStack(spacing: 10) {
+            HStack(spacing: DayCellMetrics.columnSpacing) {
+                ForEach(Array(ScheduleCalendar.weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
                     Text(symbol)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(index > 4 ? Palette.red.opacity(0.75) : Color.secondary)
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
                 }
             }
 
-            LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(Array(0..<ScheduleCalendar.leadingBlanks(year: year, month: month)), id: \.self) { index in
-                    Color.clear
-                        .frame(height: cellHeight)
-                        .id("blank-\(index)")
-                }
-                ForEach(Array(1...ScheduleCalendar.daysInMonth(year: year, month: month)), id: \.self) { day in
-                    let key = ScheduleCalendar.key(year: year, month: month, day: day)
-                    DayCell(day: day,
-                            key: key,
-                            record: document.record(on: key),
-                            document: document,
-                            isToday: key == todayKey,
-                            holiday: document.display.showHolidays ? Holidays.name(of: key) : "",
-                            batchMode: batchMode,
-                            batchIndex: batchDates.firstIndex(of: key),
-                            batchCount: batchDates.count,
-                            height: cellHeight,
-                            showsFooter: showsFooter)
-                        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .onTapGesture { onSelect(key) }
+            // 一个月最多 42 格，直接排出来。原来用 `LazyVGrid`，放在横向分页里等于
+            // 懒加载套懒加载，每翻进一页都要多走一轮测量，得不偿失。
+            let blanks = ScheduleCalendar.leadingBlanks(year: year, month: month)
+            let days = ScheduleCalendar.daysInMonth(year: year, month: month)
+            VStack(spacing: DayCellMetrics.rowSpacing) {
+                ForEach(0..<Self.rows(blanks: blanks, days: days), id: \.self) { row in
+                    HStack(spacing: DayCellMetrics.columnSpacing) {
+                        ForEach(0..<7, id: \.self) { column in
+                            let day = row * 7 + column - blanks + 1
+                            if day >= 1 && day <= days {
+                                cell(day: day, records: records)
+                            } else {
+                                Color.clear
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: cellHeight)
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+
+    private func cell(day: Int, records: [String: DayRecord]) -> some View {
+        let key = ScheduleCalendar.key(year: year, month: month, day: day)
+        let display = document.display
+        return DayCell(day: day,
+                       key: key,
+                       record: records[key],
+                       document: document,
+                       isToday: key == todayKey,
+                       lunarText: display.showLunar ? LunarCalendar.text(for: key) : nil,
+                       festival: display.showLunar || display.showHolidays ? Festivals.festival(on: key) : nil,
+                       adjustment: display.showHolidays ? holidays.adjustment(on: key) : nil,
+                       batchMode: batchMode,
+                       isSelected: selectedDates.contains(key),
+                       height: cellHeight)
+            .contentShape(RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous))
+            .onTapGesture { onSelect(key) }
+    }
+
+    static func rows(blanks: Int, days: Int) -> Int { (blanks + days + 6) / 7 }
+
+    private static let rowsLock = NSLock()
+    private static var rowsCache: [Int: Int] = [:]
+
+    /// `index` 是「年 × 12 + 零基月」。翻页时每一帧都要问相邻两个月各几行，记下来不重算。
+    static func rows(index: Int) -> Int {
+        if let cached = rowsLock.withLock({ rowsCache[index] }) { return cached }
+        let year = index / 12, month = index % 12
+        let value = rows(blanks: ScheduleCalendar.leadingBlanks(year: year, month: month),
+                         days: ScheduleCalendar.daysInMonth(year: year, month: month))
+        rowsLock.withLock { rowsCache[index] = value }
+        return value
+    }
+
+    /// 整块网格的高度（星期表头 + 表头间距 + 每行格子与行距）。行数可以带小数，
+    /// 滑动切月时在 5 行和 6 行之间插值用。
+    static func height(rows: CGFloat, display: CalendarDisplaySettings) -> CGFloat {
+        let cell = DayCellMetrics.height(for: display)
+        return 13 + 10 + rows * cell + max(rows - 1, 0) * DayCellMetrics.rowSpacing
+    }
+
+    static func height(year: Int, month: Int, display: CalendarDisplaySettings) -> CGFloat {
+        height(rows: CGFloat(rows(index: year * 12 + month)), display: display)
+    }
 }
 
-/// 格子里每一段信息的固定高度。
+/// 格子的几何。iPhone 上一格约 46pt 宽。
 enum DayCellMetrics {
-    static let date: CGFloat = 14
-    static let holiday: CGFloat = 10
-    static let time: CGFloat = 19
-    static let shift: CGFloat = 18
-    static let footer: CGFloat = 11
-    static let spacing: CGFloat = 2
-    static let verticalPadding: CGFloat = 4
+    /// 两侧标记列各占这么宽。原来各 11pt 时中间只剩 24pt，
+    /// 而两位数日期在 22pt 字号下约 24pt 宽，正好顶满——挂了标签就会贴到一起。
+    static let railWidth: CGFloat = 9
+    static let dateRow: CGFloat = 22
+    static let markRow: CGFloat = 13
+    static let timeRow: CGFloat = 11
+    /// 日期下面的农历 / 节日那一行，和日期之间只隔 1pt，读起来是一组。
+    static let lunarRow: CGFloat = 10
+    static let lunarGap: CGFloat = 1
+    static let spacing: CGFloat = 4
+    static let paddingTop: CGFloat = 8
+    static let paddingBottom: CGFloat = 9
+    static let corner: CGFloat = 10
+    /// 留白放在行与行之间，不放在格子里。
+    static let rowSpacing: CGFloat = 17
+    static let columnSpacing: CGFloat = 1
+
+    static func height(for display: CalendarDisplaySettings) -> CGFloat {
+        var height = paddingTop + dateRow + paddingBottom
+        if display.showLunar { height += lunarGap + lunarRow }
+        height += spacing + markRow
+        if display.showShiftTime { height += spacing + timeRow }
+        return height
+    }
 }
 
 private struct DayCell: View {
@@ -83,21 +156,22 @@ private struct DayCell: View {
     let record: DayRecord?
     let document: ScheduleDocument
     let isToday: Bool
-    let holiday: String
+    /// 农历开着时日期下面那一行；关着时是 nil。
+    let lunarText: String?
+    let festival: Festival?
+    let adjustment: DayAdjustment?
     let batchMode: Bool
-    let batchIndex: Int?
-    let batchCount: Int
+    let isSelected: Bool
     let height: CGFloat
-    let showsFooter: Bool
 
     private var shift: ShiftDefinition? { record.flatMap { document.shift($0.shiftId) } }
+    private var secondaryShift: ShiftDefinition? {
+        record?.secondaryShiftId.flatMap { document.shift($0) }
+    }
     private var tags: [DutyTag] { (record?.tagIds ?? []).compactMap { document.tag($0) } }
 
-    /// 已计入实际工时的班次。
-    private var isCompleted: Bool {
-        guard let record, let shift, shift.countsAsWork else { return false }
-        return record.completed || key < ScheduleCalendar.todayKey
-    }
+    /// 没有记录，或这一天被取消排班。
+    private var isUnscheduled: Bool { record == nil || record?.planned == false }
 
     private var showsHours: Bool {
         guard let shift, let record else { return false }
@@ -106,155 +180,257 @@ private struct DayCell: View {
     }
 
     var body: some View {
-        VStack(spacing: DayCellMetrics.spacing) {
-            dateRow
-            holidayRow
-            if document.display.showShiftTime { timeRow }
-            shiftRow
-            if showsFooter { footerRow }
-        }
-        .padding(.horizontal, 4)
-        .padding(.vertical, DayCellMetrics.verticalPadding)
-        .frame(height: height)
-        .frame(maxWidth: .infinity)
-        .insetSurface(cornerRadius: 12)
-        .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(borderColor, lineWidth: batchIndex != nil || isToday ? 1.6 : 0)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("day-\(key)")
-        .accessibilityLabel(accessibilityText)
-        .accessibilityAddTraits(.isButton)
-    }
-
-    // MARK: - 槽位
-
-    /// 日期在左，状态点固定在右上角。
-    private var dateRow: some View {
-        HStack(spacing: 0) {
-            Text("\(day)")
-                .font(.system(size: 13, weight: isToday ? .bold : .semibold))
-                .foregroundStyle(isToday ? Palette.blue : .primary)
-                .monospacedDigit()
-            Spacer(minLength: 0)
-            statusDot
-        }
-        .frame(height: DayCellMetrics.date)
-    }
-
-    @ViewBuilder
-    private var statusDot: some View {
-        if batchMode {
-            Text(batchBadge)
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(batchIndex == nil ? Color.secondary.opacity(0.5) : Palette.blue)
-        } else if isCompleted {
-            Circle()
-                .fill(Palette.green)
-                .frame(width: 5, height: 5)
-                .accessibilityLabel("已计入工时")
-        }
-    }
-
-    private var holidayRow: some View {
-        Text(holiday.isEmpty ? " " : Holidays.shortName(holiday))
-            .font(.system(size: 9, weight: .semibold))
-            .foregroundStyle(Palette.holiday)
-            .lineLimit(1)
-            .minimumScaleFactor(0.85)
-            .frame(height: DayCellMetrics.holiday)
-            .opacity(holiday.isEmpty ? 0 : 1)
-    }
-
-    /// 起止时间各占一行，写全 `7:00` / `19:00`，字号让位给班次和工时。
-    private var timeRow: some View {
-        VStack(spacing: -1) {
-            Text(shift?.startTime ?? " ")
-            Text(shift?.endTime ?? " ")
-        }
-        .font(.system(size: 8.5, weight: .medium))
-        .monospacedDigit()
-        .foregroundStyle(.secondary)
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
-        .frame(height: DayCellMetrics.time)
-        .opacity((shift?.startTime.isEmpty == false) ? 1 : 0)
-    }
-
-    @ViewBuilder
-    private var shiftRow: some View {
-        if let shift, document.display.showShift {
-            Text(shift.shortName)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .padding(.horizontal, 3)
-                .frame(maxWidth: .infinity)
-                .frame(height: DayCellMetrics.shift)
-                .background(shift.isRest ? AnyShapeStyle(shift.tint.opacity(0.75)) : AnyShapeStyle(shift.gradient),
-                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        } else if record == nil {
-            Text("＋")
-                .font(.system(size: 12))
-                .foregroundStyle(.tertiary)
-                .frame(height: DayCellMetrics.shift)
-        } else {
-            Color.clear.frame(height: DayCellMetrics.shift)
-        }
-    }
-
-    /// 工时在左（这一格里最该看清的数字），标签用彩点在右，不抢位置。
-    private var footerRow: some View {
-        HStack(spacing: 2) {
-            if showsHours, let record {
-                // 工时是这一格最该看清的数字，用主文本色而不是班次色——
-                // 浅黄这类班次色压在浅底上对比度不够。
-                Text(HoursFormatter.hours(record.hours))
-                    .font(.system(size: 10, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+        content
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .background {
+                // 今天和多选选中用同一层淡底；选中另外还有一圈描边，分得开
+                if isSelected || isToday {
+                    RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous)
+                        .fill(Palette.todayFill)
+                }
             }
-            Spacer(minLength: 0)
-            if document.display.showTags, !tags.isEmpty {
-                HStack(spacing: 2) {
-                    ForEach(tags.prefix(3)) { tag in
-                        Circle().fill(tag.tint).frame(width: 4, height: 4)
-                    }
+            .overlay(alignment: .topLeading) { rail(tagMarks) }
+            .overlay(alignment: .topTrailing) { rail(dateMarks) }
+            .overlay(alignment: .bottom) { noteDot }
+            .overlay {
+                // 多选时格子内容一个不藏——班次、工时、标签照常显示，改之前看得见原来是什么。
+                // 可选的状态只靠外框表达：没选是一圈淡描边，选中是蓝框 + 底部一枚勾。
+                if batchMode {
+                    RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous)
+                        .strokeBorder(isSelected ? AnyShapeStyle(Palette.blue) : AnyShapeStyle(Palette.hairline),
+                                      lineWidth: isSelected ? 1.6 : 1)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, Palette.blue)
+                        .background(Circle().fill(Palette.card).padding(1))
+                        // 落在行与行之间的留白里，不挡格子里的字
+                        .offset(y: 8)
+                        .transition(.scale(scale: 0.4).combined(with: .opacity))
+                        .accessibilityHidden(true)
+                }
+            }
+            .animation(.spring(response: 0.26, dampingFraction: 0.7), value: isSelected)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("day-\(key)")
+            .accessibilityLabel(accessibilityText)
+            .accessibilityAddTraits(.isButton)
+    }
+
+    // MARK: - 主列
+
+    private var content: some View {
+        VStack(spacing: DayCellMetrics.spacing) {
+            VStack(spacing: DayCellMetrics.lunarGap) {
+                dateRow
+                if let lunarText { lunarRow(lunarText) }
+            }
+            markRow
+            if document.display.showShiftTime { timeRow }
+        }
+        .padding(.top, DayCellMetrics.paddingTop)
+        .padding(.bottom, DayCellMetrics.paddingBottom)
+        // 只留 3pt。两位数日期在 22pt 字号下约 24pt 宽，在 46pt 的格子里居中后
+        // 正好落在两条 9pt 标记列之间，不必再往里收；收多了「色标 + 工时」就放不下。
+        .padding(.horizontal, 3)
+    }
+
+    /// 今天不改数字颜色，只把字重加到 bold——颜色留给班次和节假日。
+    private var dateRow: some View {
+        Text("\(day)")
+            .font(.system(size: 22, weight: isToday ? .bold : .medium))
+            .monospacedDigit()
+            .foregroundStyle(isUnscheduled || shift?.isRest == true ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(height: DayCellMetrics.dateRow)
+    }
+
+    /// 农历开着时日期下面一行：节日当天写节日（法定红、传统琥珀），平时写农历日子。
+    private func lunarRow(_ lunarText: String) -> some View {
+        Text(festival?.shortName ?? lunarText)
+            .font(.system(size: 8.5, weight: festival == nil ? .medium : .semibold))
+            .foregroundStyle(festival.map { AnyShapeStyle(Self.color(for: $0)) } ?? AnyShapeStyle(.tertiary))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(height: DayCellMetrics.lunarRow)
+    }
+
+    private static func color(for festival: Festival) -> Color {
+        festival.kind == .statutory ? Palette.holiday : Palette.traditionalFestival
+    }
+
+    @ViewBuilder
+    private var markRow: some View {
+        // 主要班次、次要班次、工时排在同一行。两枚色标永远完整显示（`fixedSize`），
+        // 挤不下时只压工时：先收字距，再缩字号。
+        let secondary = document.display.showShift ? secondaryShift : nil
+        HStack(spacing: secondary == nil ? 3 : 2) {
+            if isUnscheduled {
+                Color.clear
+            } else if let shift, shift.isRest {
+                Text(shift.shortName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.restInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                if let secondary { shiftMark(secondary).fixedSize() }
+            } else if let shift {
+                if document.display.showShift { shiftMark(shift).fixedSize() }
+                if let secondary { shiftMark(secondary).fixedSize() }
+                if showsHours, let record {
+                    Text(HoursFormatter.hours(record.hours))
+                        .font(.system(size: secondary == nil ? 10 : 9.5, weight: .semibold))
+                        .tracking(secondary == nil ? 0 : -0.5)
+                        .monospacedDigit()
+                        .foregroundStyle(shift.tone.text)
+                        .lineLimit(1)
+                        .minimumScaleFactor(secondary == nil ? 0.75 : 0.55)
                 }
             }
         }
-        .frame(height: DayCellMetrics.footer)
+        .frame(height: DayCellMetrics.markRow)
+    }
+
+    /// 13pt 色标。简称超过一个字时撑成胶囊，不压字。
+    private func shiftMark(_ shift: ShiftDefinition) -> some View {
+        let tone = shift.tone
+        let isWide = shift.shortName.count > 1
+        return Text(shift.shortName)
+            .font(.system(size: isWide ? 7.5 : 9.5, weight: .bold))
+            .foregroundStyle(tone.ink)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .padding(.horizontal, isWide ? 3 : 0)
+            .frame(width: isWide ? nil : DayCellMetrics.markRow, height: DayCellMetrics.markRow)
+            .background(tone.mark, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var timeRow: some View {
+        if let shift, !shift.fullRange.isEmpty, !shift.isRest {
+            Text(shift.fullRange)
+                .font(.system(size: 8, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(height: DayCellMetrics.timeRow)
+        } else {
+            Color.clear.frame(height: DayCellMetrics.timeRow)
+        }
+    }
+
+    // MARK: - 两侧标记列
+
+    /// 右列：这一天在日历上是什么性质。
+    ///
+    /// 上面是「休」（红）或「班」（蓝），来自国务院的放假安排；
+    /// 农历关着时，节日名也放在这一列，排在「休 / 班」下面。
+    private var dateMarks: [AnyView] {
+        var marks: [AnyView] = []
+        switch adjustment {
+        case .off:
+            marks.append(AnyView(Self.adjustmentMark("休", color: Palette.holiday)))
+        case .work:
+            marks.append(AnyView(Self.adjustmentMark("班", color: Palette.adjustedWorkday)))
+        case nil:
+            break
+        }
+        if lunarText == nil, let festival {
+            marks.append(AnyView(
+                Text(festival.shortName)
+                    .font(.system(size: 7.5, weight: .semibold))
+                    .foregroundStyle(Self.color(for: festival))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            ))
+        }
+        return marks
+    }
+
+    private static func adjustmentMark(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.system(size: 8, weight: .bold))
+            .foregroundStyle(color)
+            .lineLimit(1)
+    }
+
+    /// 左列：这一天我承担什么。最多排三个，多的收成「＋n」。
+    private var tagMarks: [AnyView] {
+        guard document.display.showTags, !tags.isEmpty else { return [] }
+        var marks = tags.prefix(3).map { tag in
+            AnyView(
+                Text(tag.shortName.prefix(1))
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(tag.inkOnSurface)
+                    .lineLimit(1)
+            )
+        }
+        if tags.count > 3 {
+            marks.append(AnyView(
+                Text("＋\(tags.count - 3)")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            ))
+        }
+        return marks
+    }
+
+    @ViewBuilder
+    private func rail(_ marks: [AnyView]) -> some View {
+        if marks.isEmpty {
+            EmptyView()
+        } else {
+            VStack(spacing: 2.5) {
+                ForEach(Array(marks.enumerated()), id: \.offset) { _, mark in mark }
+            }
+            .frame(width: DayCellMetrics.railWidth)
+            .padding(.top, 5)
+        }
+    }
+
+    @ViewBuilder
+    private var noteDot: some View {
+        if let note = record?.note, !note.isEmpty {
+            Circle()
+                .fill(.tertiary)
+                .frame(width: 4, height: 4)
+                .padding(.bottom, 3)
+                .accessibilityHidden(true)
+        }
     }
 
     // MARK: - 细节
 
-    private var batchBadge: String {
-        guard let batchIndex else { return "" }
-        if batchIndex == 0 { return "始" }
-        if batchIndex == batchCount - 1, batchCount > 1 { return "止" }
-        return "✓"
-    }
-
-    private var borderColor: Color {
-        if batchIndex != nil { return Palette.blue }
-        if isToday { return Palette.blue.opacity(0.55) }
-        return .clear
-    }
 
     private var accessibilityText: String {
         var parts = ["\(day)日"]
-        if !holiday.isEmpty { parts.append(holiday) }
+        if isToday { parts.append("今天") }
+        if batchMode { parts.append(isSelected ? "已选中" : "未选中") }
+        if let festival { parts.append(festival.name) }
+        switch adjustment {
+        case .off: parts.append("放假")
+        case .work: parts.append("调休上班")
+        case nil: break
+        }
+        if let lunarText, festival == nil { parts.append("农历\(lunarText)") }
         if let shift {
             parts.append(shift.name)
+            if let secondaryShift { parts.append("次要班次\(secondaryShift.name)") }
             if !shift.fullRange.isEmpty { parts.append(shift.fullRange) }
+        } else {
+            parts.append("未排班")
         }
         if showsHours, let record { parts.append("\(HoursFormatter.compact(record.hours))小时") }
         parts.append(contentsOf: tags.map(\.name))
-        if isCompleted { parts.append("已计入工时") }
+        if let note = record?.note, !note.isEmpty { parts.append("有备注") }
         return parts.joined(separator: "，")
     }
 }

@@ -39,6 +39,16 @@ enum BackupService {
         return document
     }
 
+    /// 从内存里的备份数据还原。备份中心读 iCloud / 本机文件时用。
+    static func decode(data: Data) throws -> ScheduleDocument {
+        guard let raw = try? JSONSerialization.jsonObject(with: data) else {
+            throw BackupError.unreadable
+        }
+        let document = DocumentNormalizer.document(fromBackup: raw)
+        guard !document.shifts.isEmpty else { throw BackupError.unreadable }
+        return document
+    }
+
     private struct BackupPayload: Codable {
         let app: String
         let version: Int

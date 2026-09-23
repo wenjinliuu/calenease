@@ -24,9 +24,21 @@ final class OvertimeRulesTests: XCTestCase {
         var settings = WorkSettings()
         settings.system = .comprehensive
 
+        // 综合计算工时不看单日长短，只看整段周期的总量对不对得上基本工时。
+        // 一天 12 小时离 168 还差得远，所以这里是个负数，不是加班。
         let overtime = OvertimeRules.overtime(records: [record("2026-08-01", hours: 12)],
                                               settings: settings, standardTarget: 168)
-        XCTAssertEqual(overtime, 0)
+        XCTAssertEqual(overtime, 12 - 168)
+    }
+
+    func testComprehensiveOvertimeGoesNegativeWhenShortOfTarget() {
+        var settings = WorkSettings()
+        settings.system = .comprehensive
+        let records = (1...10).map { record(String(format: "2026-08-%02d", $0), hours: 8) }
+
+        // 上了 80，基本工时 96，差 16——额外工时就是 −16，不再夹到 0。
+        // 这样统计页那四张卡才对得上：计划工时 − 基本工时 = 额外工时。
+        XCTAssertEqual(OvertimeRules.overtime(records: records, settings: settings, standardTarget: 96), -16)
     }
 
     func testDisablingOvertimeAlwaysReturnsZero() {
@@ -135,7 +147,7 @@ final class OvertimeRulesTests: XCTestCase {
                             DayRecord(date: "2026-02-15", shiftId: ShiftID.day, hours: 90, source: .manual)]
 
         let months = [ReportingMonth(year: 2026, month: 0), ReportingMonth(year: 2026, month: 1)]
-        // 一月超 20 小时，二月不足不冲抵，合计 20。
-        XCTAssertEqual(WorkHours.periodOvertime(document, records: document.records, months: months), 20)
+        // 一月超 20 小时、二月差 10 小时，逐月结算之后相抵，合计 10。
+        XCTAssertEqual(WorkHours.periodOvertime(document, records: document.records, months: months), 10)
     }
 }

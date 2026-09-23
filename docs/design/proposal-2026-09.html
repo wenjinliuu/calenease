@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>循环班表设计提案</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --canvas:#f4f3ef; --card:#ffffff; --sunk:#eceae4; --line:#dedbd2; --hair:#e8e5dd;
+  --ink1:#1b1a16; --ink2:#67655c; --ink3:#9a988e;
+  --accent:#2168c0; --accent-soft:#e3edfa;
+  --warn:#b5560f; --warn-soft:#fbe8da;
+  --ok:#1a7a52;
+  --today:#2168c0;
+  --holiday-ink:#9a4718; --holiday-wash:#fdeee4;
+  --radius:14px;
+  --font-display:'Archivo','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --font-body:'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans SC',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme: dark;
+  --canvas:#141412; --card:#1e1e1b; --sunk:#26261f; --line:#35342c; --hair:#2c2b24;
+  --ink1:#f2f1ea; --ink2:#a8a69a; --ink3:#6f6d63;
+  --accent:#6aa5ee; --accent-soft:#1a2b42;
+  --warn:#f0a06a; --warn-soft:#3a2416;
+  --ok:#5cc297;
+  --today:#6aa5ee;
+  --holiday-ink:#f0a87c; --holiday-wash:#332014;
+}}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --canvas:#141412; --card:#1e1e1b; --sunk:#26261f; --line:#35342c; --hair:#2c2b24;
+  --ink1:#f2f1ea; --ink2:#a8a69a; --ink3:#6f6d63;
+  --accent:#6aa5ee; --accent-soft:#1a2b42;
+  --warn:#f0a06a; --warn-soft:#3a2416;
+  --ok:#5cc297;
+  --today:#6aa5ee;
+  --holiday-ink:#f0a87c; --holiday-wash:#332014;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--ink1);font-family:var(--font-body);
+  font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:0 72px}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+header.top{padding-block:40px 24px}
+.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
+h1{font-size:clamp(30px,6vw,46px);font-weight:700;letter-spacing:-.02em;line-height:1.12}
+header.top p.lede{color:var(--ink2);max-width:62ch;margin-top:14px;font-size:16px}
+
+/* ---------- sticky control bar ---------- */
+.controls{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:var(--canvas);border-bottom:1px solid var(--hair);margin-inline:-16px;padding:10px 16px;
+  display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+.ctl-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ctl-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-right:2px}
+button.chip{font:inherit;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink2);cursor:pointer;transition:.14s}
+button.chip:hover{border-color:var(--ink3)}
+button.chip[aria-pressed="true"]{background:var(--ink1);border-color:var(--ink1);color:var(--canvas)}
+button.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- sections ---------- */
+section{padding-block:44px 0;scroll-margin-top:80px}
+.sec-head{display:flex;align-items:baseline;gap:14px;border-bottom:2px solid var(--ink1);padding-bottom:9px;margin-bottom:24px;flex-wrap:wrap}
+.sec-num{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--ink3);letter-spacing:.1em}
+.sec-head h2{font-size:23px;font-weight:700;letter-spacing:-.01em}
+.sec-head .sub{color:var(--ink2);font-size:13px;margin-left:auto}
+h3.blk{font-size:17px;font-weight:600;margin:34px 0 4px;letter-spacing:-.005em}
+p.note{color:var(--ink2);font-size:14px;max-width:70ch;margin:8px 0 18px}
+
+/* ---------- findings ---------- */
+.findings{display:grid;gap:1px;background:var(--hair);border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden}
+.find{background:var(--card);padding:16px 18px;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:start}
+.find .sev{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.08em;padding:3px 7px;border-radius:4px;
+  white-space:nowrap;grid-row:span 2}
+.sev.high{background:var(--warn-soft);color:var(--warn)}
+.sev.mid{background:var(--sunk);color:var(--ink2)}
+.find h4{font-size:14.5px;font-weight:600}
+.find p{margin:0;font-size:13.5px;color:var(--ink2)}
+.find code{font-family:var(--font-mono);font-size:12.5px;background:var(--sunk);padding:1px 5px;border-radius:4px;color:var(--ink1)}
+
+/* ---------- swatches ---------- */
+.pal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.pal{background:var(--card);border:1px solid var(--hair);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:12px}
+.pal.on{border-color:var(--ink1);box-shadow:0 0 0 1px var(--ink1)}
+.pal-title{display:flex;align-items:baseline;gap:8px}
+.pal-title h4{font-size:16px;font-weight:700}
+.pal-title span{font-family:var(--font-mono);font-size:11px;color:var(--ink3)}
+.pal p{margin:0;font-size:13px;color:var(--ink2);flex:1}
+.sw-row{display:flex;gap:4px;flex-wrap:wrap}
+.sw{width:46px;height:46px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;font-family:var(--font-display)}
+.sw small{display:none}
+.tok-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.tok-table td{padding:4px 0;border-bottom:1px solid var(--hair);vertical-align:middle}
+.tok-table td:last-child{text-align:right;font-family:var(--font-mono);font-size:11.5px;color:var(--ink2)}
+.dot{width:11px;height:11px;border-radius:3px;display:inline-block;vertical-align:-1px;margin-right:7px;border:1px solid rgba(128,128,128,.25)}
+
+/* ---------- phone frame ---------- */
+.demos{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:22px;align-items:start}
+.demo{background:var(--card);border:1px solid var(--hair);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.demo-hd{padding:14px 16px 12px;border-bottom:1px solid var(--hair)}
+.demo-hd .tag{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;color:var(--ink3);text-transform:uppercase}
+.demo-hd h4{font-size:16.5px;font-weight:700;margin-top:3px}
+.demo-hd p{margin:6px 0 0;font-size:12.8px;color:var(--ink2);line-height:1.55}
+.demo-body{padding:14px 12px 16px;background:var(--canvas)}
+.demo-ft{padding:12px 16px 14px;border-top:1px solid var(--hair);display:grid;gap:7px}
+.pro,.con{font-size:12.5px;color:var(--ink2);display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start}
+.pro b,.con b{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;padding:2px 5px;border-radius:3px;font-weight:600}
+.pro b{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
+.con b{background:var(--sunk);color:var(--ink2)}
+
+/* ---------- calendar core ---------- */
+.cal{--gap:4px}
+.cal .hdr{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--gap);margin-bottom:6px}
+.cal .hdr span{text-align:center;font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--ink3);letter-spacing:.04em}
+.cal .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--gap)}
+.cell{position:relative;border-radius:9px;overflow:hidden;min-width:0;display:flex;flex-direction:column}
+.cell.blank{background:none}
+.dnum{font-family:var(--font-mono);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.short{font-family:var(--font-display);font-weight:700;letter-spacing:.02em}
+.hrs{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:500}
+.tm{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.holi{font-size:9.5px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.today::after{content:"";position:absolute;inset:0;border-radius:9px;border:2px solid var(--today);pointer-events:none}
+
+/* --- design A : filled tile --- */
+.A .cell{aspect-ratio:1/1.16;padding:6px 6px 5px;gap:0;justify-content:space-between;background:var(--sunk)}
+.A .cell .top{display:flex;justify-content:space-between;align-items:flex-start;gap:3px}
+.A .short{font-size:17px;line-height:1;margin-top:auto}
+.A .hrs{font-size:10px;opacity:.82;line-height:1.2}
+.A .tm{font-size:8.5px;opacity:.72;line-height:1.15;display:block}
+.A .holi{position:absolute;left:0;right:0;bottom:0;text-align:center;font-weight:600;padding:1px 2px}
+.A .cell.has-holi{padding-bottom:13px}
+.A .done{width:5px;height:5px;border-radius:50%;flex:none;margin-top:2px}
+
+/* --- design B : rail --- */
+.B .cell{aspect-ratio:1/1.16;background:var(--card);border:1px solid var(--hair);padding:5px 5px 5px 9px;justify-content:space-between}
+.B .rail{position:absolute;left:0;top:0;bottom:0;width:4px}
+.B .top{display:flex;justify-content:space-between;align-items:center}
+.B .dnum{color:var(--ink2)}
+.B .short{font-size:15px;line-height:1.05}
+.B .hrs{font-size:10px;color:var(--ink2)}
+.B .tm{font-size:8.5px;color:var(--ink3);display:block;line-height:1.2}
+.B .holi{color:var(--holiday-ink);font-weight:600}
+.B .cell.rest{background:var(--sunk);border-color:transparent}
+.B .done{width:5px;height:5px;border-radius:50%;background:var(--ok);flex:none}
+
+/* --- design C : 24h bar --- */
+.C .cell{aspect-ratio:1/1.28;background:var(--card);border:1px solid var(--hair);padding:5px 5px 6px;justify-content:space-between}
+.C .top{display:flex;justify-content:space-between;align-items:center;flex:none}
+.C .mid{flex:none}
+.C .short{font-size:14px;line-height:1.05}
+.C .hrs{font-size:9.5px;color:var(--ink2)}
+.C .clock{height:9px;flex:none;border-radius:3px;background:var(--sunk);position:relative;overflow:hidden;margin-top:4px}
+.C .clock i{position:absolute;top:0;bottom:0;display:block}
+.C .clock u{position:absolute;top:0;bottom:0;width:1px;background:color-mix(in srgb,var(--ink3) 45%,transparent)}
+.C .holi{color:var(--holiday-ink);font-weight:600}
+.C .cell.rest .clock{opacity:.45}
+
+/* --- design D : minimal --- */
+.D .cell{aspect-ratio:1/1;background:transparent;align-items:center;justify-content:center;gap:5px;padding:4px 2px}
+.D .dnum{font-size:12.5px;color:var(--ink1)}
+.D .cell.rest .dnum,.D .cell.off .dnum{color:var(--ink3)}
+.D .pip{width:22px;height:5px;border-radius:99px}
+.D .cell.today .pip{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--today)}
+.D .cell.today::after{border:none}
+.D .cell.today .dnum{color:var(--today);font-weight:700}
+.D .holi{position:absolute;top:1px;right:3px;width:4px;height:4px;border-radius:50%;background:var(--holiday-ink);font-size:0}
+.D .strip{margin-top:12px;border-top:1px solid var(--hair);padding-top:10px;display:grid;gap:6px}
+.D .strip .row{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;font-size:12.5px}
+.D .strip .row .k{font-family:var(--font-mono);font-size:11px;color:var(--ink3)}
+
+/* legend strip under calendars */
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.chips .c{padding:3px 9px;border-radius:7px;font-size:11.5px;font-weight:600;font-family:var(--font-display);display:flex;gap:5px;align-items:center}
+.chips .c em{font-style:normal;font-family:var(--font-mono);font-size:9.5px;opacity:.72;font-weight:500}
+
+/* ---------- stats ---------- */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--hair);border-radius:18px;overflow:hidden}
+.panel.now{border-style:dashed;border-color:var(--line)}
+.panel-hd{padding:13px 16px 11px;border-bottom:1px solid var(--hair)}
+.panel-hd .tag{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.panel-hd .tag.bad{color:var(--warn)}
+.panel-hd h4{font-size:16px;font-weight:700;margin-top:2px}
+.panel-hd p{margin:5px 0 0;font-size:12.8px;color:var(--ink2);line-height:1.55}
+.panel-body{padding:18px 16px}
+svg{display:block;max-width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:14px}
+.legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2)}
+.legend i{width:12px;height:3px;border-radius:2px;display:block}
+.legend i.sq{width:10px;height:10px;border-radius:3px}
+
+/* ledger list */
+.ledger{display:grid;gap:0}
+.ledger .r{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--hair)}
+.ledger .r:last-child{border-bottom:none}
+.ledger .r .lbl{font-size:13.5px;color:var(--ink2)}
+.ledger .r .val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:15px;font-weight:600}
+.ledger .r.hero{padding:4px 0 12px;border-bottom:1px solid var(--ink1)}
+.ledger .r.hero .val{font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.ledger .r.hero .lbl{font-size:13px}
+.ledger .r .val small{font-size:12px;font-weight:500;color:var(--ink3);margin-left:3px}
+.ledger .r .val.warnv{color:var(--warn)}
+
+/* rainbow tiles (the "before" example) */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.tile{padding:12px;border-radius:14px;display:grid;gap:5px}
+.tile .tl{font-size:11.5px;opacity:.85}
+.tile .tv{font-family:var(--font-mono);font-size:21px;font-weight:600;line-height:1}
+.tile .td{font-size:10.5px;opacity:.7}
+
+.reco{background:var(--card);border:2px solid var(--ink1);border-radius:18px;padding:20px;display:grid;gap:14px}
+.reco h3{font-size:18px;font-weight:700}
+.reco ol{margin:0;padding-left:20px;display:grid;gap:9px;font-size:14px;color:var(--ink2)}
+.reco ol b{color:var(--ink1)}
+.files{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.files th{text-align:left;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);
+  border-bottom:1px solid var(--line);padding:0 10px 6px 0;font-weight:600}
+.files td{padding:8px 10px 8px 0;border-bottom:1px solid var(--hair);vertical-align:top;color:var(--ink2)}
+.files td:first-child{font-family:var(--font-mono);font-size:12px;color:var(--ink1);white-space:nowrap}
+.files-scroll{overflow-x:auto}
+
+@media (max-width:520px){
+  .tiles{grid-template-columns:1fr}
+  .sec-head .sub{margin-left:0;width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Shift Ledger · 设计提案 · 2026-09</div>
+  <h1>循环班表设计提案</h1>
+  <p class="lede">两个问题域：<b>月历格子</b>怎么排、怎么上色；<b>统计页图形</b>怎么把基本工时、计划工时、已完成、加班这四个数放在一起讲清楚。下面先列现状的具体毛病，再给三套配色地基、四种日历方案、四组统计图形，都可以在上面的控制条里换着看。</p>
+</header>
+
+<div class="controls">
+  <div class="ctl-group">
+    <span class="ctl-label">配色</span>
+    <button class="chip" data-pal="p1" aria-pressed="true">昼夜</button>
+    <button class="chip" data-pal="p2" aria-pressed="false">素墨</button>
+    <button class="chip" data-pal="p3" aria-pressed="false">工牌</button>
+  </div>
+  <div class="ctl-group">
+    <span class="ctl-label">格内信息</span>
+    <button class="chip" data-tog="time" aria-pressed="false">起止时间</button>
+    <button class="chip" data-tog="hours" aria-pressed="true">工时</button>
+    <button class="chip" data-tog="holiday" aria-pressed="true">节假日</button>
+  </div>
+  <div class="ctl-group">
+    <span class="ctl-label">主题</span>
+    <button class="chip" id="themeBtn" aria-pressed="false">深色</button>
+  </div>
+</div>
+
+<!-- ============ 1 诊断 ============ -->
+<section id="diag">
+  <div class="sec-head"><span class="sec-num">01</span><h2>现状问题</h2><span class="sub">对照 <span class="mono">ShiftCatalog.swift · CalendarMonthGrid.swift · StatsScreen.swift</span></span></div>
+  <p class="note">不是"不好看"这种感觉问题，下面每条都能在代码里指到行，对比度是按 WCAG 公式算出来的实际值。</p>
+  <div class="findings" id="findings"></div>
+</section>
+
+<!-- ============ 2 配色 ============ -->
+<section id="palettes">
+  <div class="sec-head"><span class="sec-num">02</span><h2>配色地基</h2><span class="sub">三选一 · 点卡片即切换下方全部演示</span></div>
+  <p class="note">三套都推翻了现在的 <span class="mono">AccentHex</span>。共同的一条规则：<b>班次色不是直接刷在格子上的，而是一组「浅底 + 深字」或「深底 + 浅字」的成对 token</b>，这样对比度由色板保证，不靠临场调。色相顺序过了色盲分离度校验（OKLab ΔE，明暗两套都过）。</p>
+  <div class="pal-grid" id="palGrid"></div>
+
+  <h3 class="blk">共同规则</h3>
+  <div class="findings" id="rules"></div>
+</section>
+
+<!-- ============ 3 日历 ============ -->
+<section id="cal">
+  <div class="sec-head"><span class="sec-num">03</span><h2>日历方案</h2><span class="sub">同一份数据：2026 年 9 月 · 4白2休4夜2休</span></div>
+  <p class="note">四种都是同一个月、同一份排班，方便直接比。今天是 20 号（夜班），25 号是中秋。</p>
+  <div class="demos" id="calDemos"></div>
+</section>
+
+<!-- ============ 4 统计 ============ -->
+<section id="stats">
+  <div class="sec-head"><span class="sec-num">04</span><h2>统计页图形</h2><span class="sub">2026 年 9 月：基本 168h · 计划 240h · 已完成 156h · 加班 72h</span></div>
+
+  <h3 class="blk">4.1　进度：基本 / 计划 / 已完成 / 加班</h3>
+  <p class="note">核心判断：这四个数<b>单位都是小时，是同一把尺子上的四个位置</b>，不是四个并列的类别。现在的做法给了它们四种色相、两种粗细的圆环，等于把「同一把尺」画成了「四种东西」。下面三个方案都只用一条刻度。</p>
+  <div class="stat-grid" id="progressDemos"></div>
+
+  <h3 class="blk">4.2　概览卡片</h3>
+  <p class="note">现在五张卡片五种色相、五块淡色底，颜色不承载任何信息，只是装饰；数字本身用班次色，在浅底上还掉对比度。改法是<b>用字号和位置分层级，不用色相</b>，颜色只留给"超出基本工时"这一个需要预警的状态。</p>
+  <div class="stat-grid" id="kpiDemos"></div>
+
+  <h3 class="blk">4.3　每月工时走势</h3>
+  <p class="note">月度是 12 个离散的桶，不是连续信号，<span class="mono">.monotone</span> 平滑会在月与月之间画出不存在的过渡。</p>
+  <div class="stat-grid" id="trendDemos"></div>
+
+  <h3 class="blk">4.4　班次构成</h3>
+  <div class="stat-grid" id="compDemos"></div>
+</section>
+
+<!-- ============ 5 推荐 ============ -->
+<section id="reco">
+  <div class="sec-head"><span class="sec-num">05</span><h2>推荐组合与落地</h2></div>
+  <div class="reco">
+    <h3>如果只想选一套：昼夜 + 方案 A + 子弹图 + 柱状偏差图</h3>
+    <ol>
+      <li><b>配色用「昼夜」</b>：明度分昼夜，色相分班次。夜班一眼是深块，白班一眼是浅块，整月的轮转节奏在缩略图上就能看出来——这是这款 App 独有的、普通日历给不了的东西。</li>
+      <li><b>日历用方案 A（实心色块）</b>：格子本身就是色块，去掉内层胶囊，省一层嵌套；起止时间默认收起，工时留下。</li>
+      <li><b>进度用子弹图</b>：一条刻度同时放下已完成、计划、基本（目标标记）、加班（超出段），比圆环省一半高度，而且年度周期可以直接往下堆第二行。</li>
+      <li><b>走势用「柱 + 目标线」或「偏差柱」</b>：离散月份用柱，基本工时画成每根柱上的一道横线，超出部分才上橙色。</li>
+      <li><b>节假日不再用红字</b>：红色现在同时是「请假」「周末表头」「删除」和「节假日」四种意思。节假日改成格子底色的暖色晕染 + 深棕文字，红色只留给破坏性操作。</li>
+      <li><b>周末表头的红色去掉</b>：轮班的人不过周末，把周六日染红只会和班次色打架，还暗示了一个对用户不成立的节奏。</li>
+    </ol>
+    <div class="files-scroll">
+    <table class="files">
+      <thead><tr><th>文件</th><th>要改什么</th></tr></thead>
+      <tbody>
+        <tr><td>Design/Palette.swift</td><td>加 <span class="mono">ShiftSurface</span>（fill / ink / rail 三元组）与 <span class="mono">isNightShift</span> 判定；语义色与班次色拆成两组</td></tr>
+        <tr><td>Models/ShiftCatalog.swift</td><td><span class="mono">AccentHex</span> 换成新 6 色板；删掉 <span class="mono">gradientEnd</span>；内置班次重新分配色位，消除重色</td></tr>
+        <tr><td>Design/Surfaces.swift</td><td><span class="mono">ShiftOrb</span> / <span class="mono">MetricTile</span> 改成成对 token；<span class="mono">MetricTile</span> 去掉 tint 底色</td></tr>
+        <tr><td>Features/Calendar/CalendarMonthGrid.swift</td><td>槽位从 5 段压到 3 段；字号接 Dynamic Type；<span class="mono">shiftRow</span> 的内层胶囊并入格子本体</td></tr>
+        <tr><td>Features/Stats/StatsScreen.swift</td><td><span class="mono">ProgressRing</span> → <span class="mono">BulletGauge</span>；<span class="mono">AreaMark</span> 平滑曲线 → <span class="mono">BarMark</span> + <span class="mono">RuleMark</span>；指标卡去色相</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+</div>
+
+<script>
+/* ============================================================
+   数据
+   ============================================================ */
+const SHIFT = {
+  day  :{n:'白班',s:'白',st:'08:00',en:'20:00',h:12,night:false,rest:false},
+  night:{n:'夜班',s:'夜',st:'20:00',en:'08:00',h:12,night:true ,rest:false},
+  morn :{n:'早班',s:'早',st:'08:00',en:'16:00',h:8 ,night:false,rest:false},
+  mid  :{n:'中班',s:'中',st:'16:00',en:'00:00',h:8 ,night:true ,rest:false},
+  late :{n:'晚班',s:'晚',st:'00:00',en:'08:00',h:8 ,night:true ,rest:false},
+  rest :{n:'休息',s:'休',h:0,night:false,rest:true},
+  leave:{n:'请假',s:'假',h:0,night:false,rest:true},
+};
+/* 2026-09：4白2休4夜2休，1 号是周二 */
+const ROSTER = [];
+{ const cyc=['day','day','day','day','rest','rest','night','night','night','night','rest','rest'];
+  for(let d=1;d<=30;d++) ROSTER[d]=cyc[(d-1)%12]; }
+const TODAY=20, LEAD=1, DAYS=30;
+const HOLIDAY={25:'中秋'};
+
+/* ============================================================
+   三套配色
+   ============================================================ */
+const PALETTES = {
+  p1:{
+    name:'昼夜', latin:'Day & Night',
+    desc:'明度分昼夜、色相分班次。白天班浅底深字，夜间班深底浅字——整月缩略图直接显出轮转节奏。是三套里信息量最大的。',
+    light:{ day:['#FFF1CF','#6B4600','#EDA100'], night:['#39336F','#FFFFFF','#4A3AA7'],
+            morn:['#D6F2E5','#0A5C41','#1BAF7A'], mid:['#3A2E64','#FFFFFF','#7A5AF0'],
+            late:['#1E4B86','#FFFFFF','#2A78D6'], rest:['#EDEDE9','#6B6B63','#B4B2A8'],
+            leave:['#F7E7EE','#8A3A5C','#E87BA4'] },
+    dark:{  day:['#4A3A12','#FFD980','#C98500'], night:['#9085E9','#14121F','#9085E9'],
+            morn:['#123D2E','#7EDCB8','#199E70'], mid:['#3C2A60','#D6C4FF','#9085E9'],
+            late:['#3987E5','#0C1220','#3987E5'], rest:['#2A2A27','#A8A89E','#55544C'],
+            leave:['#40202F','#F0A8C4','#D55181'] },
+    tokens:[['画布 canvas','#F4F3EF / #141412'],['卡片 card','#FFFFFF / #1E1E1B'],
+            ['主文本 ink1','#1B1A16 / #F2F1EA'],['强调 accent','#2168C0 / #6AA5EE'],
+            ['加班 warn','#B5560F / #F0A06A'],['节假日','#9A4718 on #FDEEE4']],
+  },
+  p2:{
+    name:'素墨', latin:'Ink',
+    desc:'只有一族靛青。班次靠"是否上色 + 明度深浅 + 简称"区分，色相完全不参与。最接近系统 App 的克制感，整页最安静，代价是班次种类多了会难分。',
+    light:{ day:['#E3E8F0','#293648','#5A7093'], night:['#2F3A4B','#FFFFFF','#2F3A4B'],
+            morn:['#EDF0F5','#3D4E66','#7C8FAC'], mid:['#4A5468','#FFFFFF','#4A5468'],
+            late:['#1F2836','#FFFFFF','#1F2836'], rest:['#F3F3F1','#84847C','#C9C8C0'],
+            leave:['#F0EEF2','#6E6478','#A99FB4'] },
+    dark:{  day:['#2C3646','#C6D4E8','#7C93B5'], night:['#B9C8DE','#161A22','#B9C8DE'],
+            morn:['#232A35','#A3B3C9','#647890'], mid:['#8E9CB2','#12161C','#8E9CB2'],
+            late:['#D6E1F0','#12161C','#D6E1F0'], rest:['#26261F','#9E9C92','#4A4940'],
+            leave:['#2B2732','#B5A9C2','#6B5F78'] },
+    tokens:[['画布 canvas','#F4F4F2 / #131316'],['卡片 card','#FFFFFF / #1C1C20'],
+            ['主文本 ink1','#1A1C20 / #F0F1F4'],['强调 accent','#2F5FA8 / #7EA6E6'],
+            ['加班 warn','#9A5A12 / #E8A55E'],['节假日','#8A4A2A on #F6ECE6']],
+  },
+  p3:{
+    name:'工牌', latin:'Workwear',
+    desc:'高饱和、大色块、强对比。车间、户外、戴手套隔着一米看得清。牺牲了"安静"，换来最强的可辨识度，也最有产品个性。',
+    light:{ day:['#F2B705','#1A1400','#F2B705'], night:['#123A5E','#FFFFFF','#123A5E'],
+            morn:['#0E7C5A','#FFFFFF','#0E7C5A'], mid:['#C2410C','#FFFFFF','#C2410C'],
+            late:['#2B3A80','#FFFFFF','#2B3A80'], rest:['#DCDCD6','#4A4A44','#A9A9A0'],
+            leave:['#B5236B','#FFFFFF','#B5236B'] },
+    dark:{  day:['#F2B705','#1A1400','#F2B705'], night:['#2D6FA8','#06121E','#2D6FA8'],
+            morn:['#17A877','#052018','#17A877'], mid:['#E86A2B','#1E0C02','#E86A2B'],
+            late:['#6E82D6','#0A0E22','#6E82D6'], rest:['#33332C','#B0AFA4','#63625A'],
+            leave:['#E24C93','#24040F','#E24C93'] },
+    tokens:[['画布 canvas','#EEEDE7 / #100F0C'],['卡片 card','#FFFFFF / #1C1B17'],
+            ['主文本 ink1','#16150F / #F5F4EC'],['强调 accent','#0E5FA8 / #5AA8F0'],
+            ['加班 warn','#C2410C / #FF8A4C'],['节假日','#8C2F12 on #FBE4D8']],
+  }
+};
+let PAL='p1';
+const show={time:false,hours:true,holiday:true};
+const isDark=()=>{
+  const t=document.documentElement.getAttribute('data-theme');
+  if(t) return t==='dark';
+  return matchMedia('(prefers-color-scheme: dark)').matches;
+};
+const P=()=>PALETTES[PAL][isDark()?'dark':'light'];
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+
+/* ============================================================
+   1. 诊断
+   ============================================================ */
+const FINDINGS=[
+ ['high','班次胶囊上的白字，九种班次色<b>全部</b>不达标',
+  '<code>shiftRow</code> 一律 <code>.foregroundStyle(.white)</code>。实测对比度：白班黄 <b class="mono">1.62:1</b>、绿 2.59、青 2.69、粉 2.67、橙 2.79、紫 3.07、红 3.21、灰 3.28、蓝 3.65。正文要求 4.5:1，连界面元素的 3:1 都只有蓝色勉强过。白班是最常出现的班次，而它是最糟的一个。'],
+ ['high','渐变的尾色，正好是另一个班次的身份色',
+  '<code>gradientEnd</code> 把蓝收到紫、黄收到橙。而紫是晚班／大夜／责班的色，橙是早班的色。于是夜班胶囊的右下角长得像晚班，白班胶囊的右下角长得像早班。18pt 高的胶囊上，渐变本来也看不出层次，只制造了混淆。'],
+ ['high','内置班次里有三组重色',
+  '夜班与小夜同为 <code>#3a83f6</code>；晚班、大夜、责班同为 <code>#a67df2</code>；其他与门诊同为 <code>#53b559</code>。医护预设一开就有两对同色班次，颜色直接失去区分作用。'],
+ ['high','红色一个色承担了四种含义',
+  '法定节假日、周末表头、请假（粉红）、删除操作，都在红色区间。节假日名 9pt 红字压在浅灰格底上只有 <b class="mono">2.88:1</b>，本来就看不清，还要和这些含义抢解释权。'],
+ ['mid','一个格子里塞了五段信息、五种写死的字号',
+  '日期 13 / 节假日 9 / 起止时间 8.5 / 简称 12 / 工时 10，全是 <code>.system(size:)</code> 硬编码，完全不跟随动态字体。手机上一格宽约 46pt，8.5pt 的两行时间基本是噪点。'],
+ ['mid','格子底色三十天全一样',
+  '每格都是 <code>insetSurface</code> 的同一个三级灰。上班和休息在"底"这一层没有任何差别，全靠里面那颗小胶囊；缩起来看，整月是一张灰方格网。'],
+ ['high','统计页用四种色相去画同一把尺子上的四个数',
+  '基本工时（青）、计划工时（紫）、已完成（绿）、加班（橙）单位都是小时。给它们四个色相，等于宣称它们是四类互不相干的东西，读者反而拼不出"完成了目标的百分之多少"。'],
+ ['mid','圆环用两种粗细表示两件事，却没有目标刻度',
+  '12pt 绿环表示完成度，超出 100% 时再叠一圈 6pt 橙环。粗细差承载了含义但没有图例；而"基本工时"这个目标在环上没有任何标记，看不出离目标还差多远。'],
+ ['mid','五张指标卡五种色相 + 五块淡色底',
+  '颜色不编码任何信息，纯装饰。数字本身用班次色，浅色底上再次掉对比度——代码注释里其实已经为日历格承认过这个问题，但指标卡沿用了同样的做法。'],
+ ['mid','离散月份用了平滑曲线',
+  '<code>.interpolationMethod(.monotone)</code> 在 1 月和 2 月之间画出一条连续过渡，暗示中间存在取值。月度是 12 个桶，桶之间没有中间值。'],
+];
+{const box=document.getElementById('findings');
+ FINDINGS.forEach(([sev,t,d])=>{const f=el('div','find');
+   f.appendChild(el('span','sev '+sev,sev==='high'?'关键':'一般'));
+   f.appendChild(el('h4',null,t)); f.appendChild(el('p',null,d)); box.appendChild(f);});}
+
+const RULES=[
+ ['mid','班次色永远成对出现','每个班次是 <code>(fill, ink, rail)</code> 三元组，不是一个 hex。取色时取的是"一块能写字的面"，不是"一个颜色"，对比度在色板层就已经保证 ≥ 4.5:1。'],
+ ['mid','不计工时的状态不占色位','休息、请假、备班不是"第 N 个班次"，是"没有班"。它们用中性灰 + 纹理/描边区分，把 6 个色位全留给真正要区分的工作班次。'],
+ ['mid','色位顺序经过色盲校验','六色按 <span class="mono">黄→紫→青→橙→蓝→红</span> 排列，相邻色对在红绿色盲与蓝黄色盲下的 OKLab ΔE 最差 9.2（阈值 8），普通视觉最差 27.6（阈值 15），明暗两套都过。顺序本身就是防混淆机制，不能随手调。'],
+ ['mid','图表里最多同时上 3 个班次色','全配对校验下只有前 3 个色位能保证两两可分。班次构成图超过 3 类就并进"其他"，或者改用列表，不要硬塞 8 个色相。'],
+ ['mid','数字永远穿文字色','指标数值、坐标轴、图例文字一律用 ink1/ink2，不穿班次色。身份由旁边那一小块色承担，文字负责可读。'],
+];
+{const box=document.getElementById('rules');
+ RULES.forEach(([sev,t,d])=>{const f=el('div','find');
+   f.appendChild(el('span','sev mid','规则'));
+   f.appendChild(el('h4',null,t)); f.appendChild(el('p',null,d)); box.appendChild(f);});}
+
+/* ============================================================
+   2. 配色卡
+   ============================================================ */
+function renderPalettes(){
+  const box=document.getElementById('palGrid'); box.innerHTML='';
+  Object.entries(PALETTES).forEach(([key,p])=>{
+    const set=p[isDark()?'dark':'light'];
+    const c=el('div','pal'+(key===PAL?' on':''));
+    const t=el('div','pal-title'); t.appendChild(el('h4',null,p.name));
+    t.appendChild(el('span',null,p.latin)); c.appendChild(t);
+    c.appendChild(el('p',null,p.desc));
+    const row=el('div','sw-row');
+    ['day','night','morn','mid','late','rest'].forEach(k=>{
+      const [f,i]=set[k]; const s=el('div','sw',SHIFT[k].s);
+      s.style.background=f; s.style.color=i; row.appendChild(s);
+    });
+    c.appendChild(row);
+    const tb=el('table','tok-table');
+    p.tokens.forEach(([k,v])=>{ const tr=el('tr');
+      tr.appendChild(el('td',null,k)); tr.appendChild(el('td',null,v)); tb.appendChild(tr);});
+    c.appendChild(tb);
+    c.style.cursor='pointer'; c.tabIndex=0; c.setAttribute('role','button');
+    const pick=()=>{PAL=key;document.querySelectorAll('[data-pal]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pal===key));renderAll();};
+    c.onclick=pick; c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick();}};
+    box.appendChild(c);
+  });
+}
+
+/* ============================================================
+   3. 日历
+   ============================================================ */
+function clockSegs(sh){ /* 返回 [start%,width%] 列表 */
+  if(sh.rest) return [];
+  const m=t=>{const[a,b]=t.split(':').map(Number);return a*60+b};
+  let s=m(sh.st), e=m(sh.en); if(e===0)e=1440;
+  if(e<=s) return [[s/14.4,(1440-s)/14.4],[0,e/14.4]];
+  return [[s/14.4,(e-s)/14.4]];
+}
+const CAL_DEFS=[
+ {id:'A',tag:'方案 A',name:'实心色块',
+  p:'格子本体就是班次色，去掉内层胶囊这一层嵌套。白天班浅底深字、夜间班深底浅字，整月是一张明暗交替的轮转图。',
+  pro:'信息密度最高，缩略图就能读出轮转节奏；对比度由成对 token 保证',
+  con:'色块面积大，配色一旦不克制整页会吵；休息日必须彻底退到中性，否则没有留白'},
+ {id:'B',tag:'方案 B',name:'左侧色条',
+  p:'格子保持白卡，班次身份收到左边一条 4pt 色条 + 彩色简称。颜色只占很小面积，整页安静，像 Things / Fantastical 的日程行。',
+  pro:'最克制，大面积留白；色条窄，配色失手的代价小',
+  con:'一米外扫视时识别度弱于 A；休息与上班的区别要靠底色微差'},
+ {id:'C',tag:'方案 C',name:'24 小时条',
+  p:'格子底部加一条 24 小时微型时间轴，填充段的位置就是这个班占的时段。跨午夜的班自动断成两截，早/中/晚班在整月里会呈现明显的位移带。',
+  pro:'这是唯一把"几点上班"编码成位置的方案，轮班的位移一眼可见；跨天班有了正确的视觉表达',
+  con:'多一行结构，格子更高；班次种类少时这条轴信息量偏低'},
+ {id:'D',tag:'方案 D',name:'极简点阵',
+  p:'格子里只留日期和一条色条，工时、时间、标签全部移到日历下方的当月摘要。日历回到"日历"，细节按需展开。',
+  pro:'最快能扫完整月；字号全部可跟随动态字体；一屏能放下两个月',
+  con:'单日细节要点开才能看；不适合需要频繁核对工时的人'},
+];
+function buildCal(def){
+  const set=P();
+  const d=el('div','demo');
+  const hd=el('div','demo-hd');
+  hd.appendChild(el('div','tag',def.tag));
+  hd.appendChild(el('h4',null,def.name));
+  hd.appendChild(el('p',null,def.p)); d.appendChild(hd);
+
+  const body=el('div','demo-body');
+  const cal=el('div','cal '+def.id);
+  const hdr=el('div','hdr'); ['一','二','三','四','五','六','日'].forEach(w=>hdr.appendChild(el('span',null,w)));
+  cal.appendChild(hdr);
+  const grid=el('div','grid');
+  for(let i=0;i<LEAD;i++){const b=el('div','cell blank');b.style.aspectRatio='1/1.16';grid.appendChild(b);}
+  for(let day=1;day<=DAYS;day++){
+    const key=ROSTER[day], sh=SHIFT[key], [fill,ink,rail]=set[key];
+    const done = !sh.rest && day<TODAY;
+    const holi = show.holiday ? (HOLIDAY[day]||'') : '';
+    const c=el('div','cell'+(sh.rest?' rest':'')+(day===TODAY?' today':'')+(holi?' has-holi':''));
+
+    if(def.id==='A'){
+      c.style.background=fill; c.style.color=ink;
+      const top=el('div','top');
+      top.appendChild(el('span','dnum',day));
+      if(done) {const dt=el('span','done'); dt.style.background=ink; dt.style.opacity=.55; top.appendChild(dt);}
+      c.appendChild(top);
+      const mid=el('div');
+      if(show.time&&!sh.rest) mid.appendChild(el('span','tm',sh.st+'–'+sh.en));
+      c.appendChild(mid);
+      const bot=el('div');
+      bot.appendChild(el('div','short',sh.s));
+      if(show.hours&&sh.h>0) bot.appendChild(el('div','hrs',sh.h+'h'));
+      c.appendChild(bot);
+      if(holi){const h=el('div','holi',holi);h.style.background='var(--holiday-wash)';h.style.color='var(--holiday-ink)';c.appendChild(h);}
+    }
+    else if(def.id==='B'){
+      const r=el('span','rail'); r.style.background=sh.rest?'transparent':rail; c.appendChild(r);
+      const top=el('div','top');
+      top.appendChild(el('span','dnum',day));
+      if(done){const dt=el('span','done');top.appendChild(dt);}
+      c.appendChild(top);
+      const mid=el('div');
+      if(holi) mid.appendChild(el('div','holi',holi));
+      if(show.time&&!sh.rest) mid.appendChild(el('span','tm',sh.st+'–'+sh.en));
+      c.appendChild(mid);
+      const bot=el('div');
+      const s=el('div','short',sh.s); s.style.color=sh.rest?'var(--ink3)':rail; bot.appendChild(s);
+      if(show.hours&&sh.h>0) bot.appendChild(el('div','hrs',sh.h+'h'));
+      c.appendChild(bot);
+    }
+    else if(def.id==='C'){
+      const top=el('div','top');
+      top.appendChild(el('span','dnum',day));
+      if(done){const dt=el('span','done');dt.style.cssText='width:5px;height:5px;border-radius:50%;background:var(--ok)';top.appendChild(dt);}
+      c.appendChild(top);
+      const mid=el('div','mid');
+      const s=el('div','short',sh.s); s.style.color=sh.rest?'var(--ink3)':rail; mid.appendChild(s);
+      if(holi) mid.appendChild(el('div','holi',holi));
+      else if(show.hours&&sh.h>0) mid.appendChild(el('div','hrs',sh.h+'h'));
+      c.appendChild(mid);
+      const clock=el('div','clock');
+      const noon=el('u'); noon.style.left='50%'; clock.appendChild(noon);
+      clockSegs(sh).forEach(([x,w])=>{const i=el('i');i.style.left=x+'%';i.style.width=w+'%';i.style.background=rail;clock.appendChild(i);});
+      c.appendChild(clock);
+    }
+    else{
+      c.appendChild(el('span','dnum',day));
+      const p=el('span','pip'); p.style.background=sh.rest?'var(--line)':rail; c.appendChild(p);
+      if(holi) c.appendChild(el('span','holi',holi));
+      if(sh.rest) c.classList.add('off');
+    }
+    grid.appendChild(c);
+  }
+  cal.appendChild(grid);
+
+  if(def.id==='D'){
+    const strip=el('div','strip');
+    [['20 日 · 今天','夜班 20:00–08:00','12h'],['本月','白 12 天 · 夜 8 天 · 休 10 天','240h'],['9 月 25 日','中秋节','—']]
+      .forEach(([k,v,n])=>{const r=el('div','row');
+        r.appendChild(el('span','k',k)); r.appendChild(el('span',null,v));
+        r.appendChild(el('span','mono',n)); strip.appendChild(r);});
+    cal.appendChild(strip);
+  }
+  body.appendChild(cal);
+
+  const chips=el('div','chips');
+  ['day','night','morn','mid','late','rest'].forEach(k=>{
+    const [f,i]=set[k], sh=SHIFT[k];
+    const ch=el('div','c'); ch.style.background=f; ch.style.color=i;
+    ch.innerHTML=sh.n+(sh.st?'<em>'+sh.st+'–'+sh.en+'</em>':'');
+    chips.appendChild(ch);
+  });
+  body.appendChild(chips);
+  d.appendChild(body);
+
+  const ft=el('div','demo-ft');
+  const a=el('div','pro'); a.innerHTML='<b>取</b><span>'+def.pro+'</span>'; ft.appendChild(a);
+  const b=el('div','con'); b.innerHTML='<b>舍</b><span>'+def.con+'</span>'; ft.appendChild(b);
+  d.appendChild(ft);
+  return d;
+}
+
+/* ============================================================
+   4. 统计图形
+   ============================================================ */
+const S={basic:168,plan:240,done:156,ot:72,workDays:20,restDays:10,doneDays:13};
+const MONTHS=[['1月',160,240],['2月',144,120],['3月',176,252],['4月',176,240],['5月',152,138],['6月',168,240],
+              ['7月',184,252],['8月',168,240],['9月',168,240],['10月',152,228],['11月',168,240],['12月',184,252]];
+
+function panel(cls,tag,title,desc,bodyNode){
+  const p=el('div','panel'+(cls?' '+cls:''));
+  const h=el('div','panel-hd');
+  h.appendChild(el('div','tag'+(cls==='now'?' bad':''),tag));
+  h.appendChild(el('h4',null,title));
+  if(desc)h.appendChild(el('p',null,desc));
+  p.appendChild(h);
+  const b=el('div','panel-body'); b.appendChild(bodyNode); p.appendChild(b);
+  return p;
+}
+const SVGNS='http://www.w3.org/2000/svg';
+function svg(w,h){const s=document.createElementNS(SVGNS,'svg');
+  s.setAttribute('viewBox','0 0 '+w+' '+h);s.setAttribute('width','100%');s.setAttribute('role','img');return s}
+function sh(t,a){const e=document.createElementNS(SVGNS,t);for(const k in a)e.setAttribute(k,a[k]);return e}
+function txt(x,y,s,o={}){const t=sh('text',Object.assign({x,y,fill:o.fill||'var(--ink2)','font-size':o.size||11,
+  'font-family':o.mono===false?'var(--font-body)':'var(--font-mono)','font-weight':o.w||500,
+  'text-anchor':o.anchor||'start','dominant-baseline':o.base||'auto'},o.extra||{}));t.textContent=s;return t}
+
+/* --- 4.1 进度 --- */
+function progNow(){
+  const s=svg(300,150), cx=64, cy=66, r=48;
+  const arc=(rad,frac,col,w)=>{const c=2*Math.PI*rad;
+    return sh('circle',{cx,cy,r:rad,fill:'none',stroke:col,'stroke-width':w,'stroke-linecap':'round',
+      'stroke-dasharray':(c*frac)+' '+c,transform:'rotate(-90 '+cx+' '+cy+')'})};
+  s.appendChild(sh('circle',{cx,cy,r,fill:'none',stroke:'var(--sunk)','stroke-width':12}));
+  s.appendChild(arc(r,0.929,'#53b559',12));
+  s.appendChild(txt(cx,cy-1,'156',{size:19,w:600,anchor:'middle',fill:'var(--ink1)'}));
+  s.appendChild(txt(cx,cy+15,'／168h',{size:10,anchor:'middle',fill:'var(--ink3)'}));
+  [['#53b559','已完成','156h'],['#a67df2','计划中','240h'],['#55a8c7','基本工时','168h'],['#ed7c37','额外工时','72h']]
+   .forEach(([c,l,v],i)=>{const y=26+i*24;
+     s.appendChild(sh('circle',{cx:140,cy:y-4,r:4,fill:c}));
+     s.appendChild(txt(152,y,l,{size:11,mono:false}));
+     s.appendChild(txt(292,y,v,{size:11.5,w:600,anchor:'end',fill:'var(--ink1)'}));});
+  return s;
+}
+function bullet(){
+  const W=320,H=176,x0=6,x1=314,span=x1-x0,max=S.plan;
+  const s=svg(W,H), X=v=>x0+span*v/max;
+  const rows=[['本月 9 月',S.done,S.plan,S.basic,34],['年度周期',1708,2856,2016,104]];
+  rows.forEach(([label,done,plan,basic,y])=>{
+    const m=Math.max(plan,basic);
+    const XX=v=>x0+span*v/m;
+    s.appendChild(txt(x0,y-12,label,{size:11.5,mono:false,fill:'var(--ink2)'}));
+    s.appendChild(txt(x1,y-12,done+' / '+basic+'h',{size:11.5,w:600,anchor:'end',fill:'var(--ink1)'}));
+    /* 计划总量：底槽 */
+    s.appendChild(sh('rect',{x:x0,y,width:XX(plan)-x0,height:18,rx:4,fill:'var(--sunk)'}));
+    /* 超出基本工时的一段 */
+    s.appendChild(sh('rect',{x:XX(basic)+2,y,width:XX(plan)-XX(basic)-2,height:18,rx:4,fill:'var(--warn)','fill-opacity':.55}));
+    /* 已完成 */
+    s.appendChild(sh('rect',{x:x0,y:y+4,width:XX(done)-x0,height:10,rx:4,fill:'var(--accent)'}));
+    /* 目标标记 */
+    s.appendChild(sh('rect',{x:XX(basic)-1.5,y:y-5,width:3,height:28,rx:1.5,fill:'var(--ink1)'}));
+    s.appendChild(txt(XX(basic),y+38,'基本 '+basic+'h',{size:10,anchor:'middle',fill:'var(--ink2)'}));
+    s.appendChild(txt(x1,y+38,'计划 '+plan+'h',{size:10,anchor:'end',fill:'var(--ink3)'}));
+  });
+  return s;
+}
+function ringTick(){
+  const s=svg(300,168), cx=84, cy=84, r=58, w=16, C=2*Math.PI*r;
+  const f=v=>v/S.plan;
+  s.appendChild(sh('circle',{cx,cy,r,fill:'none',stroke:'var(--sunk)','stroke-width':w}));
+  s.appendChild(sh('circle',{cx,cy,r,fill:'none',stroke:'var(--warn)','stroke-opacity':.32,'stroke-width':w,
+    'stroke-dasharray':(C*(1-f(S.basic)))+' '+C,'stroke-dashoffset':-C*f(S.basic),
+    transform:'rotate(-90 '+cx+' '+cy+')'}));
+  s.appendChild(sh('circle',{cx,cy,r,fill:'none',stroke:'var(--accent)','stroke-width':w,'stroke-linecap':'butt',
+    'stroke-dasharray':(C*f(S.done))+' '+C,transform:'rotate(-90 '+cx+' '+cy+')'}));
+  const ang=-Math.PI/2+2*Math.PI*f(S.basic);
+  const x1=cx+Math.cos(ang)*(r-w/2-3), y1=cy+Math.sin(ang)*(r-w/2-3);
+  const x2=cx+Math.cos(ang)*(r+w/2+3), y2=cy+Math.sin(ang)*(r+w/2+3);
+  s.appendChild(sh('line',{x1,y1,x2,y2,stroke:'var(--ink1)','stroke-width':3,'stroke-linecap':'round'}));
+  s.appendChild(txt(cx,cy-4,'156',{size:28,w:600,anchor:'middle',fill:'var(--ink1)'}));
+  s.appendChild(txt(cx,cy+16,'已完成 · 小时',{size:10,anchor:'middle',fill:'var(--ink2)',mono:false}));
+  [['基本工时（刻度）','168h',26],['计划工时（整圈）','240h',52],['已完成','156h',78],['额外工时','72h',104]]
+   .forEach(([l,v,y],i)=>{
+     s.appendChild(txt(166,y,l,{size:11,mono:false}));
+     s.appendChild(txt(294,y,v,{size:12,w:600,anchor:'end',fill:i===3?'var(--warn)':'var(--ink1)'}));
+     s.appendChild(sh('line',{x1:166,y1:y+7,x2:294,y2:y+7,stroke:'var(--hair)','stroke-width':1}));});
+  return s;
+}
+function smallMult(){
+  const W=320,H=150,x0=6,x1=250,max=S.plan;
+  const s=svg(W,H), X=v=>x0+(x1-x0)*v/max;
+  [['基本工时',S.basic,'var(--ink3)',18],['计划工时',S.plan,'var(--ink2)',58],['已完成',S.done,'var(--accent)',98]]
+   .forEach(([l,v,c,y])=>{
+    s.appendChild(txt(x0,y-6,l,{size:11,mono:false}));
+    s.appendChild(sh('rect',{x:x0,y,width:x1-x0,height:14,rx:3,fill:'var(--sunk)'}));
+    s.appendChild(sh('rect',{x:x0,y,width:X(v)-x0,height:14,rx:3,fill:c}));
+    s.appendChild(txt(x1+10,y+11,v+'h',{size:12,w:600,fill:'var(--ink1)'}));
+    s.appendChild(sh('line',{x1:X(S.basic),y1:y-2,x2:X(S.basic),y2:y+16,stroke:'var(--ink1)','stroke-width':1.5,'stroke-dasharray':'0'}));
+  });
+  s.appendChild(txt(X(S.basic),136,'基本工时 168h＝共同刻度',{size:10,anchor:'middle',fill:'var(--ink2)',mono:false}));
+  return s;
+}
+
+/* --- 4.2 KPI --- */
+function kpiNow(){
+  const wrap=el('div','tiles');
+  [['出勤天数','20天','休息 10 天','#3a83f6'],['已完成','13天','剩余 7 天','#53b559'],
+   ['计划工时','240h','已完成 156h','#a67df2'],['基本工时','168h','计划高出 72h','#55a8c7'],
+   ['额外工时','72h','综合计算 · 调休','#ed7c37']]
+  .forEach(([l,v,d,c])=>{const t=el('div','tile');
+    t.style.background=c+'1f'; t.style.color=c;
+    t.appendChild(el('div','tl',l)); t.appendChild(el('div','tv',v));
+    const dd=el('div','td',d); dd.style.color='var(--ink2)'; t.appendChild(dd);
+    wrap.appendChild(t);});
+  return wrap;
+}
+function kpiLedger(){
+  const w=el('div','ledger');
+  const hero=el('div','r hero');
+  hero.innerHTML='<span class="lbl">已完成工时<br><span style="color:var(--ink3);font-size:12px">目标 168h · 还差 12h</span></span>'+
+                 '<span class="val">156<small>h</small></span>';
+  w.appendChild(hero);
+  [['计划工时','240h',''],['基本工时（目标）','168h',''],['额外工时','＋72h','warnv'],
+   ['出勤 / 休息','20 / 10 天',''],['已完成班次','13 天','']]
+  .forEach(([l,v,cls])=>{const r=el('div','r');
+    r.innerHTML='<span class="lbl">'+l+'</span><span class="val '+cls+'">'+v+'</span>'; w.appendChild(r);});
+  return w;
+}
+function kpiTiles(){
+  const wrap=el('div');
+  const g=el('div','tiles');
+  [['已完成','156h','目标 168h',true],['计划工时','240h','20 个班',false],
+   ['额外工时','＋72h','超出基本工时',null],['休息','10 天','本月',false]]
+  .forEach(([l,v,d,hero])=>{const t=el('div','tile');
+    t.style.background='var(--sunk)'; t.style.color='var(--ink1)';
+    if(hero===true){t.style.background='var(--accent-soft)';}
+    if(hero===null){t.style.background='var(--warn-soft)';}
+    t.appendChild(el('div','tl',l));
+    const vv=el('div','tv',v); if(hero===null)vv.style.color='var(--warn)'; t.appendChild(vv);
+    const dd=el('div','td',d); dd.style.color='var(--ink2)'; t.appendChild(dd);
+    g.appendChild(t);});
+  wrap.appendChild(g);
+  const n=el('p',null,'色只出现在两处：蓝＝本月主指标，橙＝需要注意的超出量。其余三张一律中性底 + 文字色。');
+  n.style.cssText='font-size:12.5px;color:var(--ink2);margin:14px 0 0';
+  wrap.appendChild(n);
+  return wrap;
+}
+
+/* --- 4.3 走势 --- */
+function trendNow(){
+  const W=320,H=190,x0=30,x1=312,y0=14,y1=150,max=280;
+  const s=svg(W,H);
+  const X=i=>x0+(x1-x0)*i/(MONTHS.length-1), Y=v=>y1-(y1-y0)*v/max;
+  const path=(vals,close)=>{let d='';vals.forEach((v,i)=>{const x=X(i),y=Y(v);
+    if(i===0)d+='M'+x+' '+y; else{const px=X(i-1),py=Y(vals[i-1]),mx=(px+x)/2;d+='C'+mx+' '+py+','+mx+' '+y+','+x+' '+y;}});
+    if(close)d+='L'+x1+' '+y1+'L'+x0+' '+y1+'Z'; return d};
+  const basics=MONTHS.map(m=>m[1]), plans=MONTHS.map(m=>m[2]);
+  s.appendChild(sh('path',{d:path(plans,true),fill:'#ed7c37','fill-opacity':.32}));
+  s.appendChild(sh('path',{d:path(basics,true),fill:'#55a8c7','fill-opacity':.32}));
+  s.appendChild(sh('path',{d:path(plans),fill:'none',stroke:'#ed7c37','stroke-width':2}));
+  s.appendChild(sh('path',{d:path(basics),fill:'none',stroke:'#55a8c7','stroke-width':2}));
+  MONTHS.forEach((m,i)=>{if(i%2===0)s.appendChild(txt(X(i),y1+16,m[0],{size:9.5,anchor:'middle',fill:'var(--ink3)'}))});
+  [0,140,280].forEach(v=>s.appendChild(txt(x0-6,Y(v)+3,v,{size:9.5,anchor:'end',fill:'var(--ink3)'})));
+  s.appendChild(txt(x0,H-6,'平滑曲线在月与月之间造出了不存在的过渡',{size:10,fill:'var(--ink3)',mono:false}));
+  return s;
+}
+function trendBars(){
+  const W=320,H=196,x0=30,x1=314,y0=14,y1=152,max=280;
+  const s=svg(W,H);
+  const bw=(x1-x0)/MONTHS.length, Y=v=>y1-(y1-y0)*v/max;
+  [0,70,140,210,280].forEach(v=>{
+    s.appendChild(sh('line',{x1:x0,y1:Y(v),x2:x1,y2:Y(v),stroke:'var(--hair)','stroke-width':1}));
+    s.appendChild(txt(x0-6,Y(v)+3,v,{size:9.5,anchor:'end',fill:'var(--ink3)'}));});
+  MONTHS.forEach(([lbl,basic,plan],i)=>{
+    const x=x0+bw*i+3, w=bw-6;
+    s.appendChild(sh('rect',{x,y:Y(basic),width:w,height:y1-Y(basic),fill:'var(--accent)','fill-opacity':.85,rx:2}));
+    if(plan>basic) s.appendChild(sh('rect',{x,y:Y(plan),width:w,height:Y(basic)-Y(plan)-2,fill:'var(--warn)',rx:2}));
+    else s.appendChild(sh('rect',{x,y:Y(basic),width:w,height:y1-Y(basic),fill:'var(--canvas)',rx:2}))&&
+         s.appendChild(sh('rect',{x,y:Y(plan),width:w,height:y1-Y(plan),fill:'var(--accent)','fill-opacity':.85,rx:2}));
+    s.appendChild(sh('line',{x1:x-1.5,y1:Y(basic),x2:x+w+1.5,y2:Y(basic),stroke:'var(--ink1)','stroke-width':1.6}));
+    if(i%2===0) s.appendChild(txt(x+w/2,y1+15,lbl.replace('月',''),{size:9.5,anchor:'middle',fill:'var(--ink3)'}));
+  });
+  s.appendChild(txt(x1,y1+15,'月',{size:9.5,anchor:'end',fill:'var(--ink3)',mono:false}));
+  s.appendChild(txt(x0,H-6,'黑横线＝当月基本工时，橙色＝超出的部分',{size:10,fill:'var(--ink2)',mono:false}));
+  return s;
+}
+function trendDiverge(){
+  const W=320,H=196,x0=30,x1=314,mid=92,max=90;
+  const s=svg(W,H);
+  const bw=(x1-x0)/MONTHS.length, Y=v=>mid-(70)*v/max;
+  s.appendChild(sh('line',{x1:x0,y1:mid,x2:x1,y2:mid,stroke:'var(--ink1)','stroke-width':1.4}));
+  [60,30,-30].forEach(v=>{
+    s.appendChild(sh('line',{x1:x0,y1:Y(v),x2:x1,y2:Y(v),stroke:'var(--hair)','stroke-width':1}));
+    s.appendChild(txt(x0-6,Y(v)+3,(v>0?'+':'')+v,{size:9.5,anchor:'end',fill:'var(--ink3)'}));});
+  s.appendChild(txt(x0-6,mid+3,'0',{size:9.5,anchor:'end',fill:'var(--ink2)'}));
+  MONTHS.forEach(([lbl,basic,plan],i)=>{
+    const d=plan-basic, x=x0+bw*i+3, w=bw-6;
+    const y=d>=0?Y(d):mid, h=Math.abs(Y(d)-mid);
+    s.appendChild(sh('rect',{x,y,width:w,height:Math.max(h,1.5),rx:2,fill:d>=0?'var(--warn)':'var(--accent)'}));
+    if(i%2===0) s.appendChild(txt(x+w/2,H-26,lbl.replace('月',''),{size:9.5,anchor:'middle',fill:'var(--ink3)'}));
+  });
+  s.appendChild(txt(x0,H-6,'纵轴＝计划工时 − 基本工时（小时）。向上是加班，向下是缺口。',{size:10,fill:'var(--ink2)',mono:false}));
+  return s;
+}
+
+/* --- 4.4 构成 --- */
+function compNow(){
+  const wrap=el('div');
+  const bar=el('div'); bar.style.cssText='display:flex;gap:2px;height:10px;margin-bottom:14px';
+  [['#f6c543',12],['#3a83f6',8],['#8e8e8e',10]].forEach(([c,n])=>{
+    const i=el('div'); i.style.cssText='flex:'+n+';background:'+c+';border-radius:99px'; bar.appendChild(i);});
+  wrap.appendChild(bar);
+  const L=el('div','ledger');
+  [['白班','08:00–20:00','12 天','40%','#f6c543'],['夜班','20:00–08:00','8 天','27%','#3a83f6'],
+   ['休息','','10 天','33%','#8e8e8e']]
+  .forEach(([n,t,d,p,c])=>{const r=el('div','r');
+    r.innerHTML='<span class="lbl"><span style="display:inline-flex;width:22px;height:22px;border-radius:50%;background:'+c+
+      ';color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-right:8px;vertical-align:-6px">'+
+      n[0]+'</span>'+n+' <span style="color:var(--ink3);font-size:11.5px" class="mono">'+t+'</span></span>'+
+      '<span class="val">'+d+' <small>'+p+'</small></span>';
+    L.appendChild(r);});
+  wrap.appendChild(L);
+  return wrap;
+}
+function compNew(){
+  const set=P(), wrap=el('div');
+  const bar=el('div'); bar.style.cssText='display:flex;gap:2px;height:12px;margin-bottom:16px';
+  [['day',12],['night',8],['rest',10]].forEach(([k,n])=>{
+    const i=el('div'); i.style.cssText='flex:'+n+';background:'+set[k][2]+';border-radius:3px'; bar.appendChild(i);});
+  wrap.appendChild(bar);
+  const L=el('div','ledger');
+  [['day','12 天','40%','144h'],['night','8 天','27%','96h'],['rest','10 天','33%','—']]
+  .forEach(([k,d,p,h])=>{const sf=SHIFT[k],[f,ink,rail]=set[k];const r=el('div','r');
+    r.innerHTML='<span class="lbl"><span class="dot" style="background:'+rail+'"></span>'+sf.n+
+      (sf.st?' <span class="mono" style="color:var(--ink3);font-size:11.5px">'+sf.st+'–'+sf.en+'</span>':'')+'</span>'+
+      '<span class="val">'+d+' <small>'+p+' · '+h+'</small></span>';
+    L.appendChild(r);});
+  wrap.appendChild(L);
+  const n=el('p',null,'色块退成 11px 的小方块，数字穿文字色；条形图用 rail 色但留 2px 缝隙分隔，不画描边。超过 3 个班次时把尾部并成「其他」。');
+  n.style.cssText='font-size:12.5px;color:var(--ink2);margin:14px 0 0';
+  wrap.appendChild(n);
+  return wrap;
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+function renderAll(){
+  renderPalettes();
+  const cd=document.getElementById('calDemos'); cd.innerHTML='';
+  CAL_DEFS.forEach(d=>cd.appendChild(buildCal(d)));
+
+  const pd=document.getElementById('progressDemos'); pd.innerHTML='';
+  pd.appendChild(panel('now','现状','双层圆环 + 四色图例',
+    '绿环＝已完成占基本工时；超 100% 时叠一圈更细的橙环。目标在环上没有标记，四个数用了四种色相。',progNow()));
+  pd.appendChild(panel('','方案 一 · 推荐','子弹图',
+    '一条刻度放下四个量：底槽＝计划工时，蓝条＝已完成，黑竖线＝基本工时（目标），橙色区＝超出目标的部分。月度和年度周期可以上下堆叠共用读法。',bullet()));
+  pd.appendChild(panel('','方案 二','带目标刻度的圆环',
+    '想保留圆环就这样改：整圈＝计划工时（永不溢出），黑刻度线钉在基本工时的位置，蓝弧＝已完成，刻度线之后的浅橙＝加班。单色相 + 一条刻度。',ringTick()));
+  pd.appendChild(panel('','方案 三','共用刻度的三条横杠',
+    '最朴素也最不会出错：三条同起点同比例的横杠，一条竖线贯穿三行标出基本工时。适合放进"仅工时"这种精简形态。',smallMult()));
+
+  const kd=document.getElementById('kpiDemos'); kd.innerHTML='';
+  kd.appendChild(panel('now','现状','五色指标卡',
+    '五种色相、五块 12% 淡色底，数字本身也穿色相。颜色不编码信息，反而在浅底上压低了数字的对比度。',kpiNow()));
+  kd.appendChild(panel('','方案 一 · 推荐','账本式列表',
+    '与 App 名字（班表／ledger）对上：主指标做成大号数字带单位，其余按账本行排，右端数字等宽对齐。只有加班一行着色。',kpiLedger()));
+  kd.appendChild(panel('','方案 二','中性卡片 + 两处着色',
+    '想保留卡片网格就把色相收掉：全部中性底，只有"本月主指标"和"需要注意的超出量"两张带淡色底。',kpiTiles()));
+
+  const td=document.getElementById('trendDemos'); td.innerHTML='';
+  td.appendChild(panel('now','现状','平滑双面积图',
+    '两条 monotone 曲线 + 两块 30%+ 的渐变填充。曲线暗示连续，填充面积相互叠压，读不出单月的准确值。',trendNow()));
+  td.appendChild(panel('','方案 一 · 推荐','柱 + 每月目标线',
+    '每月一根柱＝计划工时，柱上一道黑横线＝当月基本工时，越过横线的一截才上橙色。哪个月在往上顶，一眼就能点出来。',trendBars()));
+  td.appendChild(panel('','方案 二','偏差柱（发散）',
+    '直接画"计划 − 基本"。零线之上是加班，之下是缺口。回答"哪几个月加班"的效率最高，代价是看不到绝对量。',trendDiverge()));
+
+  const cdm=document.getElementById('compDemos'); cdm.innerHTML='';
+  cdm.appendChild(panel('now','现状','色球 + 八色胶囊条',
+    '色球上的白字又一次落进对比度问题（白班黄 1.62:1）；条形段之间用 2px 间隙是对的，但色板本身没做过色盲校验。',compNow()));
+  cdm.appendChild(panel('','方案','小色标 + 账本行',
+    '身份交给 11px 小方块，数字穿文字色，时间段用等宽字。同一行里同时给出天数、占比和工时。',compNew()));
+}
+
+/* 控制 */
+document.querySelectorAll('[data-pal]').forEach(b=>b.onclick=()=>{
+  PAL=b.dataset.pal;
+  document.querySelectorAll('[data-pal]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  renderAll();});
+document.querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.tog; show[k]=!show[k]; b.setAttribute('aria-pressed',show[k]); renderAll();});
+const tb=document.getElementById('themeBtn');
+tb.onclick=()=>{const d=!isDark();document.documentElement.setAttribute('data-theme',d?'dark':'light');
+  tb.setAttribute('aria-pressed',d); tb.textContent=d?'浅色':'深色'; renderAll();};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+  if(!document.documentElement.getAttribute('data-theme')) renderAll();});
+
+renderAll();
+</script>
+
+</body>
+</html>
