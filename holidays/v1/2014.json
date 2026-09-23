@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "year": 2014,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2014-01/02/content_1194.htm"
+  ],
+  "days": [
+    {
+      "date": "2014-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2014-01-26",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2014-01-31",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2014-02-01",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2014-02-02",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2014-02-03",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2014-02-04",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2014-02-05",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2014-02-06",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2014-02-08",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2014-04-05",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2014-04-07",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2014-05-01",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2014-05-02",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2014-05-03",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2014-05-04",
+      "name": "劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2014-06-02",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2014-09-08",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2014-09-28",
+      "name": "国庆节",
+      "type": "work"
+    },
+    {
+      "date": "2014-10-01",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2014-10-02",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2014-10-03",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2014-10-04",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2014-10-05",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2014-10-06",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2014-10-07",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2014-10-11",
+      "name": "国庆节",
+      "type": "work"
+    }
+  ]
+}

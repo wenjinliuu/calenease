@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "year": 2008,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2008-03/28/content_1645.htm"
+  ],
+  "days": [
+    {
+      "date": "2007-12-29",
+      "name": "元旦",
+      "type": "work"
+    },
+    {
+      "date": "2007-12-30",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2007-12-31",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2008-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2008-02-02",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2008-02-03",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2008-02-06",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2008-02-07",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2008-02-08",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2008-02-09",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2008-02-10",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2008-02-11",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2008-02-12",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2008-04-04",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2008-04-05",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2008-04-06",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2008-05-01",
+      "name": "“五一”国际劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2008-05-02",
+      "name": "“五一”国际劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2008-05-03",
+      "name": "“五一”国际劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2008-05-04",
+      "name": "“五一”国际劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2008-06-07",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2008-06-08",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2008-06-09",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2008-09-13",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2008-09-14",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2008-09-15",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2008-09-27",
+      "name": "国庆节",
+      "type": "work"
+    },
+    {
+      "date": "2008-09-28",
+      "name": "国庆节",
+      "type": "work"
+    },
+    {
+      "date": "2008-09-29",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2008-09-30",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2008-10-01",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2008-10-02",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2008-10-03",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2008-10-04",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2008-10-05",
+      "name": "国庆节",
+      "type": "off"
+    }
+  ]
+}

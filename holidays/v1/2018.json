@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "year": 2018,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2017-11/30/content_5243579.htm"
+  ],
+  "days": [
+    {
+      "date": "2018-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2018-02-11",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2018-02-15",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2018-02-16",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2018-02-17",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2018-02-18",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2018-02-19",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2018-02-20",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2018-02-21",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2018-02-24",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2018-04-05",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2018-04-06",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2018-04-07",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2018-04-08",
+      "name": "清明节",
+      "type": "work"
+    },
+    {
+      "date": "2018-04-28",
+      "name": "劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2018-04-29",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2018-04-30",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2018-05-01",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2018-06-18",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2018-09-24",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2018-09-29",
+      "name": "国庆节",
+      "type": "work"
+    },
+    {
+      "date": "2018-09-30",
+      "name": "国庆节",
+      "type": "work"
+    },
+    {
+      "date": "2018-10-01",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2018-10-02",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2018-10-03",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2018-10-04",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2018-10-05",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2018-10-06",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2018-10-07",
+      "name": "国庆节",
+      "type": "off"
+    }
+  ]
+}

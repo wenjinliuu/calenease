@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "source": "NateScarlet/holiday-cn",
+  "generatedAt": "2026-09-23T10:44:58Z",
+  "years": {
+    "2007": {
+      "url": "2007.json",
+      "sha256": "0472903430a1ae97157f1ac32d9c67ee5d42074f8ece0eb006b6f8337c2ab890",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2008": {
+      "url": "2008.json",
+      "sha256": "ee07dd2de6b1a9d2bc1fb130baf3c13b690aa6b53bea940104e8412d08ccd903",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2009": {
+      "url": "2009.json",
+      "sha256": "47e8cf3c019d95560dc6ca096ac9f066eff6e48c0a2baf3e64ffafbd86aa8a04",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2010": {
+      "url": "2010.json",
+      "sha256": "6c6692711c331458e827744974cfa91b12d82b650faa5499394d0312b0cabdba",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2011": {
+      "url": "2011.json",
+      "sha256": "1d34b3832ec7a971f559bbb134ed83eb5b23ded4a6340c1fac0a6186227f38ef",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2012": {
+      "url": "2012.json",
+      "sha256": "3e24499eb26b9d6492875eee49fc58463bd763d358671b022df3c6fa8b747ced",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2013": {
+      "url": "2013.json",
+      "sha256": "bb312aa7af01812b99fe2034f92c8f731990076ce78c4cdd251f6ef510a886fb",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2014": {
+      "url": "2014.json",
+      "sha256": "f35f25fbe4f31bb638217555dd125ba8fad1bbb046af8b77bf947de9edd9c04c",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2015": {
+      "url": "2015.json",
+      "sha256": "2d6bc63fa0d3d9f0825026c525b3918b8f5b5b06e92bd40717f14cfd2ea42497",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2016": {
+      "url": "2016.json",
+      "sha256": "efa0f870d85d0828d5f8ea39c5f999e7f2c2ecd190b94c388c9844dc49547cc3",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2017": {
+      "url": "2017.json",
+      "sha256": "94dcd71afba70a355d112217faeb6f4cffefbe2c1b415aea70ad2e5a670f40c9",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2018": {
+      "url": "2018.json",
+      "sha256": "c64723ab7411b8a920d6b87def61fb8353685b3b9145c2799782b8d43547b7d3",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2019": {
+      "url": "2019.json",
+      "sha256": "abe1c10d5839da1775ea638f405173d9afaa010d11f39533317538d75041345b",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2020": {
+      "url": "2020.json",
+      "sha256": "d8b46aee4fd309601aee0f2a425ea1231fc083f184df72da60c5153eaf27e40e",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2021": {
+      "url": "2021.json",
+      "sha256": "cb0f1ef22d93b19cbbd6f9f9ac1d148d9adb3d51a9c5abc64c4d96dbc70602bf",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2022": {
+      "url": "2022.json",
+      "sha256": "57c68a6baa11ee55100977aee23220493cc386c766898a7019ad653c37adb395",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2023": {
+      "url": "2023.json",
+      "sha256": "4054a8661727980b9b4e930e0b1deb8e4eaf88045f36292045a616ea3b4fd282",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2024": {
+      "url": "2024.json",
+      "sha256": "dc454c1ac2e20ecef8d78cda6618a9e7f6348ac79e50a0a75a993bc2118241f3",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2025": {
+      "url": "2025.json",
+      "sha256": "8ba9d7f347237b71194deda8064745a46cf31bd5b3550975070ca678b08fc636",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2026": {
+      "url": "2026.json",
+      "sha256": "6e990cc905b686570782dababb497d4e10633da40568c118a2112fa303c5a941",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    },
+    "2027": {
+      "url": "2027.json",
+      "sha256": "b48dc36f7896d8cdf77cda251c6febb199b1830eb0a1c9a34a951e270f48c195",
+      "updatedAt": "2026-09-23T10:44:58Z"
+    }
+  }
+}

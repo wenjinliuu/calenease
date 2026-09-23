@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "year": 2007,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2008-03/28/content_1761.htm"
+  ],
+  "days": [
+    {
+      "date": "2006-12-30",
+      "name": "元旦",
+      "type": "work"
+    },
+    {
+      "date": "2006-12-31",
+      "name": "元旦",
+      "type": "work"
+    },
+    {
+      "date": "2007-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2007-01-02",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2007-01-03",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2007-02-17",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2007-02-18",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2007-02-19",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2007-02-20",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2007-02-21",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2007-02-22",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2007-02-23",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2007-02-24",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2007-02-25",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2007-04-28",
+      "name": "“五一”",
+      "type": "work"
+    },
+    {
+      "date": "2007-04-29",
+      "name": "“五一”",
+      "type": "work"
+    },
+    {
+      "date": "2007-05-01",
+      "name": "“五一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-05-02",
+      "name": "“五一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-05-03",
+      "name": "“五一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-05-04",
+      "name": "“五一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-05-05",
+      "name": "“五一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-05-06",
+      "name": "“五一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-05-07",
+      "name": "“五一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-09-29",
+      "name": "“十一”",
+      "type": "work"
+    },
+    {
+      "date": "2007-09-30",
+      "name": "“十一”",
+      "type": "work"
+    },
+    {
+      "date": "2007-10-01",
+      "name": "“十一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-10-02",
+      "name": "“十一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-10-03",
+      "name": "“十一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-10-04",
+      "name": "“十一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-10-05",
+      "name": "“十一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-10-06",
+      "name": "“十一”",
+      "type": "off"
+    },
+    {
+      "date": "2007-10-07",
+      "name": "“十一”",
+      "type": "off"
+    }
+  ]
+}

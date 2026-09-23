@@ -22,3 +22,5 @@ ExportOptions.plist
 AuthKey_*.p8
 *.mobileprovision
 *.p12
+holidays/v1/manifest.json
+cloudbase/holiday-api/holidays/

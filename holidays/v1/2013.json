@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "year": 2013,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2012-12/10/content_1353.htm"
+  ],
+  "days": [
+    {
+      "date": "2013-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2013-01-02",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2013-01-03",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2013-01-05",
+      "name": "元旦",
+      "type": "work"
+    },
+    {
+      "date": "2013-01-06",
+      "name": "元旦",
+      "type": "work"
+    },
+    {
+      "date": "2013-02-09",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2013-02-10",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2013-02-11",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2013-02-12",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2013-02-13",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2013-02-14",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2013-02-15",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2013-02-16",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2013-02-17",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2013-04-04",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2013-04-05",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2013-04-06",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2013-04-07",
+      "name": "清明节",
+      "type": "work"
+    },
+    {
+      "date": "2013-04-27",
+      "name": "劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2013-04-28",
+      "name": "劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2013-04-29",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2013-04-30",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2013-05-01",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2013-06-08",
+      "name": "端午节",
+      "type": "work"
+    },
+    {
+      "date": "2013-06-09",
+      "name": "端午节",
+      "type": "work"
+    },
+    {
+      "date": "2013-06-10",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2013-06-11",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2013-06-12",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2013-09-19",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2013-09-20",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2013-09-21",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2013-09-22",
+      "name": "中秋节",
+      "type": "work"
+    },
+    {
+      "date": "2013-09-29",
+      "name": "国庆节",
+      "type": "work"
+    },
+    {
+      "date": "2013-10-01",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2013-10-02",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2013-10-03",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2013-10-04",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2013-10-05",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2013-10-06",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2013-10-07",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2013-10-12",
+      "name": "国庆节",
+      "type": "work"
+    }
+  ]
+}
