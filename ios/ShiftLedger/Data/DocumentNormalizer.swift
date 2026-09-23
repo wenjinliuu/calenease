@@ -10,6 +10,8 @@ enum DocumentNormalizer {
     static func document(fromBackup raw: Any) -> ScheduleDocument {
         guard let object = raw as? [String: Any] else { return .makeDefault() }
         if let payload = object["data"] { return document(from: payload) }
+        // 没包外层的新格式数据本体也带 records，先按版本号认，别被当成 v1 老数据
+        if (object["dataVersion"] as? Int) == ScheduleDocument.version { return document(from: object) }
         if object["settings"] != nil || object["records"] != nil {
             return migrateLegacy(settings: object["settings"], records: object["records"])
         }
