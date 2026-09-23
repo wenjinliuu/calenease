@@ -2,6 +2,8 @@
 
 公开入口：`https://wenjin-cloudbase-d1empq882391ac1-1311287495.ap-shanghai.app.tcloudbase.com/holidays/v1/index.json`
 
+验收状态（2026-09-23）：默认腾讯云 HTTP 域名将函数的缓存头覆盖为 `no-store, no-cache, must-revalidate, max-age=0`。源数据与 JSON 响应已上线，但此域名尚不满足要求的 `max-age=3600/86400`；工作流仍会按严格约定报警。静态托管默认域名也会覆盖缓存头，且不返回规定的 UTF-8 Content-Type 和 CORS，故不使用静态托管发布。正式交给 App 前需绑定可配置缓存规则的自定义域名并完成整体验收。
+
 数据唯一来源是 [NateScarlet/holiday-cn](https://github.com/NateScarlet/holiday-cn)（MIT）；取其 `master` 的一致快照，从 2007 年起读取所有已存在的 `YYYY.json`。不补全或修改源文件中的日期。源文件跨年日期留在原年份文件。`holidays/v1/` 保存已成功发布的精确 JSON，Git 提交历史可作回滚依据。
 
 `scripts/holidays/build.py` 在发布前校验所有年份、日期、重复日、跨文件类型冲突和 `off` 天数异常。任一失败停止发布。内容无变化时沿用原字节及时间戳，不调用部署。成功后部署独立 HTTP 函数 `shift-holidays-v1-http`，HTTP 网关路径 `/holidays/v1` 完整透传。函数包内的 `holidays/v1/` 与仓库目录相同；公开只读 `GET/HEAD`，响应 JSON UTF-8、CORS `*`，索引缓存 3600 秒、年份文件 86400 秒。

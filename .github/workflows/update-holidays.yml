@@ -25,6 +25,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test holiday validation rules
+        run: python3 -m unittest scripts/holidays/test_build.py
+
       - name: Check calendar window
         id: window
         env:
