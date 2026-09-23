@@ -134,7 +134,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue create --assignee "${{ github.repository_owner }}" \
-            --title "节假日数据管线失败：${{ github.run_id }}" \
-            --body "本次未完成节假日数据发布；请检查校验、部署、回滚与公开响应头。运行记录：$RUN_URL" \
-            || echo 'Issue notification failed; workflow failure remains visible in Actions.'
+          existing="$(gh issue list --state open --search '节假日数据管线失败 in:title' --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "再次失败；运行记录：$RUN_URL"
+          else
+            gh issue create --assignee "${{ github.repository_owner }}" \
+              --title '节假日数据管线失败' \
+              --body "本次未完成节假日数据发布；请检查校验、部署、回滚与公开响应头。运行记录：$RUN_URL"
+          fi
