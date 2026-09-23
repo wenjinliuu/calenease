@@ -25,6 +25,11 @@ targets:
     platform: iOS
     sources:
       - path: ShiftLedger
+      # 放假安排快照：仓库根目录的 holidays/v1/ 原样打进包里（由 Update China holidays
+      # 工作流维护），第一次打开没网也有数据。App 运行时再从腾讯云更新。
+      - path: ../holidays
+        type: folder
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.wenjinliu.shiftledger

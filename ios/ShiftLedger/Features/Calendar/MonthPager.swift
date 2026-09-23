@@ -48,6 +48,7 @@ struct MonthPager: View {
                              focusedIndex: focusStore.focusedIndex,
                              batchMode: batchMode,
                              selectedDates: selectedDates,
+                             holidays: focusStore.holidays,
                              contentHeight: CalendarMonthGrid.height(rows: 6, display: display) + bottomSlack,
                              rows: rows,
                              onSelect: onSelect,
@@ -87,6 +88,7 @@ private struct MonthPagerScroll: View, Equatable {
     let focusedIndex: Int
     let batchMode: Bool
     let selectedDates: Set<String>
+    let holidays: HolidayCalendar
     let contentHeight: CGFloat
     let rows: PagerRows
     let onSelect: (String) -> Void
@@ -99,6 +101,7 @@ private struct MonthPagerScroll: View, Equatable {
          focusedIndex: Int,
          batchMode: Bool,
          selectedDates: Set<String>,
+         holidays: HolidayCalendar,
          contentHeight: CGFloat,
          rows: PagerRows,
          onSelect: @escaping (String) -> Void,
@@ -108,6 +111,7 @@ private struct MonthPagerScroll: View, Equatable {
         self.focusedIndex = focusedIndex
         self.batchMode = batchMode
         self.selectedDates = selectedDates
+        self.holidays = holidays
         self.contentHeight = contentHeight
         self.rows = rows
         self.onSelect = onSelect
@@ -119,7 +123,7 @@ private struct MonthPagerScroll: View, Equatable {
         lhs.focusedIndex == rhs.focusedIndex && lhs.todayKey == rhs.todayKey
             && lhs.batchMode == rhs.batchMode && lhs.selectedDates == rhs.selectedDates
             && lhs.contentHeight == rhs.contentHeight && lhs.rows === rhs.rows
-            && lhs.document == rhs.document
+            && lhs.holidays == rhs.holidays && lhs.document == rhs.document
     }
 
     /// 前后各五十年，足够翻。`LazyHStack` 只建看得见的那两三页。
@@ -140,6 +144,7 @@ private struct MonthPagerScroll: View, Equatable {
                                       todayKey: todayKey,
                                       batchMode: batchMode,
                                       selectedDates: selectedDates,
+                                      holidays: holidays,
                                       onSelect: onSelect)
                         .equatable()
                         .frame(height: contentHeight, alignment: .top)

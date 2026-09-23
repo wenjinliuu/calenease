@@ -300,7 +300,9 @@ struct CalendarScreen: View {
         let completed = workRecords.filter { $0.countsAsCompleted(today: store.todayKey) }
         let projectedHours = workRecords.reduce(0) { $0 + $1.hours }
         let actualHours = completed.reduce(0) { $0 + $1.hours }
-        let basic = WorkHours.monthlyTarget(document, year: store.focusedYear, month: store.focusedMonth)
+        // 显式传入 store.holidays：放假安排下载更新后，这张卡跟着重算。
+        let basic = WorkHours.monthlyTarget(document, year: store.focusedYear, month: store.focusedMonth,
+                                            holidays: store.holidays)
         let overtime = WorkHours.overtimeForCalendarMonth(document,
                                                          year: store.focusedYear,
                                                          month: store.focusedMonth,

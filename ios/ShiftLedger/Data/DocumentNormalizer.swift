@@ -198,7 +198,8 @@ enum DocumentNormalizer {
             showTags: raw["showTags"] as? Bool ?? true,
             showShiftTime: raw["showShiftTime"] as? Bool ?? false,
             showHours: raw["showHours"] as? Bool ?? false,
-            showHolidays: raw["showHolidays"] as? Bool ?? true
+            showHolidays: raw["showHolidays"] as? Bool ?? true,
+            showLunar: raw["showLunar"] as? Bool ?? false
         )
     }
 

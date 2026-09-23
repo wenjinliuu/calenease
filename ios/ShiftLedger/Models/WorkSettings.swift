@@ -113,7 +113,29 @@ struct CalendarDisplaySettings: Codable, Hashable, Sendable {
     var showTags: Bool = true
     var showShiftTime: Bool = true
     var showHours: Bool = true
+    /// 右上角的「休 / 班」。农历关着时，节日名也跟着显示在右上角。
     var showHolidays: Bool = true
+    /// 日期下面一行农历，节日当天换成节日名。默认关，打开后格子高一行。
+    var showLunar: Bool = false
+
+    enum CodingKeys: String, CodingKey {
+        case showShift, showTags, showShiftTime, showHours, showHolidays, showLunar
+    }
+}
+
+extension CalendarDisplaySettings {
+    /// 逐个字段按缺省值兜底：老版本存下的文件没有 `showLunar`，
+    /// 不能因为少一个新字段就整份解码失败。
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let fallback = CalendarDisplaySettings()
+        showShift = try container.decodeIfPresent(Bool.self, forKey: .showShift) ?? fallback.showShift
+        showTags = try container.decodeIfPresent(Bool.self, forKey: .showTags) ?? fallback.showTags
+        showShiftTime = try container.decodeIfPresent(Bool.self, forKey: .showShiftTime) ?? fallback.showShiftTime
+        showHours = try container.decodeIfPresent(Bool.self, forKey: .showHours) ?? fallback.showHours
+        showHolidays = try container.decodeIfPresent(Bool.self, forKey: .showHolidays) ?? fallback.showHolidays
+        showLunar = try container.decodeIfPresent(Bool.self, forKey: .showLunar) ?? fallback.showLunar
+    }
 }
 
 /// 工时与加班的统计设置。

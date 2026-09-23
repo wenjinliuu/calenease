@@ -312,12 +312,17 @@ struct SettingsScreen: View {
     // MARK: - 显示
 
     private var displaySection: some View {
-        Section("日历显示") {
+        Section {
             Toggle("显示班次简称", isOn: displayBind(\.showShift))
             Toggle("显示职责标签", isOn: displayBind(\.showTags))
             Toggle("显示班次时间", isOn: displayBind(\.showShiftTime))
             Toggle("显示当日工时", isOn: displayBind(\.showHours))
-            Toggle("显示法定节假日", isOn: displayBind(\.showHolidays))
+            Toggle("显示农历", isOn: displayBind(\.showLunar))
+            Toggle("显示放假与调休", isOn: displayBind(\.showHolidays))
+        } header: {
+            Text("日历显示")
+        } footer: {
+            Text("农历和节日按系统农历计算，显示在日期下面；关掉农历后，节日移到格子右上角。放假与调休按国务院公布的安排，在右上角标「休」「班」，联网自动更新，也用于推算每月基本工时。")
         }
     }
 

@@ -13,6 +13,9 @@ struct StatsScreen: View {
     private var document: ScheduleDocument { store.document }
 
     var body: some View {
+        // 基本工时按 `HolidayCalendar.shared` 推算；读一下 store.holidays，
+        // 放假安排下载更新后这一页跟着重算。
+        let _ = store.holidays
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {

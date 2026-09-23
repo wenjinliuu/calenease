@@ -13,11 +13,18 @@ struct ShiftLedgerApp: App {
                 .environment(preferences)
                 .preferredColorScheme(preferences.colorScheme)
                 .tint(Palette.blue)
-                .task { store.load() }
+                .task {
+                    store.load()
+                    store.refreshHolidaysIfNeeded()
+                }
         }
         .onChange(of: scenePhase) { _, phase in
+            // 回到前台顺手看一眼放假安排有没有更新（最多半天查一次）。
+            guard phase != .active else {
+                store.refreshHolidaysIfNeeded()
+                return
+            }
             // 退到后台先把未落盘的编辑写下去。
-            guard phase != .active else { return }
             Task { @MainActor in store.flush() }
         }
     }

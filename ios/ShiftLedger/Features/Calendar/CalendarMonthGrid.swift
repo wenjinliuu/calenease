@@ -4,7 +4,7 @@ import SwiftUI
 ///
 /// 格子本身不填底色（除了「今天」那一格），整块网格坐在一张白卡上。日期数字是主角，
 /// 颜色只剩一枚 13pt 色标。格子左右各留一条 9pt 的标记列：
-/// 左列放职责标签（这天我承担什么），右列放法定节假日（这天在日历上是什么性质）。
+/// 左列放职责标签（这天我承担什么），右列放「休 / 班」（这天在日历上是什么性质）。
 /// 两类信息含义不同，分开放比挤在一列清楚，日期也因此真正居中。
 ///
 /// 格子高度贴合内容，留白放在行与行之间——行距 17pt。
@@ -20,12 +20,13 @@ struct CalendarMonthGrid: View, Equatable {
     let todayKey: String
     var batchMode: Bool = false
     var selectedDates: Set<String> = []
+    var holidays: HolidayCalendar = .empty
     let onSelect: (String) -> Void
 
     nonisolated static func == (lhs: CalendarMonthGrid, rhs: CalendarMonthGrid) -> Bool {
         lhs.year == rhs.year && lhs.month == rhs.month && lhs.todayKey == rhs.todayKey
             && lhs.batchMode == rhs.batchMode && lhs.selectedDates == rhs.selectedDates
-            && lhs.document == rhs.document
+            && lhs.holidays == rhs.holidays && lhs.document == rhs.document
     }
 
     private var cellHeight: CGFloat { DayCellMetrics.height(for: document.display) }
@@ -78,12 +79,15 @@ struct CalendarMonthGrid: View, Equatable {
 
     private func cell(day: Int, records: [String: DayRecord]) -> some View {
         let key = ScheduleCalendar.key(year: year, month: month, day: day)
+        let display = document.display
         return DayCell(day: day,
                        key: key,
                        record: records[key],
                        document: document,
                        isToday: key == todayKey,
-                       holiday: document.display.showHolidays ? Holidays.name(of: key) : "",
+                       lunarText: display.showLunar ? LunarCalendar.text(for: key) : nil,
+                       festival: display.showLunar || display.showHolidays ? Festivals.festival(on: key) : nil,
+                       adjustment: display.showHolidays ? holidays.adjustment(on: key) : nil,
                        batchMode: batchMode,
                        isSelected: selectedDates.contains(key),
                        height: cellHeight)
@@ -126,6 +130,9 @@ enum DayCellMetrics {
     static let dateRow: CGFloat = 22
     static let markRow: CGFloat = 13
     static let timeRow: CGFloat = 11
+    /// 日期下面的农历 / 节日那一行，和日期之间只隔 1pt，读起来是一组。
+    static let lunarRow: CGFloat = 10
+    static let lunarGap: CGFloat = 1
     static let spacing: CGFloat = 4
     static let paddingTop: CGFloat = 8
     static let paddingBottom: CGFloat = 9
@@ -136,6 +143,7 @@ enum DayCellMetrics {
 
     static func height(for display: CalendarDisplaySettings) -> CGFloat {
         var height = paddingTop + dateRow + paddingBottom
+        if display.showLunar { height += lunarGap + lunarRow }
         height += spacing + markRow
         if display.showShiftTime { height += spacing + timeRow }
         return height
@@ -148,7 +156,10 @@ private struct DayCell: View {
     let record: DayRecord?
     let document: ScheduleDocument
     let isToday: Bool
-    let holiday: String
+    /// 农历开着时日期下面那一行；关着时是 nil。
+    let lunarText: String?
+    let festival: Festival?
+    let adjustment: DayAdjustment?
     let batchMode: Bool
     let isSelected: Bool
     let height: CGFloat
@@ -212,7 +223,10 @@ private struct DayCell: View {
 
     private var content: some View {
         VStack(spacing: DayCellMetrics.spacing) {
-            dateRow
+            VStack(spacing: DayCellMetrics.lunarGap) {
+                dateRow
+                if let lunarText { lunarRow(lunarText) }
+            }
             markRow
             if document.display.showShiftTime { timeRow }
         }
@@ -232,6 +246,20 @@ private struct DayCell: View {
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             .frame(height: DayCellMetrics.dateRow)
+    }
+
+    /// 农历开着时日期下面一行：节日当天写节日（法定红、传统琥珀），平时写农历日子。
+    private func lunarRow(_ lunarText: String) -> some View {
+        Text(festival?.shortName ?? lunarText)
+            .font(.system(size: 8.5, weight: festival == nil ? .medium : .semibold))
+            .foregroundStyle(festival.map { AnyShapeStyle(Self.color(for: $0)) } ?? AnyShapeStyle(.tertiary))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(height: DayCellMetrics.lunarRow)
+    }
+
+    private static func color(for festival: Festival) -> Color {
+        festival.kind == .statutory ? Palette.holiday : Palette.traditionalFestival
     }
 
     @ViewBuilder
@@ -293,17 +321,35 @@ private struct DayCell: View {
 
     /// 右列：这一天在日历上是什么性质。
     ///
-    /// 设计里这一列还留了「调休上班」的绿色「班」字（本该休却要上，含义与节假日相反），
-    /// 但数据层目前没有调休来源——`Holidays` 只判定法定节假日——所以先只渲染节假日。
+    /// 上面是「休」（红）或「班」（蓝），来自国务院的放假安排；
+    /// 农历关着时，节日名也放在这一列，排在「休 / 班」下面。
     private var dateMarks: [AnyView] {
-        guard !holiday.isEmpty else { return [] }
-        return [AnyView(
-            Text(Holidays.shortName(holiday))
-                .font(.system(size: 7.5, weight: .semibold))
-                .foregroundStyle(Palette.holiday)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-        )]
+        var marks: [AnyView] = []
+        switch adjustment {
+        case .off:
+            marks.append(AnyView(Self.adjustmentMark("休", color: Palette.holiday)))
+        case .work:
+            marks.append(AnyView(Self.adjustmentMark("班", color: Palette.adjustedWorkday)))
+        case nil:
+            break
+        }
+        if lunarText == nil, let festival {
+            marks.append(AnyView(
+                Text(festival.shortName)
+                    .font(.system(size: 7.5, weight: .semibold))
+                    .foregroundStyle(Self.color(for: festival))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            ))
+        }
+        return marks
+    }
+
+    private static func adjustmentMark(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.system(size: 8, weight: .bold))
+            .foregroundStyle(color)
+            .lineLimit(1)
     }
 
     /// 左列：这一天我承担什么。最多排三个，多的收成「＋n」。
@@ -359,7 +405,13 @@ private struct DayCell: View {
         var parts = ["\(day)日"]
         if isToday { parts.append("今天") }
         if batchMode { parts.append(isSelected ? "已选中" : "未选中") }
-        if !holiday.isEmpty { parts.append(holiday) }
+        if let festival { parts.append(festival.name) }
+        switch adjustment {
+        case .off: parts.append("放假")
+        case .work: parts.append("调休上班")
+        case nil: break
+        }
+        if let lunarText, festival == nil { parts.append("农历\(lunarText)") }
         if let shift {
             parts.append(shift.name)
             if !shift.fullRange.isEmpty { parts.append(shift.fullRange) }

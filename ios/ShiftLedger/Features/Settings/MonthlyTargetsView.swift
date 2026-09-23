@@ -25,7 +25,8 @@ struct MonthlyTargetsView: View {
                 ForEach(0..<12, id: \.self) { month in
                     let key = ScheduleCalendar.monthKey(year: year, month: month)
                     let override = document.targets[key]
-                    let value = WorkHours.monthlyTarget(document, year: year, month: month)
+                    let value = WorkHours.monthlyTarget(document, year: year, month: month,
+                                                        holidays: store.holidays)
                     Button {
                         editing = ReportingMonth(year: year, month: month)
                     } label: {

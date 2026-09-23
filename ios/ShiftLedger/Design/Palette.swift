@@ -244,10 +244,13 @@ enum Palette {
 
     // MARK: 日历专用
 
-    /// 法定节假日。比 systemRed 深一阶，8pt 的小字才压得住白底。
+    /// 放假的「休」和八个法定节日。比 systemRed 深一阶，8pt 的小字才压得住白底。
     static let holiday = Color(uiColor: .dynamic(light: "#D70015", dark: "#FF6961"))
-    /// 调休上班。含义与节假日相反——本该休却要上，所以用绿不用红。
-    static let swapWork = Color(uiColor: .dynamic(light: "#248A3D", dark: "#30D158"))
+    /// 调休上班的「班」。含义与「休」相反，用系统蓝。
+    static let adjustedWorkday = Color(.systemBlue)
+    /// 元宵、七夕这类传统节日：比法定节日淡一档的琥珀色，一眼分得出「不放假」。
+    /// 浅色 4.6:1、深色 9.6:1，8pt 小字也看得清。
+    static let traditionalFestival = Color(uiColor: .dynamic(light: "#A8651C", dark: "#E0A458"))
     /// 今天那一格的填充。
     static let todayFill = Color(uiColor: .dynamic(light: Tone.todayFillLight, dark: Tone.todayFillDark))
     /// 休息日的简称。

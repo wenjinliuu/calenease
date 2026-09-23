@@ -16,6 +16,12 @@ final class ScheduleStore {
     private(set) var isReady = false
     private(set) var lastSaveError: String?
 
+    /// 当前生效的放假与调休安排。日历格子、基本工时都从这里取；
+    /// 下载到新数据时替换，读它的视图跟着重画。
+    private(set) var holidays: HolidayCalendar = .empty
+    @ObservationIgnored private var holidaySnapshot = HolidayData.Snapshot()
+    @ObservationIgnored private var holidayRefreshTask: Task<Void, Never>?
+
     /// 当前查看的月份（零基）。
     var focusedYear: Int
     var focusedMonth: Int
@@ -55,6 +61,7 @@ final class ScheduleStore {
 
     func load() {
         materializedYears.removeAll()
+        loadHolidays()
         // 截图流程用示例数据启动，既不读也不写用户文件。
         if DemoData.isEnabled {
             document = DemoData.document()
@@ -81,6 +88,46 @@ final class ScheduleStore {
         dropRetiredTemplates()
         migratePaletteIfNeeded()
         materializeFocusedYears()
+    }
+
+    // MARK: - 放假安排
+
+    /// 单元测试跑在宿主 App 里。别让 App 自己装上放假数据——测试要的是可复现的本地推算，
+    /// 用到真实安排的测试自己构造 `HolidayCalendar` 传进去。
+    private static var isRunningTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
+    /// 读包里的快照和本机缓存。
+    private func loadHolidays() {
+        guard !Self.isRunningTests else { return }
+        installHolidays(HolidayData.loadLocal())
+    }
+
+    private func installHolidays(_ snapshot: HolidayData.Snapshot) {
+        holidaySnapshot = snapshot
+        let calendar = snapshot.calendar
+        HolidayCalendar.shared = calendar
+        if calendar != holidays { holidays = calendar }
+    }
+
+    /// 联网检查放假安排有没有更新。距上次成功检查不到半天就跳过；失败了下次回到前台再试。
+    func refreshHolidaysIfNeeded() {
+        guard !Self.isRunningTests, !DemoData.isEnabled, holidayRefreshTask == nil else { return }
+        let key = "holidays.lastCheckedAt"
+        let last = UserDefaults.standard.double(forKey: key)
+        guard Date().timeIntervalSince1970 - last >= HolidayData.refreshInterval else { return }
+        let current = holidaySnapshot
+        holidayRefreshTask = Task { [weak self] in
+            do {
+                let next = try await HolidayData.refresh(from: current)
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: key)
+                if let next { self?.installHolidays(next) }
+            } catch {
+                // 没网、超时、格式不对：保留本地数据，下次再试。
+            }
+            self?.holidayRefreshTask = nil
+        }
     }
 
     /// 下线的内置模板从老数据里清掉。

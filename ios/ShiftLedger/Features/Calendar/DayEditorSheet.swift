@@ -96,13 +96,17 @@ struct DayEditorSheet: View {
         .presentationCornerRadius(28)
     }
 
-    /// 标题写「9月9日 周三」，是法定节假日再缀上名字。
+    /// 标题写「9月9日 周三」，节日缀上节日名，放假 / 调休再缀「休」「班」。
     private var titleText: String {
         guard let parts = ScheduleCalendar.components(from: date) else { return date }
         let weekday = ScheduleCalendar.weekdaySymbols[ScheduleCalendar.weekdayIndex(date)]
         var text = "\(parts.month + 1)月\(parts.day)日 周\(weekday)"
-        let holiday = Holidays.name(of: date)
-        if !holiday.isEmpty { text += " · \(holiday)" }
+        if let festival = Festivals.festival(on: date) { text += " · \(festival.name)" }
+        switch store.holidays.adjustment(on: date) {
+        case .off: text += " · 休"
+        case .work: text += " · 班"
+        case nil: break
+        }
         return text
     }
 
