@@ -11,6 +11,7 @@ from pathlib import Path
 
 base, directory = sys.argv[1].rstrip('/'), Path(sys.argv[2])
 index = json.loads((directory / 'index.json').read_text())
+cache_mismatches = []
 for filename in ['index.json', *(entry['url'] for entry in index['years'].values())]:
     expected = (directory / filename).read_bytes()
     for attempt in range(8):
@@ -21,14 +22,18 @@ for filename in ['index.json', *(entry['url'] for entry in index['years'].values
                 headers = response.headers
             assert actual == expected, f'{filename}: bytes differ from candidate'
             assert headers.get('Content-Type', '').lower() == 'application/json; charset=utf-8', filename
-            expected_cache = 'max-age=3600' if filename == 'index.json' else 'max-age=86400'
-            assert headers.get('Cache-Control') == expected_cache, f'{filename}: Cache-Control={headers.get("Cache-Control")!r}, expected={expected_cache!r}'
             assert headers.get('Access-Control-Allow-Origin') == '*', filename
             if filename != 'index.json':
                 assert hashlib.sha256(actual).hexdigest() == index['years'][filename[:-5]]['sha256'], filename
+            expected_cache = 'max-age=3600' if filename == 'index.json' else 'max-age=86400'
+            if headers.get('Cache-Control') != expected_cache:
+                cache_mismatches.append(f'{filename}: {headers.get("Cache-Control")!r} (expected {expected_cache!r})')
             break
         except Exception:
             if attempt == 7:
                 raise
             time.sleep(5)
-print(f'Public HTTPS contract verified for {len(index["years"])} years and index')
+print(f'HTTPS bytes, SHA-256, Content-Type and CORS verified for {len(index["years"])} years and index')
+if cache_mismatches:
+    raise ValueError('Cache-Control mismatch: ' + '; '.join(cache_mismatches))
+print('Cache-Control verified for every file')
