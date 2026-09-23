@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "year": 2023,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2022-12/08/content_5730844.htm"
+  ],
+  "days": [
+    {
+      "date": "2022-12-31",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2023-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2023-01-02",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2023-01-21",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2023-01-22",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2023-01-23",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2023-01-24",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2023-01-25",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2023-01-26",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2023-01-27",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2023-01-28",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2023-01-29",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2023-04-05",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2023-04-23",
+      "name": "劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2023-04-29",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2023-04-30",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2023-05-01",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2023-05-02",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2023-05-03",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2023-05-06",
+      "name": "劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2023-06-22",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2023-06-23",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2023-06-24",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2023-06-25",
+      "name": "端午节",
+      "type": "work"
+    },
+    {
+      "date": "2023-09-29",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2023-09-30",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2023-10-01",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2023-10-02",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2023-10-03",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2023-10-04",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2023-10-05",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2023-10-06",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2023-10-07",
+      "name": "中秋节、国庆节",
+      "type": "work"
+    },
+    {
+      "date": "2023-10-08",
+      "name": "中秋节、国庆节",
+      "type": "work"
+    }
+  ]
+}

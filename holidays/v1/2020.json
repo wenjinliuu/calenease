@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "year": 2020,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2019-11/21/content_5454164.htm",
+    "http://www.gov.cn/zhengce/zhengceku/2020-01/27/content_5472352.htm"
+  ],
+  "days": [
+    {
+      "date": "2020-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2020-01-19",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2020-01-24",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2020-01-25",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2020-01-26",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2020-01-27",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2020-01-28",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2020-01-29",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2020-01-30",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2020-01-31",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2020-02-01",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2020-02-02",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2020-02-03",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2020-04-04",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2020-04-05",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2020-04-06",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2020-04-26",
+      "name": "劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2020-05-01",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2020-05-02",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2020-05-03",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2020-05-04",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2020-05-05",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2020-05-09",
+      "name": "劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2020-06-25",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2020-06-26",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2020-06-27",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2020-06-28",
+      "name": "端午节",
+      "type": "work"
+    },
+    {
+      "date": "2020-09-27",
+      "name": "国庆节、中秋节",
+      "type": "work"
+    },
+    {
+      "date": "2020-10-01",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2020-10-02",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2020-10-03",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2020-10-04",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2020-10-05",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2020-10-06",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2020-10-07",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2020-10-08",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2020-10-10",
+      "name": "国庆节、中秋节",
+      "type": "work"
+    }
+  ]
+}

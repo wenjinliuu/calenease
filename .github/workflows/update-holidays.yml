@@ -1,0 +1,140 @@
+name: Update China holidays
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * 1'  # Monday 10:17 Asia/Shanghai, Oct 15–Jan 31
+    - cron: '17 2 1 * *'  # 1st 10:17 Asia/Shanghai, outside that window
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: shift-holidays-production
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      TCB_DISABLE_REPORT: '1'
+      CLOUDBASE_ENV_ID: wenjin-cloudbase-d1empq882391ac1
+      HOLIDAY_BASE: https://wenjin-cloudbase-d1empq882391ac1-1311287495.ap-shanghai.app.tcloudbase.com/holidays/v1
+      CLOUDBASE_API_KEY: ${{ secrets.CLOUDBASE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check calendar window
+        id: window
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+        run: |
+          python3 - <<'PY'
+          import datetime, os
+          today = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).date()
+          weekly = (today.month in (11, 12, 1) or (today.month == 10 and today.day >= 15))
+          should_run = os.environ['EVENT_NAME'] != 'schedule' or (
+              (os.environ['CRON'] == '17 2 * * 1' and weekly) or
+              (os.environ['CRON'] == '17 2 1 * *' and not weekly)
+          )
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              print(f'run={str(should_run).lower()}', file=out)
+          print(f'China date: {today}; should run: {should_run}')
+          PY
+
+      - name: Ensure deploy credential is configured
+        if: steps.window.outputs.run == 'true'
+        run: test -n "$CLOUDBASE_API_KEY" || { echo 'Add repository secret CLOUDBASE_API_KEY'; exit 1; }
+
+      - name: Fetch the sole upstream data source
+        if: steps.window.outputs.run == 'true'
+        run: git clone --depth 1 --branch master https://github.com/NateScarlet/holiday-cn.git "$RUNNER_TEMP/holiday-cn"
+
+      - name: Validate every year and build candidate
+        if: steps.window.outputs.run == 'true'
+        run: |
+          python3 scripts/holidays/build.py \
+            --source "$RUNNER_TEMP/holiday-cn" \
+            --previous holidays/v1 \
+            --output "$RUNNER_TEMP/next-holidays" \
+            --commit "$(git -C "$RUNNER_TEMP/holiday-cn" rev-parse HEAD)"
+          cp -R "$RUNNER_TEMP/next-holidays" "$RUNNER_TEMP/backup-candidate"
+
+      - name: Detect content changes
+        if: steps.window.outputs.run == 'true'
+        id: changes
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          value = json.loads((Path(os.environ['RUNNER_TEMP']) / 'next-holidays/manifest.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              print(f"changed={str(value['indexChanged']).lower()}", file=out)
+          print('Changed years:', value['changed'])
+          PY
+
+      - name: Detect initial deployment
+        if: steps.window.outputs.run == 'true'
+        id: deploy
+        run: |
+          if [ '${{ steps.changes.outputs.changed }}' = true ] || ! curl --fail --silent --show-error --max-time 20 "$HOLIDAY_BASE/index.json" >/dev/null; then
+            echo 'needed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'needed=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save candidate for review and rollback
+        if: steps.deploy.outputs.needed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: holidays-candidate-${{ github.run_id }}
+          path: ${{ runner.temp }}/next-holidays/
+          retention-days: 90
+
+      - name: Deploy one consistent function package
+        if: steps.deploy.outputs.needed == 'true'
+        run: |
+          mkdir -p cloudbase/holiday-api/holidays/v1
+          cp "$RUNNER_TEMP"/next-holidays/*.json cloudbase/holiday-api/holidays/v1/
+          npm --prefix cloudbase/holiday-api test
+          npm install --global @cloudbase/cli@3.8.3
+          tcb login --cloudbase-api-key "$CLOUDBASE_API_KEY" -e "$CLOUDBASE_ENV_ID" --yes
+          tcb env use "$CLOUDBASE_ENV_ID" --yes
+          tcb fn deploy shift-holidays-v1-http --force --yes
+
+      - name: Verify public endpoint, headers and hashes
+        if: steps.deploy.outputs.needed == 'true'
+        run: |
+          python3 scripts/holidays/verify.py "$HOLIDAY_BASE" "$RUNNER_TEMP/next-holidays"
+
+      - name: Record successfully deployed version
+        if: steps.deploy.outputs.needed == 'true'
+        run: |
+          cp "$RUNNER_TEMP"/next-holidays/*.json holidays/v1/
+          git add holidays/v1/*.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update China holiday data'
+            git push
+          fi
+
+      - name: Restore last published version on deployment failure
+        if: failure() && steps.deploy.outputs.needed == 'true'
+        run: |
+          mkdir -p cloudbase/holiday-api/holidays/v1
+          cp holidays/v1/*.json cloudbase/holiday-api/holidays/v1/
+          tcb fn deploy shift-holidays-v1-http --force --yes
+
+      - name: Alert repository maintainer
+        if: failure() && steps.window.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create --assignee "${{ github.repository_owner }}" \
+            --title "节假日数据管线失败：${{ github.run_id }}" \
+            --body "本次未完成节假日数据发布；请检查校验、部署、回滚与公开响应头。运行记录：$RUN_URL" \
+            || echo 'Issue notification failed; workflow failure remains visible in Actions.'

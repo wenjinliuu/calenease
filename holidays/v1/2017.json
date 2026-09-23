@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "year": 2017,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2016-12/01/content_5141603.htm"
+  ],
+  "days": [
+    {
+      "date": "2017-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2017-01-02",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2017-01-22",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2017-01-27",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2017-01-28",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2017-01-29",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2017-01-30",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2017-01-31",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2017-02-01",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2017-02-02",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2017-02-04",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2017-04-01",
+      "name": "清明节",
+      "type": "work"
+    },
+    {
+      "date": "2017-04-02",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2017-04-03",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2017-04-04",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2017-05-01",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2017-05-27",
+      "name": "端午节",
+      "type": "work"
+    },
+    {
+      "date": "2017-05-28",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2017-05-29",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2017-05-30",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2017-09-30",
+      "name": "中秋节、国庆节",
+      "type": "work"
+    },
+    {
+      "date": "2017-10-01",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2017-10-02",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2017-10-03",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2017-10-04",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2017-10-05",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2017-10-06",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2017-10-07",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2017-10-08",
+      "name": "中秋节、国庆节",
+      "type": "off"
+    }
+  ]
+}

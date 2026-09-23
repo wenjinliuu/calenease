@@ -1,0 +1,7 @@
+{
+  "name": "shift-ledger-holidays-api",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {"node": ">=20.19"},
+  "scripts": {"test": "node --test"}
+}

@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "year": 2016,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2015-12/10/content_10394.htm"
+  ],
+  "days": [
+    {
+      "date": "2016-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2016-02-06",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2016-02-07",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2016-02-08",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2016-02-09",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2016-02-10",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2016-02-11",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2016-02-12",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2016-02-13",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2016-02-14",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2016-04-04",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2016-05-01",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2016-05-02",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2016-06-09",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2016-06-10",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2016-06-11",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2016-06-12",
+      "name": "端午节",
+      "type": "work"
+    },
+    {
+      "date": "2016-09-15",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2016-09-16",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2016-09-17",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2016-09-18",
+      "name": "中秋节",
+      "type": "work"
+    },
+    {
+      "date": "2016-10-01",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2016-10-02",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2016-10-03",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2016-10-04",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2016-10-05",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2016-10-06",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2016-10-07",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2016-10-08",
+      "name": "国庆节",
+      "type": "work"
+    },
+    {
+      "date": "2016-10-09",
+      "name": "国庆节",
+      "type": "work"
+    }
+  ]
+}

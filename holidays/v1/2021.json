@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "year": 2021,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2020-11/25/content_5564127.htm"
+  ],
+  "days": [
+    {
+      "date": "2021-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2021-01-02",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2021-01-03",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2021-02-07",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2021-02-11",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2021-02-12",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2021-02-13",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2021-02-14",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2021-02-15",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2021-02-16",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2021-02-17",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2021-02-20",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2021-04-03",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2021-04-04",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2021-04-05",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2021-04-25",
+      "name": "劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2021-05-01",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2021-05-02",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2021-05-03",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2021-05-04",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2021-05-05",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2021-05-08",
+      "name": "劳动节",
+      "type": "work"
+    },
+    {
+      "date": "2021-06-12",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2021-06-13",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2021-06-14",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2021-09-18",
+      "name": "中秋节",
+      "type": "work"
+    },
+    {
+      "date": "2021-09-19",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2021-09-20",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2021-09-21",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2021-09-26",
+      "name": "国庆节",
+      "type": "work"
+    },
+    {
+      "date": "2021-10-01",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2021-10-02",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2021-10-03",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2021-10-04",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2021-10-05",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2021-10-06",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2021-10-07",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2021-10-09",
+      "name": "国庆节",
+      "type": "work"
+    }
+  ]
+}

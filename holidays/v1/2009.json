@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "year": 2009,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2008-12/10/content_1572.htm"
+  ],
+  "days": [
+    {
+      "date": "2009-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2009-01-02",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2009-01-03",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2009-01-04",
+      "name": "元旦",
+      "type": "work"
+    },
+    {
+      "date": "2009-01-24",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2009-01-25",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2009-01-26",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2009-01-27",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2009-01-28",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2009-01-29",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2009-01-30",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2009-01-31",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2009-02-01",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2009-04-04",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2009-04-05",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2009-04-06",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2009-05-01",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2009-05-02",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2009-05-03",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2009-05-28",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2009-05-29",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2009-05-30",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2009-05-31",
+      "name": "端午节",
+      "type": "work"
+    },
+    {
+      "date": "2009-09-27",
+      "name": "国庆节、中秋节",
+      "type": "work"
+    },
+    {
+      "date": "2009-10-01",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2009-10-02",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2009-10-03",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2009-10-04",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2009-10-05",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2009-10-06",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2009-10-07",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2009-10-08",
+      "name": "国庆节、中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2009-10-10",
+      "name": "国庆节、中秋节",
+      "type": "work"
+    }
+  ]
+}

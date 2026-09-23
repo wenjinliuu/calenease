@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "year": 2015,
+  "source": {
+    "repo": "NateScarlet/holiday-cn",
+    "commit": "18c8f140cd8574faf72c8bb5cd0a9bdf9d1c1b6c",
+    "fetchedAt": "2026-09-23T10:44:58Z"
+  },
+  "papers": [
+    "http://www.gov.cn/zhengce/zhengceku/2014-12/16/content_9302.htm",
+    "http://www.gov.cn/zhengce/zhengceku/2015-05/13/content_9742.htm"
+  ],
+  "days": [
+    {
+      "date": "2015-01-01",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2015-01-02",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2015-01-03",
+      "name": "元旦",
+      "type": "off"
+    },
+    {
+      "date": "2015-01-04",
+      "name": "元旦",
+      "type": "work"
+    },
+    {
+      "date": "2015-02-15",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2015-02-18",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2015-02-19",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2015-02-20",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2015-02-21",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2015-02-22",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2015-02-23",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2015-02-24",
+      "name": "春节",
+      "type": "off"
+    },
+    {
+      "date": "2015-02-28",
+      "name": "春节",
+      "type": "work"
+    },
+    {
+      "date": "2015-04-05",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2015-04-06",
+      "name": "清明节",
+      "type": "off"
+    },
+    {
+      "date": "2015-05-01",
+      "name": "劳动节",
+      "type": "off"
+    },
+    {
+      "date": "2015-06-20",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2015-06-22",
+      "name": "端午节",
+      "type": "off"
+    },
+    {
+      "date": "2015-09-03",
+      "name": "抗日战争暨世界反法西斯战争胜利70周年纪念日",
+      "type": "off"
+    },
+    {
+      "date": "2015-09-04",
+      "name": "抗日战争暨世界反法西斯战争胜利70周年纪念日",
+      "type": "off"
+    },
+    {
+      "date": "2015-09-05",
+      "name": "抗日战争暨世界反法西斯战争胜利70周年纪念日",
+      "type": "off"
+    },
+    {
+      "date": "2015-09-06",
+      "name": "抗日战争暨世界反法西斯战争胜利70周年纪念日",
+      "type": "work"
+    },
+    {
+      "date": "2015-09-27",
+      "name": "中秋节",
+      "type": "off"
+    },
+    {
+      "date": "2015-10-01",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2015-10-02",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2015-10-03",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2015-10-04",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2015-10-05",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2015-10-06",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2015-10-07",
+      "name": "国庆节",
+      "type": "off"
+    },
+    {
+      "date": "2015-10-10",
+      "name": "国庆节",
+      "type": "work"
+    }
+  ]
+}
