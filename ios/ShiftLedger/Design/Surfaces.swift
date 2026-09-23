@@ -11,22 +11,17 @@ extension View {
     func pageBackground() -> some View {
         self
             .scrollContentBackground(.hidden)
-            .background(Palette.canvas)
+            .background(Palette.grouped)
     }
 
     /// 卡片：日历页的浮层、统计卡、分组容器。
     ///
-    /// 页面是近白、卡片是纯白，两者只差 4% 亮度，所以边界交给描边。
-    /// 不用阴影——近白底上的阴影会脏，描边干净得多。
+    /// 白底上的浅灰块，不描边也不加阴影。
     func card(cornerRadius: CGFloat = 22, padding: CGFloat = 16) -> some View {
         self
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.card, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Palette.cardStroke, lineWidth: 1)
-            }
     }
 
     /// 卡片里的内层面：日历格、指标块。

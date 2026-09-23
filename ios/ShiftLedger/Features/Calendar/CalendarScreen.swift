@@ -1,81 +1,91 @@
 import SwiftUI
 
-/// 日历页：月度排班 + 本月展望。
+/// 日历页。
 ///
-/// 左右滑动切月交给 `MonthPager`（系统分页滚动，相邻月份跟着滑进来）；
-/// 点月份标题可以直接跳到任意年月。
+/// 顶上一行简化标题：左边大字月份（不是今年再带一个小年份），点它跳到任意年月日；
+/// 右边是「今天」、多选、循环排班。下面整宽的月历，再往下是选中那一天的面板、
+/// 下一班和倒数日。
+///
+/// 点格子分两步：第一下只是选中（蓝圈），再点一下选中的那天才打开大抽屉。
+/// 打开 App 时今天已经是选中的，所以点今天一下就直接进编辑。
 struct CalendarScreen: View {
     @Environment(ScheduleStore.self) private var store
-    @Environment(\.showToast) private var showToast
 
-    @State private var editingDate: String?
+    @State private var selectedDate: String = ScheduleCalendar.todayKey
+    @State private var sheet: CalendarSheet?
     @State private var isGeneratorPresented = false
     @State private var batchMode = false
     @State private var batchDates: Set<String> = []
     @State private var isBatchEditorPresented = false
-    @State private var isPeriodPickerPresented = false
 
     /// 进出多选用的弹簧：略带一点回弹，行动条展开、网格下移、格子描边淡入都走这一条，
     /// 几样东西同一节奏动，看起来是一个整体在让位，而不是各动各的。
     private let batchAnimation = Animation.spring(response: 0.42, dampingFraction: 0.84)
 
     private var document: ScheduleDocument { store.document }
+    private var shiftsEnabled: Bool { document.features.shiftsEnabled }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-                    monthPanel
-                    nextShiftCard
-                    outlookSection
+                    VStack(spacing: 0) {
+                        header
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 10)
+
+                        // 行动条一直在布局里，只是收起时高度为零并裁掉：展开时从上往下拉开，
+                        // 下面的网格跟着同一条弹簧平滑下移，而不是先整块顶下去再淡入。
+                        batchBar
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 12)
+                            .frame(height: batchMode ? nil : 0, alignment: .top)
+                            .clipped()
+                            .opacity(batchMode ? 1 : 0)
+                            .scaleEffect(batchMode ? 1 : 0.96, anchor: .top)
+                            .allowsHitTesting(batchMode)
+                            .accessibilityHidden(!batchMode)
+
+                        MonthPager(focusedIndex: store.focusedIndex,
+                                   batchMode: batchMode,
+                                   selectedDates: batchDates,
+                                   selectedDay: selectedDate,
+                                   onSelect: handleTap)
+                            .padding(.horizontal, 6)
+                    }
+
+                    VStack(spacing: 14) {
+                        DayPanel(date: selectedDate,
+                                 onEditShift: { sheet = .day(selectedDate, .shift) },
+                                 onOpenEvents: { sheet = .day(selectedDate, .events) },
+                                 onEditEvent: { sheet = .event(.edit($0)) },
+                                 onNewEvent: { sheet = .event(.new(on: selectedDate, reminders: document.reminders)) },
+                                 onTimeline: { sheet = .timeline(selectedDate) })
+                        if shiftsEnabled { nextShiftCard }
+                        CountdownSection { countdown in
+                            sheet = .countdown(countdown)
+                        }
+                    }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 16)
                 .padding(.top, 4)
-                .padding(.bottom, 20)
+                .padding(.bottom, 24)
             }
             .background(Palette.canvas)
-            .navigationTitle("循环班表")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        withAnimation(batchAnimation) {
-                            batchMode.toggle()
-                            batchDates = []
-                        }
-                    } label: {
-                        // 图标原地变形（清单 ⇄ 叉），不是整颗按钮一闪换掉；
-                        // 进入多选时按钮染成强调蓝，一眼看得出现在处在多选里。
-                        Image(systemName: batchMode ? "xmark" : "checklist")
-                            .font(.body.weight(.semibold))
-                            .contentTransition(.symbolEffect(.replace.downUp.byLayer, options: .nonRepeating))
-                            .foregroundStyle(batchMode ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-                            .frame(width: 30, height: 30)
-                            .background {
-                                Circle()
-                                    .fill(Palette.blue)
-                                    .scaleEffect(batchMode ? 1 : 0.2)
-                                    .opacity(batchMode ? 1 : 0)
-                            }
-                    }
-                    .accessibilityLabel(batchMode ? "退出多选" : "批量修改")
-                    .sensoryFeedback(.impact(weight: .light), trigger: batchMode)
+            .toolbarVisibility(.hidden, for: .navigationBar)
+            .sheet(item: $sheet) { item in
+                switch item {
+                case let .day(date, segment):
+                    DayEditorSheet(date: date, initialSegment: segment)
+                case let .event(target):
+                    EventEditorSheet(target: target)
+                case let .timeline(date):
+                    DayTimelineSheet(startDate: date)
+                case let .countdown(countdown):
+                    CountdownEditorSheet(original: countdown, today: store.todayKey)
+                case .jump:
+                    DateJumpSheet(initial: selectedDate) { date in jump(to: date) }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isGeneratorPresented = true
-                    } label: {
-                        Label("循环排班", systemImage: "sparkles")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.small)
-                    .tint(Palette.blue)
-                }
-            }
-            .sheet(item: Binding(get: { editingDate.map(DateKeyBox.init) },
-                                 set: { editingDate = $0?.key })) { box in
-                DayEditorSheet(date: box.key)
             }
             .sheet(isPresented: $isGeneratorPresented) {
                 CycleGeneratorSheet()
@@ -88,61 +98,116 @@ struct CalendarScreen: View {
             }) {
                 BatchEditorSheet(dates: batchDates.sorted())
             }
-            .sheet(isPresented: $isPeriodPickerPresented) {
-                let current = store.currentMonthIndex
-                PeriodPickerSheet(mode: .month,
-                                  selectedYear: store.focusedYear,
-                                  selectedMonth: store.focusedMonth,
-                                  currentYear: current / 12,
-                                  currentMonth: current % 12) { year, month in
-                    withAnimation(.smooth(duration: 0.3)) { store.focus(year: year, month: month) }
+            .sensoryFeedback(.selection, trigger: store.focusedMonthKey)
+            .sensoryFeedback(.selection, trigger: selectedDate)
+            .onChange(of: store.focusedIndex) { _, index in
+                // 翻到别的月：本月选今天，其他月选 1 号。跳转已经选好了那个月里的某天就不动。
+                guard !selectedDate.hasPrefix(store.focusedMonthKey) else { return }
+                selectedDate = index == store.currentMonthIndex
+                    ? store.todayKey
+                    : ScheduleCalendar.key(year: store.focusedYear, month: store.focusedMonth, day: 1)
+            }
+            .onChange(of: shiftsEnabled) { _, enabled in
+                if !enabled {
+                    batchMode = false
+                    batchDates = []
                 }
             }
-            .sensoryFeedback(.selection, trigger: store.focusedMonthKey)
         }
     }
 
-    // MARK: - 月历
+    // MARK: - 标题行
 
-    private var monthPanel: some View {
-        VStack(spacing: 0) {
-            MonthSwitcher(label: store.focusedMonthLabel,
-                          onPrevious: { changeMonth(-1) },
-                          onNext: { changeMonth(1) },
-                          onToday: {
-                              withAnimation(.smooth(duration: 0.3)) { store.goToCurrentMonth() }
-                          },
-                          onPickLabel: { isPeriodPickerPresented = true })
-                .padding(.bottom, 12)
+    private var header: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Button { sheet = .jump } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text("\(store.focusedMonth + 1)")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: Double(store.focusedMonth)))
+                    Text("月")
+                        .font(.title3.weight(.bold))
+                    if store.focusedYear != store.currentMonthIndex / 12 {
+                        Text("\(String(store.focusedYear))年")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.leading, 4)
+                            .transition(.opacity.combined(with: .move(edge: .leading)))
+                    }
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                        .padding(.leading, 2)
+                }
+                .foregroundStyle(.primary)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(store.focusedMonthLabel)
+            .accessibilityHint("跳到任意日期")
 
-            // 行动条一直在布局里，只是收起时高度为零并裁掉：展开时从上往下拉开，
-            // 下面的网格跟着同一条弹簧平滑下移，而不是先整块顶下去再淡入。
-            batchBar
-                .padding(.bottom, 12)
-                .frame(height: batchMode ? nil : 0, alignment: .top)
-                .clipped()
-                .opacity(batchMode ? 1 : 0)
-                .scaleEffect(batchMode ? 1 : 0.96, anchor: .top)
-                .allowsHitTesting(batchMode)
-                .accessibilityHidden(!batchMode)
+            Spacer(minLength: 0)
 
-            MonthPager(focusedIndex: store.focusedIndex,
-                       batchMode: batchMode,
-                       selectedDates: batchDates,
-                       onSelect: handleTap)
+            Button {
+                jump(to: store.todayKey)
+            } label: {
+                TodayGlyph(day: Int(store.todayKey.suffix(2)) ?? 1)
+                    .frame(width: 38, height: 38)
+                    .background(Palette.card, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("回到今天")
 
-            Text("‹ 左右滑动切换月份 ›")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .padding(.top, 12)
+            if shiftsEnabled {
+                Button {
+                    withAnimation(batchAnimation) {
+                        batchMode.toggle()
+                        batchDates = []
+                    }
+                } label: {
+                    // 图标原地变形（清单 ⇄ 叉），不是整颗按钮一闪换掉；
+                    // 进入多选时按钮染成强调蓝，一眼看得出现在处在多选里。
+                    Image(systemName: batchMode ? "xmark" : "checklist")
+                        .font(.body.weight(.semibold))
+                        .contentTransition(.symbolEffect(.replace.downUp.byLayer, options: .nonRepeating))
+                        .foregroundStyle(batchMode ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                        .frame(width: 38, height: 38)
+                        .background {
+                            ZStack {
+                                Circle().fill(Palette.card)
+                                Circle()
+                                    .fill(Palette.blue)
+                                    .scaleEffect(batchMode ? 1 : 0.2)
+                                    .opacity(batchMode ? 1 : 0)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(batchMode ? "退出多选" : "批量修改")
+                .sensoryFeedback(.impact(weight: .light), trigger: batchMode)
+
+                Button {
+                    isGeneratorPresented = true
+                } label: {
+                    Image(systemName: "sparkles")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(Palette.blue, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("循环排班")
+            }
         }
-        .card(cornerRadius: 22, padding: 14)
+        .animation(.snappy(duration: 0.3), value: store.focusedIndex)
     }
 
-    private func changeMonth(_ delta: Int) {
-        withAnimation(.smooth(duration: 0.38)) {
-            store.changeMonth(by: delta)
-        }
+    /// 跳到某一天：选中它，月历翻过去。
+    private func jump(to date: String) {
+        guard let parts = ScheduleCalendar.components(from: date) else { return }
+        selectedDate = date
+        withAnimation(.smooth(duration: 0.3)) { store.focus(year: parts.year, month: parts.month) }
     }
 
     /// 多选时的行动条。每一格都能单独勾选，勾完按「修改」。
@@ -198,7 +263,12 @@ struct CalendarScreen: View {
 
     private func handleTap(_ date: String) {
         guard batchMode else {
-            editingDate = date
+            // 第一下选中，再点一下已选中的那天才打开抽屉
+            if date == selectedDate {
+                sheet = .day(date, shiftsEnabled ? .shift : .events)
+            } else {
+                withAnimation(.snappy(duration: 0.2)) { selectedDate = date }
+            }
             return
         }
         // 每一格独立开关，选完再按「修改」——不再是「先点起点、再点终点」那套
@@ -213,17 +283,10 @@ struct CalendarScreen: View {
 
     // MARK: - 下一班
 
-    private var monthRecords: [DayRecord] {
-        document.records.filter { $0.monthKey == store.focusedMonthKey }
-    }
-
-    private var workRecords: [DayRecord] {
-        monthRecords.filter { document.shift($0.shiftId)?.countsAsWork == true }
-    }
-
     private var upcoming: DayRecord? {
         document.records.first {
-            $0.date >= store.todayKey && document.shift($0.shiftId)?.countsAsWork == true
+            $0.date >= store.todayKey && $0.planned && document.shift($0.shiftId)?.countsAsWork == true
+                && document.shift($0.shiftId)?.isRest == false
         }
     }
 
@@ -231,7 +294,7 @@ struct CalendarScreen: View {
     private var nextShiftCard: some View {
         if let upcoming, let shift = document.shift(upcoming.shiftId) {
             Button {
-                editingDate = upcoming.date
+                jump(to: upcoming.date)
             } label: {
                 HStack(spacing: 12) {
                     ShiftOrb(shift: shift, size: 42)
@@ -252,97 +315,304 @@ struct CalendarScreen: View {
             }
             .buttonStyle(.plain)
         } else {
-            HStack(spacing: 12) {
-                Image(systemName: "calendar")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("暂无后续班次").font(.subheadline.weight(.semibold))
-                    Text("可逐日添加，或使用循环排班。")
-                        .font(.caption)
+            Button { isGeneratorPresented = true } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "calendar")
+                        .font(.title3)
                         .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("暂无后续班次").font(.subheadline.weight(.semibold))
+                        Text("可逐日添加，或使用循环排班。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
+                .card(cornerRadius: 20, padding: 14)
             }
-            .card(cornerRadius: 20, padding: 14)
+            .buttonStyle(.plain)
         }
     }
 
     private func nextShiftDetail(_ record: DayRecord, shift: ShiftDefinition) -> String {
-        var parts = [relativeLabel(record.date)]
+        var parts = [Self.relativeLabel(record.date, today: store.todayKey)]
         if !shift.fullRange.isEmpty { parts.append(shift.fullRange) }
         if document.work.trackHours { parts.append("\(HoursFormatter.compact(record.hours)) 小时") }
         return parts.joined(separator: " · ")
     }
 
     /// 今天、明天、后天说人话，再远就写日期。
-    private func relativeLabel(_ date: String) -> String {
-        switch ScheduleCalendar.dayDifference(date, store.todayKey) {
+    static func relativeLabel(_ date: String, today: String) -> String {
+        switch ScheduleCalendar.dayDifference(date, today) {
         case 0: "今天"
         case 1: "明天"
         case 2: "后天"
+        case -1: "昨天"
+        case -2: "前天"
         default: date
         }
     }
+}
 
-    // MARK: - 本月展望
+/// 日历页弹出来的几种抽屉。
+enum CalendarSheet: Identifiable {
+    case day(String, DaySegment)
+    case event(EventEditorTarget)
+    case timeline(String)
+    case countdown(Countdown?)
+    case jump
 
-    /// 与统计页 `basicDetail` 同一套措辞。
-    private func basicDetail(planned: Double, basic: Double) -> String {
-        let diff = planned - basic
-        if diff > 0 { return "计划高出 \(HoursFormatter.hours(diff))" }
-        if diff < 0 { return "计划少 \(HoursFormatter.hours(-diff))" }
-        return "与基本工时持平"
+    var id: String {
+        switch self {
+        case let .day(date, segment): "day-\(date)-\(segment.rawValue)"
+        case let .event(target): "event-\(target.id)"
+        case let .timeline(date): "timeline-\(date)"
+        case let .countdown(countdown): "countdown-\(countdown?.id ?? "new")"
+        case .jump: "jump"
+        }
+    }
+}
+
+/// 「今天」按钮上的小日历：顶上一道红，下面是今天几号。
+private struct TodayGlyph: View {
+    let day: Int
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Rectangle().fill(Palette.red).frame(height: 5)
+            Text("\(day)")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .frame(maxHeight: .infinity)
+        }
+        .frame(width: 20, height: 20)
+        .background(Palette.inset)
+        .clipShape(RoundedRectangle(cornerRadius: 4.5, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 4.5, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.7), lineWidth: 1.4)
+        }
+        .foregroundStyle(.primary)
+    }
+}
+
+/// 选中那一天的面板：节日 / 休班、日期与农历、当天班次、当天日程。
+private struct DayPanel: View {
+    let date: String
+    let onEditShift: () -> Void
+    let onOpenEvents: () -> Void
+    let onEditEvent: (EventOccurrence) -> Void
+    let onNewEvent: () -> Void
+    let onTimeline: () -> Void
+
+    @Environment(ScheduleStore.self) private var store
+
+    var body: some View {
+        let document = store.document
+        let occurrences = store.occurrences(on: date)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(dateTitle).font(.headline)
+                        badges
+                    }
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Button(action: onTimeline) {
+                    Image(systemName: "calendar.day.timeline.left")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(width: 34, height: 34)
+                        .background(Palette.inset, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("时间轴")
+            }
+
+            if document.features.shiftsEnabled {
+                shiftRow(document)
+            }
+
+            if occurrences.isEmpty {
+                Text("这天还没有日程")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 6)
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(occurrences) { occurrence in
+                        Button { onEditEvent(occurrence) } label: {
+                            EventRow(occurrence: occurrence, day: date)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Palette.inset, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            Button(action: onNewEvent) {
+                Label("新建日程", systemImage: "plus")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .background(Palette.inset, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+        .card(cornerRadius: 22, padding: 14)
+        .animation(.snappy(duration: 0.25), value: date)
     }
 
-    private var outlookSection: some View {
-        let restDays = monthRecords.filter { document.shift($0.shiftId)?.isRest == true }.count
-        let completed = workRecords.filter { $0.countsAsCompleted(today: store.todayKey) }
-        let projectedHours = workRecords.reduce(0) { $0 + $1.hours }
-        let actualHours = completed.reduce(0) { $0 + $1.hours }
-        // 显式传入 store.holidays：放假安排下载更新后，这张卡跟着重算。
-        let basic = WorkHours.monthlyTarget(document, year: store.focusedYear, month: store.focusedMonth,
-                                            holidays: store.holidays)
-        let overtime = WorkHours.overtimeForCalendarMonth(document,
-                                                         year: store.focusedYear,
-                                                         month: store.focusedMonth,
-                                                         today: store.todayKey)
-
-        return VStack(alignment: .leading, spacing: 14) {
-            SectionHeader(title: document.work.trackHours ? "工时概览" : "出勤概览",
-                          eyebrow: "本月",
-                          badge: "\(workRecords.count) 个班")
-
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
-                      spacing: 10) {
-                // 四块与统计页的「工时概览」一一对应，口径和配色都一致
-                MetricTile(label: "出勤天数",
-                           value: "\(workRecords.count)天",
-                           detail: "休息 \(restDays) 天",
-                           tint: Palette.green,
-                           symbol: "calendar")
-                if document.work.trackHours {
-                    MetricTile(label: "计划工时",
-                               value: HoursFormatter.hours(projectedHours),
-                               detail: "已完成 \(HoursFormatter.hours(actualHours))",
-                               tint: Palette.purple,
-                               symbol: "clock")
-                    MetricTile(label: "基本工时",
-                               value: HoursFormatter.hours(basic),
-                               detail: basicDetail(planned: projectedHours, basic: basic),
-                               tint: Palette.cyan,
-                               symbol: "target")
+    @ViewBuilder
+    private func shiftRow(_ document: ScheduleDocument) -> some View {
+        let record = document.record(on: date)
+        let shift = record.flatMap { $0.planned ? document.shift($0.shiftId) : nil }
+        Button(action: onEditShift) {
+            HStack(spacing: 10) {
+                if let shift, let record {
+                    ShiftOrb(shift: shift, size: 30)
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 4) {
+                            Text(shift.name).font(.subheadline.weight(.semibold))
+                            if let secondary = record.secondaryShiftId.flatMap({ document.shift($0) }) {
+                                Text("+ \(secondary.name)")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Text(shiftDetail(shift, record: record, document: document))
+                            .font(.caption)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                } else {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.body)
+                        .foregroundStyle(Palette.blue)
+                        .frame(width: 30, height: 30)
+                    Text("未排班 · 点这里安排")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
-                if document.work.trackHours && document.work.trackOvertime {
-                    MetricTile(label: document.work.system == .comprehensive ? "本周期额外工时" : "本月额外工时",
-                               value: HoursFormatter.hours(overtime.projected),
-                               detail: "\(overtime.label) · 已确认 \(HoursFormatter.hours(overtime.actual))",
-                               tint: Palette.orange,
-                               symbol: "bolt")
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Palette.inset, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func shiftDetail(_ shift: ShiftDefinition, record: DayRecord, document: ScheduleDocument) -> String {
+        var parts: [String] = []
+        if !shift.fullRange.isEmpty { parts.append(shift.fullRange) }
+        if document.work.trackHours, shift.countsAsWork, !shift.isRest {
+            parts.append("\(HoursFormatter.compact(record.hours)) 小时")
+        }
+        let tags = record.tagIds.compactMap { document.tag($0)?.name }
+        if !tags.isEmpty { parts.append(tags.joined(separator: "、")) }
+        if let note = record.note, !note.isEmpty { parts.append(note) }
+        return parts.isEmpty ? "点这里修改" : parts.joined(separator: " · ")
+    }
+
+    private var dateTitle: String {
+        guard let parts = ScheduleCalendar.components(from: date) else { return date }
+        let weekday = ScheduleCalendar.weekdaySymbols[ScheduleCalendar.weekdayIndex(date)]
+        return "\(parts.month + 1)月\(parts.day)日 周\(weekday)"
+    }
+
+    private var subtitle: String {
+        var parts = ["农历" + LunarCalendar.fullText(for: date)]
+        let relative = CalendarScreen.relativeLabel(date, today: store.todayKey)
+        if relative != date { parts.insert(relative, at: 0) }
+        return parts.joined(separator: " · ")
+    }
+
+    @ViewBuilder
+    private var badges: some View {
+        if let festival = Festivals.festival(on: date) {
+            Text(festival.name)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(festival.kind == .statutory ? Palette.holiday : Palette.traditionalFestival)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Palette.inset, in: Capsule())
+        }
+        switch store.holidays.adjustment(on: date) {
+        case .off:
+            Text("休")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 18, height: 18)
+                .background(Palette.holiday, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+        case .work:
+            Text("班")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 18, height: 18)
+                .background(Palette.adjustedWorkday, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+        case nil:
+            EmptyView()
+        }
+    }
+}
+
+/// 点标题的月份弹出来：滚轮选年月日，一步跳过去。
+private struct DateJumpSheet: View {
+    let onPick: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var date: Date
+
+    init(initial: String, onPick: @escaping (String) -> Void) {
+        self.onPick = onPick
+        _date = State(initialValue: ScheduleCalendar.date(from: initial) ?? Date())
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                DatePicker("日期", selection: $date, displayedComponents: [.date])
+                    .datePickerStyle(.wheel)
+                    .labelsHidden()
+                    .environment(\.locale, Locale(identifier: "zh_CN"))
+                    .environment(\.calendar, ScheduleCalendar.calendar)
+
+                Button("跳到这一天") {
+                    onPick(ScheduleCalendar.key(date))
+                    dismiss()
+                }
+                .buttonStyle(ProminentButton())
+                .padding(.horizontal, 20)
+            }
+            .padding(.top, 8)
+            .navigationTitle("跳转日期")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("今天") {
+                        onPick(ScheduleCalendar.todayKey)
+                        dismiss()
+                    }
                 }
             }
         }
-        .card(cornerRadius: 22, padding: 16)
+        .presentationDetents([.height(380)])
+        .presentationDragIndicator(.visible)
     }
 }
 

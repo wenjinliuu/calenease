@@ -444,11 +444,7 @@ private struct MonthCallout: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .background(Palette.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Palette.cardStroke, lineWidth: 1)
-        }
+        .background(Palette.inset, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
     }
 

@@ -171,6 +171,13 @@ struct ShiftTone {
     let text: Color
 }
 
+/// 日程用的三个颜色：`fill` 色条底，`ink` 色条上的字，`solid` 列表里的小色点、时间轴色块左边的竖线。
+struct EventTone {
+    let fill: Color
+    let ink: Color
+    let solid: Color
+}
+
 enum Tone {
     /// 深色模式下色标统一提到这个明度。
     static let darkMarkLightness = 0.78
@@ -191,6 +198,7 @@ enum Tone {
     private static let cacheLock = NSLock()
     private static var shiftCache: [String: ShiftTone] = [:]
     private static var surfaceCache: [String: Color] = [:]
+    private static var eventCache: [String: EventTone] = [:]
 
     static func shift(_ hexColor: String) -> ShiftTone {
         if let cached = cacheLock.withLock({ shiftCache[hexColor] }) { return cached }
@@ -210,6 +218,21 @@ enum Tone {
     /// 这些地方的底是原色（不随深浅切换），所以按原色判定，不能拿动态的 `ShiftTone.ink`。
     static func ink(on hexColor: String) -> Color {
         Color(hexString: markInk(on: hexColor))
+    }
+
+    /// 日程色条：淡色底 + 同色相的深字，和统计页指标块一个路子。
+    static func event(_ hexColor: String) -> EventTone {
+        if let cached = cacheLock.withLock({ eventCache[hexColor] }) { return cached }
+        let fillLight = ColorMath.at(hexColor, lightness: 0.92)
+        let fillDark = ColorMath.at(hexColor, lightness: 0.34)
+        let tone = EventTone(
+            fill: Color(uiColor: .dynamic(light: fillLight, dark: fillDark)),
+            ink: Color(uiColor: .dynamic(light: ColorMath.step(hexColor, on: fillLight),
+                                         dark: ColorMath.step(hexColor, on: fillDark))),
+            solid: Color(uiColor: .dynamic(light: hexColor, dark: ColorMath.at(hexColor, lightness: darkMarkLightness)))
+        )
+        cacheLock.withLock { eventCache[hexColor] = tone }
+        return tone
     }
 
     /// 职责标签、班次名这类"压在格子底上的彩色文字"。
@@ -258,25 +281,19 @@ enum Palette {
 
     // MARK: - 背景层次
 
-    /// 页面底色。
+    /// 日历、统计这类自己画的页面：纯白底，内容放在浅灰卡片里。深色是纯黑底、深灰卡片。
+    static let canvas = Color(uiColor: .dynamic(light: "#FFFFFF", dark: "#000000"))
+    /// 设置这类 `Form` 页面的底色。
     ///
-    /// 系统的分组灰 #F2F2F7 显旧，这里往白里提了一档到 #F7F7FA——大约是原来到纯白的一半。
-    ///
-    /// 没有一路提到 #FAFAFC 是因为 `Form` 的行底色是系统给的纯白，我们管不到；
-    /// 页和行的亮度比要留住，设置页那些分组卡才不会糊成一片：
-    /// #F2F2F7 对白是 1.116，#F7F7FA 还有 1.069，再白到 #FAFAFC 就只剩 1.042 了。
-    /// 我们自己画的卡片另有 `cardStroke` 收边，不吃这个限制。
-    static let canvas = Color(uiColor: .dynamic(light: "#F7F7FA", dark: "#000000"))
-    /// 卡片。浅色是纯白。
-    static let card = Color(uiColor: .dynamic(light: "#FFFFFF", dark: "#1C1C1E"))
-    /// 卡片描边。近白页面上白卡全靠它定边界，深色模式下卡片自己就有明度差，描边只是收口。
-    static let cardStroke = Color(uiColor: .dynamic(light: "#EAEAEF", dark: "#2A2A2C"))
-    /// 卡片里的内层面：指标块、输入框。
-    static let inset = Color(uiColor: .dynamic(light: "#F1F1F5", dark: "#2C2C2E"))
+    /// `Form` 的行底色是系统给的纯白，页底要比它暗一档分组才看得出来：
+    /// #F7F7FA 对白还有 1.069 的亮度比，再白就糊成一片了。
+    static let grouped = Color(uiColor: .dynamic(light: "#F7F7FA", dark: "#000000"))
+    /// 卡片。白底上的浅灰块，不描边。
+    static let card = Color(uiColor: .dynamic(light: "#F3F3F6", dark: "#1C1C1E"))
+    /// 卡片里的内层面：指标块、输入框。浅灰卡里放白块。
+    static let inset = Color(uiColor: .dynamic(light: "#FFFFFF", dark: "#2C2C2E"))
     /// 分隔线。
     static let hairline = Color(uiColor: .dynamic(light: "#E3E3E9", dark: "#38383A"))
-    /// 旧名字，指向同一层。
-    static let grouped = canvas
 }
 
 extension ShiftDefinition {

@@ -21,6 +21,7 @@ struct MonthPager: View {
 
     let batchMode: Bool
     let selectedDates: Set<String>
+    let selectedDay: String?
     let onSelect: (String) -> Void
 
     @State private var rows: PagerRows
@@ -28,9 +29,11 @@ struct MonthPager: View {
     init(focusedIndex: Int,
          batchMode: Bool,
          selectedDates: Set<String>,
+         selectedDay: String?,
          onSelect: @escaping (String) -> Void) {
         self.batchMode = batchMode
         self.selectedDates = selectedDates
+        self.selectedDay = selectedDay
         self.onSelect = onSelect
         _rows = State(initialValue: PagerRows(value: CGFloat(CalendarMonthGrid.rows(index: focusedIndex))))
     }
@@ -40,16 +43,17 @@ struct MonthPager: View {
 
     var body: some View {
         let document = store.document
-        let display = document.display
+        let layout = CellLayout(document: document)
         let focusStore = store
-        PagerViewport(rows: rows, display: display, bottomSlack: bottomSlack) {
+        PagerViewport(rows: rows, layout: layout, bottomSlack: bottomSlack) {
             MonthPagerScroll(document: document,
                              todayKey: focusStore.todayKey,
                              focusedIndex: focusStore.focusedIndex,
                              batchMode: batchMode,
                              selectedDates: selectedDates,
+                             selectedDay: selectedDay,
                              holidays: focusStore.holidays,
-                             contentHeight: CalendarMonthGrid.height(rows: 6, display: display) + bottomSlack,
+                             contentHeight: CalendarMonthGrid.height(rows: 6, layout: layout) + bottomSlack,
                              rows: rows,
                              onSelect: onSelect,
                              onSettle: { index in
@@ -70,13 +74,13 @@ final class PagerRows {
 /// 按插值行数裁出可见高度。
 private struct PagerViewport<Content: View>: View {
     let rows: PagerRows
-    let display: CalendarDisplaySettings
+    let layout: CellLayout
     let bottomSlack: CGFloat
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         content()
-            .frame(height: CalendarMonthGrid.height(rows: rows.value, display: display) + bottomSlack,
+            .frame(height: CalendarMonthGrid.height(rows: rows.value, layout: layout) + bottomSlack,
                    alignment: .top)
             .clipped()
     }
@@ -88,6 +92,7 @@ private struct MonthPagerScroll: View, Equatable {
     let focusedIndex: Int
     let batchMode: Bool
     let selectedDates: Set<String>
+    let selectedDay: String?
     let holidays: HolidayCalendar
     let contentHeight: CGFloat
     let rows: PagerRows
@@ -101,6 +106,7 @@ private struct MonthPagerScroll: View, Equatable {
          focusedIndex: Int,
          batchMode: Bool,
          selectedDates: Set<String>,
+         selectedDay: String?,
          holidays: HolidayCalendar,
          contentHeight: CGFloat,
          rows: PagerRows,
@@ -111,6 +117,7 @@ private struct MonthPagerScroll: View, Equatable {
         self.focusedIndex = focusedIndex
         self.batchMode = batchMode
         self.selectedDates = selectedDates
+        self.selectedDay = selectedDay
         self.holidays = holidays
         self.contentHeight = contentHeight
         self.rows = rows
@@ -122,6 +129,7 @@ private struct MonthPagerScroll: View, Equatable {
     nonisolated static func == (lhs: MonthPagerScroll, rhs: MonthPagerScroll) -> Bool {
         lhs.focusedIndex == rhs.focusedIndex && lhs.todayKey == rhs.todayKey
             && lhs.batchMode == rhs.batchMode && lhs.selectedDates == rhs.selectedDates
+            && lhs.selectedDay == rhs.selectedDay
             && lhs.contentHeight == rhs.contentHeight && lhs.rows === rhs.rows
             && lhs.holidays == rhs.holidays && lhs.document == rhs.document
     }
@@ -145,6 +153,9 @@ private struct MonthPagerScroll: View, Equatable {
                                       batchMode: batchMode,
                                       selectedDates: selectedDates,
                                       holidays: holidays,
+                                      selectedDay: selectedDay.flatMap { day in
+                                          day.hasPrefix(ScheduleCalendar.monthKey(year: index / 12, month: index % 12)) ? day : nil
+                                      },
                                       onSelect: onSelect)
                         .equatable()
                         .frame(height: contentHeight, alignment: .top)
@@ -173,7 +184,7 @@ private struct MonthPagerScroll: View, Equatable {
             if newValue > 0 { rows.value = newValue }
         }
         .onScrollPhaseChange { _, phase in
-            // 停稳了再把月份交给 store。拖到一半就切的话，整页的本月概览会在手指底下重算。
+            // 停稳了再把月份交给 store。拖到一半就切的话，下面的日程面板会在手指底下重算。
             guard phase == .idle, let position, position != focusedIndex else { return }
             onSettle(position)
         }

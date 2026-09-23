@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct ShiftLedgerApp: App {
@@ -16,14 +17,20 @@ struct ShiftLedgerApp: App {
                 .preferredColorScheme(preferences.colorScheme)
                 .tint(Palette.blue)
                 .task {
+                    UNUserNotificationCenter.current().delegate = ForegroundNotificationDelegate.shared
                     store.load()
                     store.refreshHolidaysIfNeeded()
+                    rescheduleReminders()
                 }
+                // 班表、日程、倒数日、提醒设置改了，提醒跟着重排（停下来半秒后排一次）。
+                .onChange(of: store.document) { _, _ in rescheduleReminders() }
         }
         .onChange(of: scenePhase) { _, phase in
             // 回到前台顺手看一眼放假安排有没有更新（最多半天查一次）。
             guard phase != .active else {
                 store.refreshHolidaysIfNeeded()
+                // 提醒只排未来两周，回到前台往后补
+                rescheduleReminders()
                 return
             }
             // 退到后台先把未落盘的编辑写下去，再按设置自动备份一份（数据没变不重写）。
@@ -33,6 +40,12 @@ struct ShiftLedgerApp: App {
                 await backups.autoBackupIfNeeded(store.document)
             }
         }
+    }
+
+    @MainActor
+    private func rescheduleReminders() {
+        guard store.isReady, !DemoData.isEnabled else { return }
+        NotificationScheduler.scheduleRebuild(for: store.document)
     }
 }
 

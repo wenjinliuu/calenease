@@ -54,6 +54,13 @@ enum LunarCalendar {
         }
         return dayNames[(day.day - 1) % 30]
     }
+
+    /// 面板上的完整写法：「八月初二」「闰四月十五」。
+    static func fullText(for key: String) -> String {
+        guard let day = day(for: key) else { return "" }
+        let month = monthNames[(day.month - 1) % 12]
+        return (day.isLeapMonth ? "闰" : "") + month + dayNames[(day.day - 1) % 30]
+    }
 }
 
 enum Festivals {
