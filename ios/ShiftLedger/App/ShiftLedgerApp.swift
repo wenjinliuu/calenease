@@ -4,6 +4,7 @@ import SwiftUI
 struct ShiftLedgerApp: App {
     @State private var store = ScheduleStore()
     @State private var preferences = AppPreferences()
+    @State private var backups = BackupCenter()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -11,6 +12,7 @@ struct ShiftLedgerApp: App {
             RootView()
                 .environment(store)
                 .environment(preferences)
+                .environment(backups)
                 .preferredColorScheme(preferences.colorScheme)
                 .tint(Palette.blue)
                 .task {
@@ -24,8 +26,12 @@ struct ShiftLedgerApp: App {
                 store.refreshHolidaysIfNeeded()
                 return
             }
-            // 退到后台先把未落盘的编辑写下去。
-            Task { @MainActor in store.flush() }
+            // 退到后台先把未落盘的编辑写下去，再按设置自动备份一份（数据没变不重写）。
+            Task { @MainActor in
+                store.flush()
+                guard phase == .background, !DemoData.isEnabled else { return }
+                await backups.autoBackupIfNeeded(store.document)
+            }
         }
     }
 }

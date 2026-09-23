@@ -9,6 +9,8 @@ struct StatsScreen: View {
     @Environment(ScheduleStore.self) private var store
     @State private var scope: StatsScope = .month
     @State private var isPeriodPickerPresented = false
+    /// 走势图上长按选中的月份（横轴标签）。
+    @State private var selectedMonthLabel: String?
 
     private var document: ScheduleDocument { store.document }
 
@@ -189,9 +191,15 @@ struct StatsScreen: View {
         let label: String
         let basic: Double
         let planned: Double
-        /// 超出基本工时的部分，没超出时等于基本工时（面积就为零）。
-        var overtimeTop: Double { max(planned, basic) }
-        var overtime: Double { max(0, planned - basic) }
+        /// 计划减基本。正的是额外工时，负的是这个月比基本工时少排的部分。
+        var extra: Double { planned - basic }
+        /// 两条线之间的面积：高出的部分和不足的部分分开上色。
+        var surplusTop: Double { max(planned, basic) }
+        var shortfallBottom: Double { min(planned, basic) }
+    }
+
+    private var selectedPoint: MonthlyPoint? {
+        selectedMonthLabel.flatMap { label in monthlyPoints.first { $0.label == label } }
     }
 
     private var monthlyPoints: [MonthlyPoint] {
@@ -228,15 +236,20 @@ struct StatsScreen: View {
                 }
 
                 if document.work.trackOvertime {
-                    // 只填基本工时线以上的那一段
+                    // 两条线之间：高出基本工时的月份填橙色，排得比基本工时少的月份填红色，
+                    // 计划线会真的穿到基本工时线下面去。
                     ForEach(scheduledPoints) { point in
                         AreaMark(x: .value("月份", point.label),
                                  yStart: .value("基本工时", point.basic),
-                                 yEnd: .value("计划工时", point.overtimeTop))
-                            .foregroundStyle(
-                                LinearGradient(colors: [Palette.orange.opacity(0.42), Palette.orange.opacity(0.06)],
-                                               startPoint: .top, endPoint: .bottom)
-                            )
+                                 yEnd: .value("高出", point.surplusTop),
+                                 series: .value("类型", "高出"))
+                            .foregroundStyle(Palette.orange.opacity(0.28))
+                            .interpolationMethod(.monotone)
+                        AreaMark(x: .value("月份", point.label),
+                                 yStart: .value("不足", point.shortfallBottom),
+                                 yEnd: .value("基本工时", point.basic),
+                                 series: .value("类型", "不足"))
+                            .foregroundStyle(Palette.red.opacity(0.18))
                             .interpolationMethod(.monotone)
                     }
                 }
@@ -253,14 +266,47 @@ struct StatsScreen: View {
                 if document.work.trackOvertime {
                     ForEach(scheduledPoints) { point in
                         LineMark(x: .value("月份", point.label),
-                                 y: .value("计划工时", point.overtimeTop),
+                                 y: .value("计划工时", point.planned),
                                  series: .value("类型", "计划"))
                             .foregroundStyle(Palette.orange)
                             .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
                             .interpolationMethod(.monotone)
                     }
                 }
+
+                // 长按选中某个月：一条竖线，顶上一张小卡写这个月的计划、基本、额外。
+                if let selected = selectedPoint {
+                    RuleMark(x: .value("月份", selected.label))
+                        .foregroundStyle(Color.secondary.opacity(0.5))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                        .annotation(position: .top,
+                                    spacing: 4,
+                                    overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
+                            MonthCallout(label: selected.label,
+                                         planned: selected.planned,
+                                         basic: selected.basic,
+                                         showsExtra: document.work.trackOvertime)
+                        }
+                }
             }
+            // 长按 0.3 秒选中，按住左右拖换月份，松手收起。用 UIKit 的长按识别器而不是
+            // `chartXSelection`：后者一碰就开始选，放在滚动页里会和上下滑动抢手势。
+            .chartOverlay { proxy in
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        .gesture(ChartLongPress { location in
+                            guard let location, let plotFrame = proxy.plotFrame else {
+                                selectedMonthLabel = nil
+                                return
+                            }
+                            let x = location.x - geometry[plotFrame].origin.x
+                            if let label: String = proxy.value(atX: x) { selectedMonthLabel = label }
+                        })
+                }
+            }
+            .sensoryFeedback(.selection, trigger: selectedMonthLabel)
             .chartYAxis {
                 AxisMarks(position: .leading) { value in
                     AxisGridLine().foregroundStyle(Palette.hairline.opacity(0.4))
@@ -286,10 +332,13 @@ struct StatsScreen: View {
             HStack(spacing: 14) {
                 LegendRow(color: Palette.cyan, label: "基本工时", value: "")
                 if document.work.trackOvertime {
-                    LegendRow(color: Palette.orange, label: "计划工时（超出部分即加班）", value: "")
+                    LegendRow(color: Palette.orange, label: "计划工时", value: "")
                 }
                 Spacer(minLength: 0)
             }
+            Text("长按图表查看当月明细")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
         }
         .card()
     }
@@ -351,6 +400,68 @@ struct StatsScreen: View {
             }
         }
         .card()
+    }
+}
+
+/// 图表上的长按：按住 0.3 秒后开始回报手指位置，按住拖动持续回报，松手回报 nil。
+/// 长按识别之前手指一动就失败，页面照常上下滚动。
+private struct ChartLongPress: UIGestureRecognizerRepresentable {
+    let onChange: (CGPoint?) -> Void
+
+    func makeUIGestureRecognizer(context: Context) -> UILongPressGestureRecognizer {
+        let recognizer = UILongPressGestureRecognizer()
+        recognizer.minimumPressDuration = 0.3
+        return recognizer
+    }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UILongPressGestureRecognizer, context: Context) {
+        switch recognizer.state {
+        case .began, .changed:
+            onChange(context.converter.localLocation)
+        default:
+            onChange(nil)
+        }
+    }
+}
+
+/// 走势图长按时浮在选中月份上方的小卡。
+private struct MonthCallout: View {
+    let label: String
+    let planned: Double
+    let basic: Double
+    let showsExtra: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label).font(.caption.weight(.semibold))
+            row("计划", planned, color: Palette.orange)
+            row("基本", basic, color: Palette.cyan)
+            if showsExtra {
+                let extra = planned - basic
+                row(extra < 0 ? "不足" : "额外", abs(extra), color: extra < 0 ? Palette.red : Palette.orange,
+                    sign: extra < 0 ? "−" : "+")
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Palette.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Palette.cardStroke, lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
+    }
+
+    private func row(_ title: String, _ value: Double, color: Color, sign: String = "") -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(title).font(.caption2).foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            Text(sign + HoursFormatter.hours(value))
+                .font(.caption2.weight(.semibold))
+                .monospacedDigit()
+        }
+        .frame(minWidth: 108)
     }
 }
 

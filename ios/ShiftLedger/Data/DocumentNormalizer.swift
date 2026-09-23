@@ -181,6 +181,7 @@ enum DocumentNormalizer {
         return DayRecord(
             date: date,
             shiftId: shiftId,
+            secondaryShiftId: (item["secondaryShiftId"] as? String).flatMap { shiftIds.contains($0) ? $0 : nil },
             hours: max(0, number(item["hours"]) ?? 0),
             tagIds: (item["tagIds"] as? [Any] ?? []).compactMap { $0 as? String }.filter(tagIds.contains),
             completed: item["completed"] as? Bool ?? false,

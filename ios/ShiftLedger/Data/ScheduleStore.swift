@@ -357,6 +357,9 @@ final class ScheduleStore {
         update { document in
             document.shifts.removeAll { $0.id == shift.id }
             document.records.removeAll { $0.shiftId == shift.id }
+            for index in document.records.indices where document.records[index].secondaryShiftId == shift.id {
+                document.records[index].secondaryShiftId = nil
+            }
             document.cycleTemplates.removeAll { $0.shiftIds.contains(shift.id) }
             if document.activeCycle?.shiftIds.contains(shift.id) == true {
                 document.activeCycle = nil

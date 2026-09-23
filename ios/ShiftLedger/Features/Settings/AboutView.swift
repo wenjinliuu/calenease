@@ -13,7 +13,7 @@ struct AboutView: View {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("循环班表").font(.title3.weight(.bold))
-                    Text("专门为不按星期工作的人设计的个人循环班表：自定义班次与循环模板，工时与加班分别统计，自动识别法定节假日。")
+                    Text("专门为不按星期工作的人设计的个人循环班表：自定义班次与循环模板，工时与加班分别统计，自动标注放假与调休。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -25,7 +25,7 @@ struct AboutView: View {
                 Link(destination: URL(string: "https://wenjinliuu.github.io/shift-ledger/privacy/")!) {
                     Label("隐私政策", systemImage: "hand.raised")
                 }
-                Link(destination: URL(string: "https://github.com/wenjinliuu/shift-ledger/issues")!) {
+                Link(destination: URL(string: "https://wenjinliuu.github.io/shift-ledger/support/")!) {
                     Label("反馈与支持", systemImage: "bubble.left.and.bubble.right")
                 }
                 Link(destination: URL(string: "https://wenjinliuu.github.io/shift-ledger/")!) {
@@ -34,7 +34,7 @@ struct AboutView: View {
             }
 
             Section {
-                Text("本工具用于个人排班记录和工时预估，最终工时以公司考勤记录和适用制度为准。法定节假日按《全国年节及纪念日放假办法》规定的 13 个法定日判定，不含每年另行公布的调休与补班。")
+                Text("本工具用于个人排班记录和工时预估，最终工时以公司考勤记录和适用制度为准。放假与调休按国务院每年公布的安排（联网更新），尚未公布的年份按法定节假日推算。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {

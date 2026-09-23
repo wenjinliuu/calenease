@@ -165,6 +165,9 @@ private struct DayCell: View {
     let height: CGFloat
 
     private var shift: ShiftDefinition? { record.flatMap { document.shift($0.shiftId) } }
+    private var secondaryShift: ShiftDefinition? {
+        record?.secondaryShiftId.flatMap { document.shift($0) }
+    }
     private var tags: [DutyTag] { (record?.tagIds ?? []).compactMap { document.tag($0) } }
 
     /// 没有记录，或这一天被取消排班。
@@ -264,7 +267,10 @@ private struct DayCell: View {
 
     @ViewBuilder
     private var markRow: some View {
-        HStack(spacing: 3) {
+        // 主要班次、次要班次、工时排在同一行。两枚色标永远完整显示（`fixedSize`），
+        // 挤不下时只压工时：先收字距，再缩字号。
+        let secondary = document.display.showShift ? secondaryShift : nil
+        HStack(spacing: secondary == nil ? 3 : 2) {
             if isUnscheduled {
                 Color.clear
             } else if let shift, shift.isRest {
@@ -273,15 +279,18 @@ private struct DayCell: View {
                     .foregroundStyle(Palette.restInk)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                if let secondary { shiftMark(secondary).fixedSize() }
             } else if let shift {
-                if document.display.showShift { shiftMark(shift) }
+                if document.display.showShift { shiftMark(shift).fixedSize() }
+                if let secondary { shiftMark(secondary).fixedSize() }
                 if showsHours, let record {
                     Text(HoursFormatter.hours(record.hours))
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: secondary == nil ? 10 : 9.5, weight: .semibold))
+                        .tracking(secondary == nil ? 0 : -0.5)
                         .monospacedDigit()
                         .foregroundStyle(shift.tone.text)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.75)
+                        .minimumScaleFactor(secondary == nil ? 0.75 : 0.55)
                 }
             }
         }
@@ -414,6 +423,7 @@ private struct DayCell: View {
         if let lunarText, festival == nil { parts.append("农历\(lunarText)") }
         if let shift {
             parts.append(shift.name)
+            if let secondaryShift { parts.append("次要班次\(secondaryShift.name)") }
             if !shift.fullRange.isEmpty { parts.append(shift.fullRange) }
         } else {
             parts.append("未排班")

@@ -215,8 +215,10 @@ final class ScheduleRulesTests: XCTestCase {
     }
 
     func testOnlyTheThreeTwoShiftTemplatesAreBuiltIn() {
+        // 从短到长：4 天、8 天、12 天。
         XCTAssertEqual(ShiftCatalog.builtInTemplates().map(\.id),
-                       ["tpl-four-two", "tpl-two-rest-two", "tpl-one-one-two"])
+                       ["tpl-one-one-two", "tpl-two-rest-two", "tpl-four-two"])
+        XCTAssertEqual(ShiftCatalog.builtInTemplates().map(\.shiftIds.count), [4, 8, 12])
         XCTAssertEqual(ScheduleDocument.makeDefault().cycleTemplates.count, 3)
     }
 

@@ -196,21 +196,21 @@ enum ShiftCatalog {
         }
     }
 
-    /// 内置循环模板。
+    /// 内置循环模板，按一轮的天数从短到长排：4 天、8 天、12 天。
     static func builtInTemplates() -> [CycleTemplate] {
         let day = ShiftID.day, night = ShiftID.night, rest = ShiftID.rest
         return [
-            CycleTemplate(id: "tpl-four-two", name: "4白2休 · 4夜2休",
-                          caption: "白白白白休休 · 夜夜夜夜休休",
-                          shiftIds: [day, day, day, day, rest, rest, night, night, night, night, rest, rest],
+            CycleTemplate(id: "tpl-one-one-two", name: "1白1夜 · 休2天",
+                          caption: "白夜休休",
+                          shiftIds: [day, night, rest, rest],
                           category: .manufacturing, builtIn: true),
             CycleTemplate(id: "tpl-two-rest-two", name: "2白2休 · 2夜2休",
                           caption: "白白休休 · 夜夜休休",
                           shiftIds: [day, day, rest, rest, night, night, rest, rest],
                           category: .manufacturing, builtIn: true),
-            CycleTemplate(id: "tpl-one-one-two", name: "1白1夜 · 休2天",
-                          caption: "白夜休休",
-                          shiftIds: [day, night, rest, rest],
+            CycleTemplate(id: "tpl-four-two", name: "4白2休 · 4夜2休",
+                          caption: "白白白白休休 · 夜夜夜夜休休",
+                          shiftIds: [day, day, day, day, rest, rest, night, night, night, night, rest, rest],
                           category: .manufacturing, builtIn: true),
         ]
     }
@@ -220,10 +220,14 @@ enum ShiftCatalog {
         "tpl-four-two", "tpl-two-rest-two", "tpl-one-one-two",
     ]
 
-    /// 下线的内置模板。三班倒那三套用的人少，列表里只留两班倒的三套；
+    /// 下线的内置模板。列表里只留两班倒的 4 天、8 天、12 天三套；
     /// 老数据里存着的也在读盘时一并清掉（用户自己存的模板 ID 是随机的，不会误删）。
+    ///
+    /// 早期 iOS 版和网页版还带过「白白夜夜休休」「白白休休」「白白白休休休休」三套，
+    /// 已经装过的用户数据里存着，也一起清掉。
     static let retiredTemplateIDs: Set<String> = [
         "tpl-three-shift", "tpl-double-three", "tpl-four-team-three-shift",
+        "tpl-two-two-two", "tpl-work-two-rest-two", "tpl-three-four",
     ]
 
     /// 首次启动带的职责标签。

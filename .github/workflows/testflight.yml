@@ -89,6 +89,25 @@ jobs:
           test -f "$APP_PATH/Assets.car"
           find "$APP_PATH" -maxdepth 1 -type f -name 'AppIcon*.png' -print -quit | grep -q .
 
+      # 把 entitlements 写进归档里的 App（iCloud 备份要用）。
+      #
+      # 归档是 CODE_SIGNING_ALLOWED=NO，Xcode 跳过了处理 entitlements 的那一步，
+      # 归档出来的 App 身上一条 entitlement 都没有；而 -exportArchive 重新签名时
+      # 取的正是「归档里 App 已有的 entitlements」。不补这一步，最终包里没有 iCloud 权限，
+      # 真机上拿不到 iCloud 容器。「对个号」踩过这个坑，做法照搬：ad-hoc 签一次把
+      # entitlements 写进去，导出时整个重签，只有 entitlements 会被继承下去。
+      - name: Embed entitlements into archive
+        run: |
+          set -e
+          APP_PATH=$(find build/ShiftLedger.xcarchive/Products/Applications -maxdepth 1 -type d -name '*.app' -print -quit)
+          test -n "$APP_PATH"
+          codesign --force --sign - \
+            --entitlements ShiftLedger/Resources/ShiftLedger.entitlements \
+            --generate-entitlement-der \
+            "$APP_PATH"
+          echo "=== 归档里的 entitlements ==="
+          codesign -d --entitlements :- --xml "$APP_PATH" 2>/dev/null | plutil -convert xml1 -o - -
+
       - name: Write export options
         run: |
           mkdir -p build

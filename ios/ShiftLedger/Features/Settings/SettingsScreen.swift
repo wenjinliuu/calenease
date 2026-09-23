@@ -321,8 +321,6 @@ struct SettingsScreen: View {
             Toggle("显示放假与调休", isOn: displayBind(\.showHolidays))
         } header: {
             Text("日历显示")
-        } footer: {
-            Text("农历和节日按系统农历计算，显示在日期下面；关掉农历后，节日移到格子右上角。放假与调休按国务院公布的安排，在右上角标「休」「班」，联网自动更新，也用于推算每月基本工时。")
         }
     }
 

@@ -10,6 +10,10 @@ struct DayEditorSheet: View {
 
     @State private var draft = DayRecord(date: "", shiftId: "", hours: 0)
     @State private var loaded = false
+    /// 次要班次那一块展开了没有。默认收着，只露一个「添加次要班次」。
+    @State private var showsSecondary = false
+    /// 表单内容实际要多高。抽屉按它定高度，正好露到「清空这一天」为止。
+    @State private var contentHeight: CGFloat?
 
     private var document: ScheduleDocument { store.document }
     private var selectedShift: ShiftDefinition? { document.shift(draft.shiftId) }
@@ -20,10 +24,11 @@ struct DayEditorSheet: View {
                 Section("主要班次") {
                     ShiftPickerGrid(shifts: document.orderedShifts,
                                     selection: draft.shiftId) { shift in
-                        draft.shiftId = shift.id
-                        draft.hours = shift.defaultHours
+                        selectPrimary(shift)
                     }
                 }
+
+                secondarySection
 
                 if !document.tags.isEmpty {
                     Section("职责标签 · 可多选") {
@@ -88,12 +93,80 @@ struct DayEditorSheet: View {
                 }
             }
             .onAppear(perform: loadDraft)
+            // 量表单内容的总高度（含导航栏和底部安全区），抽屉就开这么高。
+            // 内容比屏幕还高时系统会封顶到全屏，表单自己滚动。
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                (geometry.contentSize.height + geometry.contentInsets.top + geometry.contentInsets.bottom).rounded(.up)
+            } action: { _, height in
+                guard height > 0 else { return }
+                withAnimation(.smooth(duration: 0.3)) { contentHeight = height }
+            }
         }
-        // 默认半屏：大多数时候只是点一下换个班次，班次网格在上半屏就够了；
-        // 要写备注、调工时时往上一拉就是全屏。
-        .presentationDetents([.medium, .large])
+        // 抽屉高度跟着内容走：露到「清空这一天」为止，不多不少。
+        // 展开次要班次时内容变高，抽屉跟着长高。
+        .presentationDetents([contentHeight.map { PresentationDetent.height($0) } ?? .medium])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
+    }
+
+    // MARK: - 次要班次
+
+    /// 次要班次：默认只有一个加号按钮，点开才出现一整套班次可选，和主要班次一样的样子。
+    @ViewBuilder
+    private var secondarySection: some View {
+        if showsSecondary {
+            Section {
+                ShiftPickerGrid(shifts: document.orderedShifts.filter { $0.id != draft.shiftId },
+                                selection: draft.secondaryShiftId ?? "") { shift in
+                    selectSecondary(shift)
+                }
+                Button(role: .destructive) {
+                    withAnimation(.snappy(duration: 0.28)) { removeSecondary() }
+                } label: {
+                    Label("去掉次要班次", systemImage: "minus.circle")
+                        .foregroundStyle(.red)
+                }
+            } header: {
+                Text("次要班次")
+            }
+        } else {
+            Section {
+                Button {
+                    withAnimation(.snappy(duration: 0.28)) { showsSecondary = true }
+                } label: {
+                    Label("添加次要班次", systemImage: "plus.circle.fill")
+                }
+            }
+        }
+    }
+
+    /// 换主要班次：工时按「主要 + 次要」两个班次的默认工时重算。
+    private func selectPrimary(_ shift: ShiftDefinition) {
+        draft.shiftId = shift.id
+        if draft.secondaryShiftId == shift.id { draft.secondaryShiftId = nil }
+        draft.hours = min(24, shift.defaultHours + secondaryDefaultHours)
+    }
+
+    /// 选次要班次：把它的默认工时加进当天工时；再点一次同一个就取消。
+    private func selectSecondary(_ shift: ShiftDefinition) {
+        let previous = secondaryDefaultHours
+        if draft.secondaryShiftId == shift.id {
+            draft.secondaryShiftId = nil
+            draft.hours = max(0, draft.hours - previous)
+            return
+        }
+        draft.secondaryShiftId = shift.id
+        draft.hours = min(24, max(0, draft.hours - previous + shift.defaultHours))
+    }
+
+    private func removeSecondary() {
+        draft.hours = max(0, draft.hours - secondaryDefaultHours)
+        draft.secondaryShiftId = nil
+        showsSecondary = false
+    }
+
+    private var secondaryDefaultHours: Double {
+        draft.secondaryShiftId.flatMap { document.shift($0) }?.defaultHours ?? 0
     }
 
     /// 标题写「9月9日 周三」，节日缀上节日名，放假 / 调休再缀「休」「班」。
@@ -123,6 +196,11 @@ struct DayEditorSheet: View {
         loaded = true
         if let existing = store.record(on: date) {
             draft = existing
+            // 次要班次指向的班次已经删掉了就当没有。
+            if let secondary = existing.secondaryShiftId, document.shift(secondary) == nil {
+                draft.secondaryShiftId = nil
+            }
+            showsSecondary = draft.secondaryShiftId != nil
         } else {
             let fallback = document.orderedShifts.first
             draft = DayRecord(date: date,
