@@ -21,7 +21,8 @@ for filename in ['index.json', *(entry['url'] for entry in index['years'].values
                 headers = response.headers
             assert actual == expected, f'{filename}: bytes differ from candidate'
             assert headers.get('Content-Type', '').lower() == 'application/json; charset=utf-8', filename
-            assert headers.get('Cache-Control') == ('max-age=3600' if filename == 'index.json' else 'max-age=86400'), filename
+            expected_cache = 'max-age=3600' if filename == 'index.json' else 'max-age=86400'
+            assert headers.get('Cache-Control') == expected_cache, f'{filename}: Cache-Control={headers.get("Cache-Control")!r}, expected={expected_cache!r}'
             assert headers.get('Access-Control-Allow-Origin') == '*', filename
             if filename != 'index.json':
                 assert hashlib.sha256(actual).hexdigest() == index['years'][filename[:-5]]['sha256'], filename
