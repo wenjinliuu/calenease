@@ -24,6 +24,8 @@ jobs:
         working-directory: ios
 
     env:
+      # iCloud 备份的开关，见下面「Embed entitlements into archive」那一步的说明。
+      ENABLE_ICLOUD: 'false'
       TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -96,7 +98,15 @@ jobs:
       # 取的正是「归档里 App 已有的 entitlements」。不补这一步，最终包里没有 iCloud 权限，
       # 真机上拿不到 iCloud 容器。「对个号」踩过这个坑，做法照搬：ad-hoc 签一次把
       # entitlements 写进去，导出时整个重签，只有 entitlements 会被继承下去。
+      #
+      # 前提是 Apple Developer 后台已经给 App ID com.wenjinliu.shiftledger 打开 iCloud 能力、
+      # 建好并勾选容器 iCloud.com.wenjinliu.shiftledger。没开的话导出会报
+      # 「Authentication failed / No profiles for 'com.wenjinliu.shiftledger' were found」——
+      # CI 用的 App Store Connect 密钥能签发描述文件，但改不了 App ID 的能力。
+      # 所以先用 ENABLE_ICLOUD 开关挡着：后台配好之后改成 'true'。
+      # 关着时装出来的包没有 iCloud 权限，App 里的备份会自动落到本机，并提示原因。
       - name: Embed entitlements into archive
+        if: env.ENABLE_ICLOUD == 'true'
         run: |
           set -e
           APP_PATH=$(find build/ShiftLedger.xcarchive/Products/Applications -maxdepth 1 -type d -name '*.app' -print -quit)
