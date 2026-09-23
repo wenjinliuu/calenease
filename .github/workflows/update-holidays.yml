@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'cloudbase/holiday-api/**'
+      - '.github/workflows/update-holidays.yml'
   schedule:
     - cron: '17 2 * * 1'  # Monday 10:17 Asia/Shanghai, Oct 15–Jan 31
     - cron: '17 2 1 * *'  # 1st 10:17 Asia/Shanghai, outside that window
@@ -120,7 +121,7 @@ jobs:
         if: steps.deploy.outputs.needed == 'true'
         run: |
           cp "$RUNNER_TEMP"/next-holidays/*.json holidays/v1/
-          git add holidays/v1/*.json
+          git add holidays/v1/index.json holidays/v1/[0-9][0-9][0-9][0-9].json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if ! git diff --cached --quiet; then
