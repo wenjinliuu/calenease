@@ -2,6 +2,10 @@ name: Update China holidays
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudbase/holiday-api/**'
   schedule:
     - cron: '17 2 * * 1'  # Monday 10:17 Asia/Shanghai, Oct 15–Jan 31
     - cron: '17 2 1 * *'  # 1st 10:17 Asia/Shanghai, outside that window
@@ -82,7 +86,7 @@ jobs:
         if: steps.window.outputs.run == 'true'
         id: deploy
         run: |
-          if [ '${{ steps.changes.outputs.changed }}' = true ] || ! curl --fail --silent --show-error --max-time 20 "$HOLIDAY_BASE/index.json" >/dev/null; then
+          if [ '${{ github.event_name }}' = push ] || [ '${{ steps.changes.outputs.changed }}' = true ] || ! curl --fail --silent --show-error --max-time 20 "$HOLIDAY_BASE/index.json" >/dev/null; then
             echo 'needed=true' >> "$GITHUB_OUTPUT"
           else
             echo 'needed=false' >> "$GITHUB_OUTPUT"

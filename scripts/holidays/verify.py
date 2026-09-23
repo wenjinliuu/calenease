@@ -25,9 +25,9 @@ for filename in ['index.json', *(entry['url'] for entry in index['years'].values
             assert headers.get('Access-Control-Allow-Origin') == '*', filename
             if filename != 'index.json':
                 assert hashlib.sha256(actual).hexdigest() == index['years'][filename[:-5]]['sha256'], filename
-            expected_cache = 'max-age=3600' if filename == 'index.json' else 'max-age=86400'
-            if headers.get('Cache-Control') != expected_cache:
-                cache_mismatches.append(f'{filename}: {headers.get("Cache-Control")!r} (expected {expected_cache!r})')
+            cache = headers.get('Cache-Control', '')
+            if 'no-store' not in {token.strip().lower() for token in cache.split(',')}:
+                cache_mismatches.append(f'{filename}: {cache!r} (expected no-store)')
             break
         except Exception:
             if attempt == 7:
@@ -36,4 +36,4 @@ for filename in ['index.json', *(entry['url'] for entry in index['years'].values
 print(f'HTTPS bytes, SHA-256, Content-Type and CORS verified for {len(index["years"])} years and index')
 if cache_mismatches:
     raise ValueError('Cache-Control mismatch: ' + '; '.join(cache_mismatches))
-print('Cache-Control verified for every file')
+print('Default gateway no-store policy verified for every file')

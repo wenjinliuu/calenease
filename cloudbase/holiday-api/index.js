@@ -22,7 +22,7 @@ function respond(req, res) {
     const body = fs.readFileSync(path.join(DATA, filename));
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': `max-age=${filename === 'index.json' ? 3600 : 86400}`,
+      'Cache-Control': 'no-store',
       'Access-Control-Allow-Origin': '*',
       'X-Content-Type-Options': 'nosniff',
       'Content-Length': body.length,
