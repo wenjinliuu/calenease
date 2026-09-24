@@ -132,6 +132,9 @@ private struct PagerTrack<Content: View>: View {
     var body: some View {
         content
             .frame(width: pageWidth * 3, alignment: .leading)
+            // 对外只报一页宽：三页宽的内容往右溢出、被外层裁掉。要是把三页宽报出去，
+            // 外层量到的宽度就变成三倍，页宽跟着变大、内容再变宽……排版会停不下来。
+            .frame(width: pageWidth, alignment: .leading)
             .offset(x: -pageWidth + drag.x)
     }
 }

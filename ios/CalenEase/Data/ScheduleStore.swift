@@ -11,10 +11,7 @@ import Observation
 @Observable
 final class ScheduleStore {
 
-    private(set) var document: ScheduleDocument {
-        // 文档一变，按天算的缓存全部作废
-        didSet { clearDayCaches() }
-    }
+    private(set) var document: ScheduleDocument
     /// 首次读盘完成前不写盘，避免把默认数据覆盖到用户数据上。
     private(set) var isReady = false
     private(set) var lastSaveError: String?
@@ -42,11 +39,16 @@ final class ScheduleStore {
     @ObservationIgnored private var occurrenceCache: [String: [EventOccurrence]] = [:]
     @ObservationIgnored private var shiftDaysCache: [String: String]?
     @ObservationIgnored private var recordIndex: [String: DayRecord]?
+    /// 缓存是按哪一份文档算的。文档一变（任何途径），下一次查询时整批作废。
+    /// 文档没变时两边的数组共用同一块存储，比较几乎不花时间。
+    @ObservationIgnored private var cacheSource: ScheduleDocument?
 
-    private func clearDayCaches() {
+    private func validateDayCaches() {
+        guard cacheSource != document else { return }
         occurrenceCache.removeAll(keepingCapacity: true)
         shiftDaysCache = nil
         recordIndex = nil
+        cacheSource = document
     }
 
     private let fileURL: URL
@@ -290,6 +292,7 @@ final class ScheduleStore {
     /// 某一天的排班记录。按日期建一次索引，之后是字典查找。
     func record(on date: String) -> DayRecord? {
         let records = document.records   // 读一下文档，让视图跟着文档变化重画
+        validateDayCaches()
         if let recordIndex { return recordIndex[date] }
         var index: [String: DayRecord] = [:]
         index.reserveCapacity(records.count)
@@ -489,6 +492,7 @@ final class ScheduleStore {
     /// 某一天的日程。
     func occurrences(on date: String) -> [EventOccurrence] {
         let events = document.events   // 读一下文档，让视图跟着文档变化重画
+        validateDayCaches()
         if let cached = occurrenceCache[date] { return cached }
         if events.isEmpty { return [] }
         let shiftDays = shiftDaysCache ?? EventEngine.shiftDays(of: document)
