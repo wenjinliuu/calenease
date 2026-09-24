@@ -1,0 +1,57 @@
+name: Retire legacy app
+
+# 下线旧版「循环班表」（com.wenjinliu.shiftledger）在 Apple 后台留下的构建、描述文件和 Bundle ID。
+# 只认这一个 Bundle ID。推送本文件或脚本时只做只读检查；破坏性操作要手动运行并在 confirm 里填 Bundle ID。
+# App Store Connect 里的 App 本身 API 删不掉，要在网页上「App 信息 › 移除 App」。
+
+on:
+  push:
+    paths:
+      - ".github/workflows/retire-legacy-app.yml"
+      - "ios/Scripts/asc-retire-legacy.py"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "inspect 只读 / expire-builds 让旧构建过期 / delete-profiles 删描述文件 / delete-bundle 删 Bundle ID"
+        required: true
+        type: choice
+        default: inspect
+        options: [inspect, expire-builds, delete-profiles, delete-bundle]
+      confirm:
+        description: "破坏性操作请填 com.wenjinliu.shiftledger"
+        required: false
+        type: string
+
+concurrency:
+  group: retire-legacy-app
+  cancel-in-progress: false
+
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write App Store Connect API key
+        env:
+          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s' "$PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+
+      - name: Run
+        env:
+          ACTION: ${{ inputs.action || 'inspect' }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          pip install --quiet 'pyjwt[crypto]'
+          python3 ios/Scripts/asc-retire-legacy.py
+
+      - name: Clean up API key
+        if: always()
+        run: rm -f ~/.appstoreconnect/private_keys/AuthKey_*.p8
