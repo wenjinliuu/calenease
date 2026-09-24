@@ -11,7 +11,10 @@ import Observation
 @Observable
 final class ScheduleStore {
 
-    private(set) var document: ScheduleDocument
+    private(set) var document: ScheduleDocument {
+        // 文档一变，按天算的缓存全部作废
+        didSet { clearDayCaches() }
+    }
     /// 首次读盘完成前不写盘，避免把默认数据覆盖到用户数据上。
     private(set) var isReady = false
     private(set) var lastSaveError: String?
@@ -29,6 +32,22 @@ final class ScheduleStore {
     var focusedMonth: Int
 
     var todayKey: String { ScheduleCalendar.todayKey }
+
+    // MARK: - 按天的缓存
+    //
+    // 事项页一天一段往下排、日期条一格一天，每一格每画一次都要问「这天有哪些日程」「这天排的什么班」。
+    // 原来每问一次都把全部日程重算一遍，有「跟随班次」重复的日程时还要把几千条排班记录扫一遍建表；
+    // 查某天的排班也是整表线性查找。滚动、翻周时这些成倍叠加，手指落在有日程的那几天就卡得滑不动。
+    // 现在按文档版本缓存：同一份文档里，每一天只算一次。
+    @ObservationIgnored private var occurrenceCache: [String: [EventOccurrence]] = [:]
+    @ObservationIgnored private var shiftDaysCache: [String: String]?
+    @ObservationIgnored private var recordIndex: [String: DayRecord]?
+
+    private func clearDayCaches() {
+        occurrenceCache.removeAll(keepingCapacity: true)
+        shiftDaysCache = nil
+        recordIndex = nil
+    }
 
     private let fileURL: URL
     private var saveTask: Task<Void, Never>?
@@ -268,7 +287,16 @@ final class ScheduleStore {
 
     // MARK: - 逐日编辑
 
-    func record(on date: String) -> DayRecord? { document.record(on: date) }
+    /// 某一天的排班记录。按日期建一次索引，之后是字典查找。
+    func record(on date: String) -> DayRecord? {
+        let records = document.records   // 读一下文档，让视图跟着文档变化重画
+        if let recordIndex { return recordIndex[date] }
+        var index: [String: DayRecord] = [:]
+        index.reserveCapacity(records.count)
+        for record in records { index[record.date] = record }
+        recordIndex = index
+        return index[date]
+    }
 
     func shift(_ id: String) -> ShiftDefinition? { document.shift(id) }
 
@@ -460,7 +488,14 @@ final class ScheduleStore {
 
     /// 某一天的日程。
     func occurrences(on date: String) -> [EventOccurrence] {
-        EventEngine.occurrences(of: document.events, on: date, shiftDays: EventEngine.shiftDays(of: document))
+        let events = document.events   // 读一下文档，让视图跟着文档变化重画
+        if let cached = occurrenceCache[date] { return cached }
+        if events.isEmpty { return [] }
+        let shiftDays = shiftDaysCache ?? EventEngine.shiftDays(of: document)
+        shiftDaysCache = shiftDays
+        let result = EventEngine.occurrences(of: events, on: date, shiftDays: shiftDays)
+        occurrenceCache[date] = result
+        return result
     }
 
     // MARK: - 倒计时

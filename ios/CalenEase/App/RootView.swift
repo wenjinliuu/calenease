@@ -95,7 +95,6 @@ private struct OnboardingSheet: View {
         }
         .padding(24)
         .presentationDetents([.height(400)])
-        .presentationCornerRadius(28)
     }
 
     private func choice(title: String, detail: String, symbol: String, tint: Color, shifts: Bool) -> some View {

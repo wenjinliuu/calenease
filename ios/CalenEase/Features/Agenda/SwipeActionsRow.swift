@@ -5,6 +5,9 @@ import SwiftUI
 /// 事项页日视图的日程、日历页当天面板里的日程都用它。
 /// 横向拖动一开始，里面的内容就不再接收点按：否则手指松开时，条目里的按钮会把这次拖动
 /// 当成一次点击。往右拖也拦住（往右没有操作）。已经滑开的一条，点它只是合上。
+///
+/// 拖动用 UIKit 的横向手势（`HorizontalPan`）：竖着滑时它立刻放弃，列表照常滚动。
+/// 之前用 SwiftUI 的 DragGesture，手指落在日程上时整个列表都滑不动。
 struct SwipeActionsRow<Content: View>: View {
     let id: String
     @Binding var openRow: String?
@@ -38,7 +41,7 @@ struct SwipeActionsRow<Content: View>: View {
             .mask { Rectangle().padding(.vertical, -400) }
             // 内容暂时不接点按时，拖动手势也要有地方落手
             .contentShape(Rectangle())
-            .simultaneousGesture(drag)
+            .gesture(HorizontalPan(onChange: dragChanged, onEnd: dragEnded))
             .onChange(of: openRow) { _, row in
                 if row != id, offset != 0 { withAnimation(.snappy(duration: 0.22)) { offset = 0 } }
             }
@@ -83,23 +86,21 @@ struct SwipeActionsRow<Content: View>: View {
         .accessibilityHidden(true)
     }
 
-    private var drag: some Gesture {
-        DragGesture(minimumDistance: 12)
-            .onChanged { value in
-                let dx = value.translation.width, dy = value.translation.height
-                guard dragging || abs(dx) > abs(dy) * 1.3 else { return }
-                if !dragging {
-                    dragging = true
-                    startOffset = offset
-                    if openRow != id { openRow = id }
-                }
-                // 往右最多回到 0，再往右只给一点阻尼
-                let proposed = startOffset + dx
-                offset = proposed > 0 ? min(12, proposed * 0.15) : proposed
-            }
-            .onEnded { value in
+    private func dragChanged(_ dx: CGFloat) {
+        if !dragging {
+            dragging = true
+            startOffset = offset
+            if openRow != id { openRow = id }
+        }
+        // 往右最多回到 0，再往右只给一点阻尼
+        let proposed = startOffset + dx
+        offset = proposed > 0 ? min(12, proposed * 0.15) : proposed
+    }
+
+    private func dragEnded(_ dx: CGFloat, _ velocity: CGFloat) {
                 guard dragging else { return }
-                let predicted = value.predictedEndTranslation.width
+                // 松手时按速度往前推一段，轻轻一甩也能滑开
+                let predicted = dx + velocity * 0.2
                 var deleteNow = false
                 withAnimation(.snappy(duration: 0.25)) {
                     if offset < -(Self.revealWidth + 120) || predicted < -520 {
@@ -121,7 +122,6 @@ struct SwipeActionsRow<Content: View>: View {
                         if openRow == id { openRow = nil }
                     }
                 }
-            }
     }
 
     private func close() {

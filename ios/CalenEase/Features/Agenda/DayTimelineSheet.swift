@@ -101,7 +101,7 @@ private struct DayTimelinePage: View {
         let occurrences = store.occurrences(on: key)
         let allDay = occurrences.filter { $0.event.isAllDay }
         let timed = occurrences.filter { !$0.event.isAllDay }
-        let record = document.features.shiftsEnabled ? document.record(on: key) : nil
+        let record = document.features.shiftsEnabled ? store.record(on: key) : nil
         let shift = record.flatMap { $0.planned ? document.shift($0.shiftId) : nil }
 
         VStack(spacing: 0) {

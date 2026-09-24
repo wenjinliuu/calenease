@@ -37,9 +37,10 @@ extension View {
         glassEffect(GlassStyle.pill(tint: tint, interactive: interactive), in: Capsule())
     }
 
-    /// 浮在图表、内容上的小卡片：透得见底下的东西。
+    /// 浮在图表、内容上的小卡片：透得见底下的东西。用最通透的 `.clear` 玻璃——
+    /// `.regular` 压在白卡片上会自适应变得几乎不透明，看着就是一块白底。
     func glassCard(cornerRadius: CGFloat = 12) -> some View {
-        glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        glassEffect(.clear, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 }
 

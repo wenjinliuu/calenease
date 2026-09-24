@@ -53,9 +53,10 @@ struct AgendaScreen: View {
                     day = today
                     listID += 1
                 }
-                // 系统的「点标签回到顶部」动画要是晚一拍落到新列表上，再定位一次今天
+                // 系统的「点标签回到顶部」动画要是晚一拍落到新列表上，再定位一次今天（不带动画，
+                // 带动画要把中间一整年的日子都排一遍，会卡）
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-                    if day != today { withAnimation(.smooth(duration: 0.3)) { day = today } }
+                    if day != today { day = today }
                 }
             }
         }
@@ -213,7 +214,12 @@ private struct AgendaDayList: View {
         .onChange(of: day) { _, newDay in
             guard newDay != position else { return }
             jumpTarget = newDay
-            withAnimation(.smooth(duration: 0.4)) { position = newDay }
+            // 一周以内滑过去；再远就直接跳——带动画滑过几十上百天，中间每一天都要排一遍，会卡
+            if let position, abs(position - newDay) <= 7 {
+                withAnimation(.smooth(duration: 0.35)) { self.position = newDay }
+            } else {
+                position = newDay
+            }
             // 保险：动画被打断没走到目标，也别一直卡着不同步
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                 if jumpTarget == newDay { jumpTarget = nil }
@@ -239,7 +245,7 @@ private struct AgendaDaySection: View {
     var body: some View {
         let document = store.document
         let occurrences = store.occurrences(on: key)
-        let record = document.features.shiftsEnabled ? document.record(on: key) : nil
+        let record = document.features.shiftsEnabled ? store.record(on: key) : nil
         let shift = record.flatMap { $0.planned ? document.shift($0.shiftId) : nil }
 
         VStack(alignment: .leading, spacing: 10) {
@@ -555,14 +561,12 @@ private struct AgendaWeekView: View {
             }
         }
         .contentShape(Rectangle())
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 24)
-                .onEnded { value in
-                    let dx = value.translation.width, dy = value.translation.height
-                    guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
-                    step(dx < 0 ? 1 : -1)
-                }
-        )
+        // 横向手势用 UIKit 的：竖着滚时间轴时它立刻放弃，不会和滚动抢
+        .gesture(HorizontalPan(onChange: { _ in }, onEnd: { dx, velocity in
+            let projected = dx + velocity * 0.2
+            guard abs(projected) > 80 else { return }
+            step(projected < 0 ? 1 : -1)
+        }))
         .sensoryFeedback(.selection, trigger: weekStart)
     }
 

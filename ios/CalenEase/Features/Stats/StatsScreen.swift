@@ -477,19 +477,11 @@ struct HoursTrendChart: View, Equatable {
                     }
                 }
 
-                // 长按选中某个月：一条竖线，顶上一张小卡写这个月的计划、基本、额外。
+                // 长按选中某个月：一条竖线；那张小卡画在上层（见 chartOverlay），压在曲线上面
                 if let selected {
                     RuleMark(x: .value("月份", Double(selected.index)))
                         .foregroundStyle(Color.secondary.opacity(0.5))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                        .annotation(position: .top,
-                                    spacing: 4,
-                                    overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
-                            MonthCallout(label: selected.label,
-                                         planned: selected.planned,
-                                         basic: selected.basic,
-                                         showsExtra: showsPlanned)
-                        }
                 }
             }
             .chartBackground { proxy in
@@ -511,6 +503,22 @@ struct HoursTrendChart: View, Equatable {
             // 手指在同一个月里挪动不触发重画。
             .chartOverlay { proxy in
                 GeometryReader { geometry in
+                    // 选中月份的小卡：自己摆在曲线上方的同一层里，玻璃才透得出底下的曲线。
+                    // 之前是图表的标注，单独一层，玻璃取不到下面的内容，看着就是一块白卡。
+                    if let selected, let plotFrame = proxy.plotFrame,
+                       let x = proxy.position(forX: Double(selected.index)) {
+                        let frame = geometry[plotFrame]
+                        let half: CGFloat = 66
+                        MonthCallout(label: selected.label,
+                                     planned: selected.planned,
+                                     basic: selected.basic,
+                                     showsExtra: showsPlanned)
+                            .fixedSize()
+                            .position(x: min(max(frame.minX + x, half), geometry.size.width - half),
+                                      y: frame.minY + 36)
+                            .allowsHitTesting(false)
+                            .transition(.opacity)
+                    }
                     Rectangle()
                         .fill(.clear)
                         .contentShape(Rectangle())

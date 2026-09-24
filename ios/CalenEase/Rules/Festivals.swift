@@ -38,7 +38,19 @@ enum LunarCalendar {
         "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十",
     ]
 
+    private static let lock = NSLock()
+    private static var cache: [String: Day?] = [:]
+
+    /// 某一天的农历。系统农历换算不便宜，而三张月历、事项页每一天、每次重画都要问，
+    /// 算过的记下来（和节日一样）。
     static func day(for key: String) -> Day? {
+        if let cached = lock.withLock({ cache[key] }) { return cached }
+        let value = compute(key)
+        lock.withLock { cache[key] = value }
+        return value
+    }
+
+    private static func compute(_ key: String) -> Day? {
         guard let date = ScheduleCalendar.date(from: key) else { return nil }
         let parts = calendar.dateComponents([.month, .day], from: date)
         guard let month = parts.month, let day = parts.day else { return nil }

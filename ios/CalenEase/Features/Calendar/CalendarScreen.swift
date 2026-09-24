@@ -8,6 +8,7 @@ import SwiftUI
 ///
 /// 点格子分两步：第一下只是选中（蓝圈），再点一下选中的那天才打开大抽屉。
 /// 打开 App 时今天已经是选中的，所以点今天一下就直接进编辑。
+/// 左右翻月不会改选中的日子，下面的面板一直是用户最后点的那一天。
 struct CalendarScreen: View {
     @Environment(ScheduleStore.self) private var store
 
@@ -19,6 +20,10 @@ struct CalendarScreen: View {
     @State private var isBatchEditorPresented = false
     /// 点格子选中时震一下。翻月自动选 1 号时月份那边已经震过了，不再叠一次。
     @State private var tapTick = 0
+    /// 标题上显示的月份。跟着 store 的月份走，但自己带动画：翻页提交月份时为了卡片不跳，
+    /// 那一下是关掉动画的，标题要是直接读 store，数字滚动的动效就被一起关掉了。
+    @State private var titleIndex: Int?
+    @State private var sparkleTick = 0
 
     /// 进出多选用的弹簧：略带一点回弹，行动条展开、网格下移、格子描边淡入都走这一条，
     /// 几样东西同一节奏动，看起来是一个整体在让位，而不是各动各的。
@@ -89,14 +94,9 @@ struct CalendarScreen: View {
             }
             .sensoryFeedback(.selection, trigger: store.focusedMonthKey)
             .sensoryFeedback(.selection, trigger: tapTick)
+            // 翻到别的月不自动选日子：选中的那天留在原处，用户点了才算选。
             .onChange(of: store.focusedIndex) { _, index in
-                // 翻到别的月：本月选今天，其他月选 1 号。跳转已经选好了那个月里的某天就不动。
-                guard !selectedDate.hasPrefix(store.focusedMonthKey) else { return }
-                withAnimation(.snappy(duration: 0.3)) {
-                    selectedDate = index == store.currentMonthIndex
-                        ? store.todayKey
-                        : ScheduleCalendar.key(year: store.focusedYear, month: store.focusedMonth, day: 1)
-                }
+                withAnimation(.snappy(duration: 0.3)) { titleIndex = index }
             }
             .onChange(of: shiftsEnabled) { _, enabled in
                 if !enabled {
@@ -154,28 +154,35 @@ struct CalendarScreen: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    sparkleTick += 1
                     isGeneratorPresented = true
                 } label: {
+                    // 点一下星星按层弹一下，由操作触发，不做循环的装饰动画
                     Image(systemName: "sparkles")
+                        .symbolEffect(.bounce.up.byLayer, options: .speed(1.4), value: sparkleTick)
                 }
                 .buttonStyle(.glassProminent)
-                .tint(Palette.blue)
+                // 染色调淡一些，底下的玻璃透得出来，不是一整块实心蓝
+                .tint(Palette.blue.opacity(0.55))
                 .accessibilityLabel("循环排班")
             }
         }
     }
 
     private var monthTitle: some View {
-        Button { sheet = .jump } label: {
+        let index = titleIndex ?? store.focusedIndex
+        let year = index / 12, month = index % 12
+        return Button { sheet = .jump } label: {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text("\(store.focusedMonth + 1)")
+                // 和事项页左上角的月份同一种数字滚动
+                Text("\(month + 1)")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                    .contentTransition(.numericText(value: Double(store.focusedMonth)))
+                    .contentTransition(.numericText(value: Double(index)))
                 Text("月")
                     .font(.headline.weight(.bold))
-                if store.focusedYear != store.currentMonthIndex / 12 {
-                    Text("\(String(store.focusedYear))年")
+                if year != store.currentMonthIndex / 12 {
+                    Text("\(String(year))年")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.leading, 4)
@@ -189,7 +196,6 @@ struct CalendarScreen: View {
             .foregroundStyle(.primary)
             .fixedSize()
             .contentShape(Rectangle())
-            .animation(.snappy(duration: 0.3), value: store.focusedIndex)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(store.focusedMonthLabel)
@@ -427,7 +433,7 @@ private struct DayPanel: View {
 
     @ViewBuilder
     private func shiftRow(_ document: ScheduleDocument) -> some View {
-        let record = document.record(on: date)
+        let record = store.record(on: date)
         let shift = record.flatMap { $0.planned ? document.shift($0.shiftId) : nil }
         Button(action: onEditShift) {
             HStack(spacing: 10) {
