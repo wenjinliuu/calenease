@@ -1,19 +1,18 @@
 name: TestFlight
 
-# 省心日历（CalenEase）归档、签名、上传 TestFlight。
-# App Store Connect 上的 App：「省心日历-循环班表」，Bundle ID com.wenjinliu.calenease，SKU calenease-ios。
-# 签名沿用仓库 Secrets 里的 App Store Connect API 密钥，密钥不进代码。
-
 on:
   workflow_dispatch:
     inputs:
       build_number:
-        description: "构建号（留空则用 GitHub run number）"
-        required: false
+        description: "Build number (blank: GitHub run number)"
         type: string
-      lookup_only:
-        description: "只核对 App Store Connect 注册信息（列出 App / Bundle ID / SKU / iCloud 容器），不归档上传"
         required: false
+      lookup_only:
+        description: "Only verify Apple registration; do not archive or upload"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Unsigned archive only; never upload"
         type: boolean
         default: false
   push:
@@ -23,209 +22,27 @@ concurrency:
   group: calenease-testflight
   cancel-in-progress: false
 
-env:
-  # iCloud 备份要用的容器，和 ios/CalenEase/Resources/CalenEase.entitlements、
-  # ICloudBackupStore.containerID 必须一字不差。是否真的加进包里由 verify 按 Apple 后台核对结果决定。
-  ICLOUD_CONTAINER: iCloud.com.wenjinliu.calenease
-
 jobs:
-  # 先用 App Store Connect API 只读核对：project.yml 里的 Bundle ID 已在 Apple Developer 注册、
-  # App Store Connect 里已有对应 App、App ID 打开了 iCloud 能力并勾选了上面的容器。
-  # Bundle ID / App 缺一样都在这里失败，不用等到 macOS 上归档完、导出签名时才报「No profiles found」。
-  verify:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    outputs:
-      icloud: ${{ steps.check.outputs.icloud }}
-    env:
-      KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-      ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Write App Store Connect API key
-        env:
-          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          printf '%s' "$PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
-          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
-
-      - name: Verify App Store Connect registration
-        id: check
-        run: |
-          pip install --quiet 'pyjwt[crypto]'
-          BUNDLE_ID=$(awk '/PRODUCT_BUNDLE_IDENTIFIER:/ {print $2; exit}' ios/project.yml)
-          echo "project.yml 里的 Bundle ID：$BUNDLE_ID"
-          if [ "${{ inputs.lookup_only }}" != "true" ]; then
-            export EXPECTED_BUNDLE_ID="$BUNDLE_ID"
-            export REQUIRED_CAPABILITIES=ICLOUD
-          fi
-          python3 ios/Scripts/asc-verify.py
-
-      - name: Clean up API key
-        if: always()
-        run: rm -f ~/.appstoreconnect/private_keys/AuthKey_*.p8
-
-  upload:
-    needs: verify
-    if: ${{ !inputs.lookup_only }}
-    runs-on: macos-latest
-    timeout-minutes: 45
-
-    defaults:
-      run:
-        working-directory: ios
-
-    env:
-      ENABLE_ICLOUD: ${{ needs.verify.outputs.icloud }}
-      TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-      ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Select Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
-
-      - name: Install tools
-        run: brew install xcodegen xcbeautify
-
-      - name: Sync icon source artwork
-        run: bash Scripts/sync-app-icon.sh
-
-      - name: Write App Store Connect API key
-        env:
-          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-        run: |
-          # xcodebuild 只认这个固定目录下的 AuthKey_<KEY_ID>.p8
-          mkdir -p ~/.appstoreconnect/private_keys
-          printf '%s' "$PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
-          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
-
-      - name: Generate project
-        run: xcodegen generate
-        env:
-          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
-
-      - name: Resolve build number
-        id: build
-        run: |
-          NUMBER="${{ inputs.build_number }}"
-          if [ -z "$NUMBER" ]; then NUMBER="${{ github.run_number }}"; fi
-          echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
-
-      # 归档阶段不签名：带自动签名归档时 Xcode 会去申请「开发」描述文件，
-      # 而开发描述文件需要团队里注册过设备。发布签名统一放到导出阶段，
-      # 由 App Store Connect 密钥自动签发。
-      - name: Archive
-        run: |
-          set -o pipefail
-          xcodebuild archive \
-            -project CalenEase.xcodeproj \
-            -scheme CalenEase \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -archivePath build/CalenEase.xcarchive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            CURRENT_PROJECT_VERSION=${{ steps.build.outputs.number }} \
-            | xcbeautify --renderer github-actions
-
-      - name: Verify archived app
-        run: |
-          APP_PATH=build/CalenEase.xcarchive/Products/Applications/CalenEase.app
-          test -d "$APP_PATH"
-          test -f "$APP_PATH/Assets.car"
-          find "$APP_PATH" -maxdepth 1 -type f -name 'AppIcon*.png' -print -quit | grep -q .
-          # 桌面显示名、Bundle ID 必须是新值
-          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")
-          DISPLAY_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP_PATH/Info.plist")
-          echo "Bundle ID：$BUNDLE_ID，桌面名称：$DISPLAY_NAME"
-          test "$BUNDLE_ID" = "com.wenjinliu.calenease"
-          test "$DISPLAY_NAME" = "省心日历"
-
-      # 把 entitlements 写进归档里的 App（iCloud 备份要用）。
-      #
-      # 归档是 CODE_SIGNING_ALLOWED=NO，Xcode 跳过了处理 entitlements 的那一步，
-      # 归档出来的 App 身上一条 entitlement 都没有；而 -exportArchive 重新签名时
-      # 取的正是「归档里 App 已有的 entitlements」。不补这一步，最终包里没有 iCloud 权限。
-      # 做法：ad-hoc 签一次把 entitlements 写进去，导出时整个重签，只有 entitlements 会被继承下去。
-      #
-      # 只有 verify 确认 App ID com.wenjinliu.calenease 已勾选 ICLOUD_CONTAINER 才做；
-      # 否则导出会报「No profiles for 'com.wenjinliu.calenease' were found」——
-      # CI 用的 App Store Connect 密钥能签发描述文件，但改不了 App ID 的能力。
-      # 跳过时包里没有 iCloud 权限，App 里的备份会自动落到本机，并提示原因。
-      - name: Embed entitlements into archive
-        if: env.ENABLE_ICLOUD == 'true'
-        run: |
-          set -e
-          APP_PATH=build/CalenEase.xcarchive/Products/Applications/CalenEase.app
-          grep -q "$ICLOUD_CONTAINER" CalenEase/Resources/CalenEase.entitlements
-          codesign --force --sign - \
-            --entitlements CalenEase/Resources/CalenEase.entitlements \
-            --generate-entitlement-der \
-            "$APP_PATH"
-          echo "=== 归档里的 entitlements ==="
-          codesign -d --entitlements :- --xml "$APP_PATH" 2>/dev/null | plutil -convert xml1 -o - -
-
-      - name: Write export options
-        run: |
-          mkdir -p build
-          cat > build/ExportOptions.plist <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key><string>app-store-connect</string>
-            <key>teamID</key><string>${TEAM_ID}</string>
-            <key>signingStyle</key><string>automatic</string>
-            <key>uploadSymbols</key><true/>
-            <key>destination</key><string>upload</string>
-          </dict>
-          </plist>
-          PLIST
-
-      - name: Export and upload to TestFlight
-        run: |
-          set -o pipefail
-          xcodebuild -exportArchive \
-            -archivePath build/CalenEase.xcarchive \
-            -exportOptionsPlist build/ExportOptions.plist \
-            -exportPath build/export \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
-            | xcbeautify --renderer github-actions
-
-      - name: Summary
-        if: success()
-        run: |
-          {
-            echo "### 省心日历 已上传 TestFlight"
-            echo "- App：省心日历-循环班表（com.wenjinliu.calenease，SKU calenease-ios）"
-            echo "- 构建号：${{ steps.build.outputs.number }}"
-            if [ "$ENABLE_ICLOUD" = "true" ]; then
-              echo "- iCloud 备份：已启用（$ICLOUD_CONTAINER）"
-            else
-              echo "- iCloud 备份：未启用——App ID 上还没核对到 $ICLOUD_CONTAINER，备份先存本机"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload dSYMs as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: calenease-dsyms-${{ steps.build.outputs.number }}
-          path: ios/build/CalenEase.xcarchive/dSYMs
-          if-no-files-found: ignore
-
-      - name: Clean up API key
-        if: always()
-        run: rm -f ~/.appstoreconnect/private_keys/AuthKey_*.p8
+  release:
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@1041aed9c6c57d266ce19e40bc2ffc9dbf615a5a
+    with:
+      workdir: ios
+      project: CalenEase.xcodeproj
+      scheme: CalenEase
+      bundle_id: com.wenjinliu.calenease
+      sync_command: bash Scripts/sync-app-icon.sh
+      generate_command: xcodegen generate
+      build_number: ${{ inputs.build_number || '' }}
+      dry_run: ${{ inputs.dry_run || false }}
+      entitlements_path: CalenEase/Resources/CalenEase.entitlements
+      entitlement_mode: icloud-verified
+      icloud_container: iCloud.com.wenjinliu.calenease
+      asc_verify_command: python3 Scripts/asc-verify.py
+      lookup_only: ${{ inputs.lookup_only || false }}
+      display_name: 省心日历
+      artifact_prefix: calenease-
+    secrets:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
