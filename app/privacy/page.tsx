@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "隐私政策｜循环班表",
-  description: "循环班表 iOS 应用与网页版的隐私政策：排班与工时数据仅保存在本机，联网只下载公开的节假日安排。",
+  title: "隐私政策｜省心日历",
+  description: "省心日历（原循环班表）iOS 应用与网页版的隐私政策：排班与工时数据仅保存在本机，联网只下载公开的节假日安排。",
 };
 
 const UPDATED_AT = "2026-09-23";
@@ -12,12 +12,12 @@ const HOLIDAY_ENDPOINT =
 export default function PrivacyPolicy() {
   return (
     <main className="legal-page">
-      <h1>循环班表 隐私政策</h1>
+      <h1>省心日历 隐私政策</h1>
       <p className="legal-meta">最近更新：{UPDATED_AT}</p>
 
       <h2>一、我们收集哪些信息</h2>
       <p>
-        循环班表不收集任何个人信息。应用没有账号体系，不要求登录，也不会索取
+        省心日历（原名循环班表）不收集任何个人信息。应用没有账号体系，不要求登录，也不会索取
         通讯录、位置、相机、麦克风或健康权限。
       </p>
       <p>
@@ -59,7 +59,7 @@ export default function PrivacyPolicy() {
       <h2>四、iCloud 备份</h2>
       <p>
         在「设置 → 备份与恢复」中开启「备份到 iCloud」后，应用会把与「导出备份」相同格式的
-        JSON 文件存到<strong>你自己的 iCloud 云盘</strong>（「文件」App 里的「循环班表」文件夹）。
+        JSON 文件存到<strong>你自己的 iCloud 云盘</strong>（「文件」App 里的「省心日历」文件夹）。
         文件由 Apple 按其隐私政策保管，我们无法访问。关闭该开关后备份只存在本机；
         你可以随时在应用内或「文件」App 中删除这些备份。
       </p>

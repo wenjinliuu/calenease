@@ -189,6 +189,13 @@ enum DocumentNormalizer {
                            shiftIds: ids)
     }
 
+    /// 只收合法的 "HH:mm"。
+    private static func clock(_ raw: Any?) -> String? {
+        guard let text = raw as? String, let minutes = ReminderPlanner.minutes(of: text),
+              (0..<(24 * 60)).contains(minutes) else { return nil }
+        return text
+    }
+
     private static func record(from raw: Any, shiftIds: Set<String>, tagIds: Set<String>) -> DayRecord? {
         guard let item = raw as? [String: Any],
               let date = item["date"] as? String
@@ -207,7 +214,9 @@ enum DocumentNormalizer {
             note: item["note"] as? String,
             manualOvertime: number(item["manualOvertime"]).map { max(0, $0) },
             source: RecordSource(rawValue: item["source"] as? String ?? "") ?? .legacy,
-            cycleId: item["cycleId"] as? String
+            cycleId: item["cycleId"] as? String,
+            startTime: clock(item["startTime"]),
+            endTime: clock(item["endTime"])
         )
     }
 

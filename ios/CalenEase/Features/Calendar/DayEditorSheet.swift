@@ -11,6 +11,9 @@ enum DaySegment: String, CaseIterable, Identifiable, Hashable {
 ///
 /// 排班页改的只是当天，不会打断后续循环——要改未来请用"循环排班"。
 /// 排班页只有真改了才保存，光进来看一眼、切到日程页加一条日程，不会平白多出一条排班记录。
+///
+/// 日程页本身就是「在这天新建日程」的表单，填了标题按「完成」就加上；
+/// 这天已有的日程排在表单下面，点开编辑、左滑删除。
 struct DayEditorSheet: View {
     let date: String
     let initialSegment: DaySegment
@@ -27,31 +30,38 @@ struct DayEditorSheet: View {
     /// 次要班次那一块展开了没有。默认收着，只露一个「添加次要班次」。
     @State private var showsSecondary = false
     @State private var eventTarget: EventEditorTarget?
+    /// 日程页上正在填的新日程。
+    @State private var newEvent: CalendarEvent
+    @State private var newEventHasUntil = false
 
     private var document: ScheduleDocument { store.document }
     private var selectedShift: ShiftDefinition? { document.shift(draft.shiftId) }
     private var shiftsEnabled: Bool { document.features.shiftsEnabled }
     private var isShiftDirty: Bool { loaded && draft != original }
 
-    /// 分段控件那一条的高度，两页的表单都往下让出这么多。
-    private static let segmentBarHeight: CGFloat = 48
+    private var canAddEvent: Bool { EventEditorSheet.canSave(newEvent) }
 
     init(date: String, initialSegment: DaySegment = .shift) {
         self.date = date
         self.initialSegment = initialSegment
         _segment = State(initialValue: initialSegment)
+        _newEvent = State(initialValue: CalendarEvent(startDate: date))
     }
 
     var body: some View {
         NavigationStack {
             Group {
                 if shiftsEnabled {
-                    TabView(selection: $segment) {
-                        shiftPage.tag(DaySegment.shift)
-                        eventsPage.tag(DaySegment.events)
+                    // 分段控件单独占一行，表单排在它下面——原来叠在表单上面，
+                    // 「主要班次」这些分组的开头被两颗按钮压住了一截。
+                    VStack(spacing: 0) {
+                        segmentBar
+                        TabView(selection: $segment) {
+                            shiftPage.tag(DaySegment.shift)
+                            eventsPage.tag(DaySegment.events)
+                        }
+                        .tabViewStyle(.page(indexDisplayMode: .never))
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .overlay(alignment: .top) { segmentBar }
                 } else {
                     eventsPage
                 }
@@ -61,15 +71,29 @@ struct DayEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(isShiftDirty ? "取消" : "关闭") { dismiss() }
+                    Button(isShiftDirty || canAddEvent ? "取消" : "关闭") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") {
+                    Button(segment == .events && canAddEvent ? "添加" : "完成") {
+                        var saved: [String] = []
                         if isShiftDirty && !draft.shiftId.isEmpty {
                             var record = draft
                             record.planned = true
                             store.save(record)
-                            showToast("已保存 \(date)")
+                            saved.append("排班")
+                        }
+                        if canAddEvent {
+                            let event = EventEditorSheet.finalized(newEvent, hasUntil: newEventHasUntil,
+                                                                   document: document)
+                            store.saveEvent(event)
+                            if event.reminderMinutes != nil {
+                                Task { await NotificationScheduler.requestAuthorization() }
+                            }
+                            saved.append("日程")
+                        }
+                        if !saved.isEmpty {
+                            showToast(saved == ["日程"] ? "已添加日程" : "已保存 \(date)",
+                                      symbol: saved == ["日程"] ? "calendar.badge.checkmark" : "checkmark.circle.fill")
                         }
                         dismiss()
                     }
@@ -83,6 +107,7 @@ struct DayEditorSheet: View {
                 loadDraft()
                 if !shiftsEnabled { segment = .events }
             }
+            .interactiveDismissDisabled(isShiftDirty || canAddEvent)
             .sensoryFeedback(.selection, trigger: segment)
         }
         // 两页统一一个高度：之前跟着内容走，没有日程的那页矮得只剩一条，切页时抽屉忽高忽低。
@@ -99,7 +124,7 @@ struct DayEditorSheet: View {
         .labelsHidden()
         .padding(.horizontal, 16)
         .padding(.top, 2)
-        .frame(height: Self.segmentBarHeight, alignment: .top)
+        .padding(.bottom, 8)
         .frame(maxWidth: .infinity)
         .background(Palette.grouped)
     }
@@ -123,17 +148,8 @@ struct DayEditorSheet: View {
                 }
             }
 
-            if document.work.trackHours, selectedShift?.countsAsWork == true {
-                Section("工时") {
-                    Toggle("班次已完成", isOn: $draft.completed)
-                    LabeledStepper(label: "实际 / 计划工时", value: $draft.hours, step: 0.5, range: 0...24)
-                    if needsManualOvertime {
-                        LabeledStepper(label: "手动额外工时",
-                                       value: Binding(get: { draft.manualOvertime ?? 0 },
-                                                      set: { draft.manualOvertime = $0 }),
-                                       step: 0.5, range: 0...24)
-                    }
-                }
+            if let shift = selectedShift, shift.countsAsWork, document.work.trackHours || !shift.isRest {
+                hoursSection(shift)
             }
 
             Section {
@@ -162,8 +178,100 @@ struct DayEditorSheet: View {
                 }
             }
         }
-        .contentMargins(.top, shiftsEnabled ? Self.segmentBarHeight - 20 : 0, for: .scrollContent)
+        .contentMargins(.top, 4, for: .scrollContent)
         .scrollContentBackground(.hidden)
+    }
+
+    // MARK: - 工时与当天时间
+
+    /// 工时：班次已完成、这天的上下班时间（可以只改今天）、实际 / 计划工时。
+    /// 改了上下班时间，工时按新的时长自动重算，仍然可以再用步进微调。
+    private func hoursSection(_ shift: ShiftDefinition) -> some View {
+        let trackHours = document.work.trackHours
+        return Section {
+            if trackHours {
+                Toggle("班次已完成", isOn: $draft.completed)
+            }
+            if !shift.isRest {
+                Toggle(isOn: customTimeBinding(shift).animation(.snappy(duration: 0.25))) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("只改这天的上下班时间")
+                        Text(draft.hasCustomTime
+                             ? "班次设置里是 \(shift.fullRange.isEmpty ? "未设时间" : shift.fullRange)"
+                             : (shift.fullRange.isEmpty ? "照班次设置" : "照班次设置 \(shift.fullRange)"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if draft.hasCustomTime {
+                    DatePicker("上班", selection: timeBinding(\.startTime, shift: shift),
+                               displayedComponents: [.hourAndMinute])
+                    DatePicker("下班", selection: timeBinding(\.endTime, shift: shift),
+                               displayedComponents: [.hourAndMinute])
+                }
+            }
+            if trackHours {
+                LabeledStepper(label: "实际 / 计划工时", value: $draft.hours, step: 0.5, range: 0...24)
+                if needsManualOvertime {
+                    LabeledStepper(label: "手动额外工时",
+                                   value: Binding(get: { draft.manualOvertime ?? 0 },
+                                                  set: { draft.manualOvertime = $0 }),
+                                   step: 0.5, range: 0...24)
+                }
+            }
+        } header: {
+            Text(trackHours ? "工时" : "上下班时间")
+        } footer: {
+            if draft.hasCustomTime, let start = draft.startTime, let end = draft.endTime {
+                Text(customTimeFooter(shift, start: start, end: end))
+            }
+        }
+    }
+
+    private func customTimeFooter(_ shift: ShiftDefinition, start: String, end: String) -> String {
+        let crosses = (EventClock.minutes(end) ?? 0) <= (EventClock.minutes(start) ?? 0)
+        var text = "\(start)–\(crosses ? "次日 " : "")\(end)"
+        guard document.work.trackHours else { return text + "，上下班提醒也按这个时间。" }
+        let hours = shift.hours(startTime: start, endTime: end)
+        text += " 算 \(HoursFormatter.compact(hours)) 小时"
+        let unpaid = shift.fullRange.isEmpty ? 0 : max(0, shift.duration - shift.defaultHours)
+        if unpaid > 0 { text += "（照班次扣除休息 \(HoursFormatter.compact(unpaid)) 小时）" }
+        if draft.secondaryShiftId != nil { text += "，另加次要班次工时" }
+        return text + "。只影响这一天，班次设置不变。"
+    }
+
+    /// 打开：先按班次原来的时间填上；关上：回到班次设置，工时也恢复默认。
+    private func customTimeBinding(_ shift: ShiftDefinition) -> Binding<Bool> {
+        Binding(get: { draft.hasCustomTime }, set: { on in
+            if on {
+                draft.startTime = shift.startTime.isEmpty ? "09:00" : shift.startTime
+                draft.endTime = shift.endTime.isEmpty ? "18:00" : shift.endTime
+            } else {
+                draft.startTime = nil
+                draft.endTime = nil
+            }
+            recomputeHours(shift)
+        })
+    }
+
+    private func timeBinding(_ keyPath: WritableKeyPath<DayRecord, String?>, shift: ShiftDefinition) -> Binding<Date> {
+        Binding(get: {
+            EventClock.date(key: date, time: draft[keyPath: keyPath] ?? "09:00")
+        }, set: { value in
+            draft[keyPath: keyPath] = EventClock.split(value).time
+            recomputeHours(shift)
+        })
+    }
+
+    /// 按当天实际上下班时间重算工时（加上次要班次的默认工时）。
+    private func recomputeHours(_ shift: ShiftDefinition) {
+        let primary: Double
+        if let start = draft.startTime, let end = draft.endTime {
+            primary = shift.hours(startTime: start, endTime: end)
+        } else {
+            primary = shift.defaultHours
+        }
+        draft.hours = min(24, primary + secondaryDefaultHours)
     }
 
     // MARK: - 提醒
@@ -205,13 +313,16 @@ struct DayEditorSheet: View {
         }
         var parts: [String] = []
         let reminders = document.reminders
-        if reminders.shiftStartEnabled, !reminders.shiftStartExcluded.contains(shift.id),
-           let start = EventClock.minutes(shift.startTime) {
+        // 这天单独改过上下班时间的，按改过的算
+        let times = draft.times(for: shift)
+        let startMinutes = EventClock.minutes(times.start)
+        if reminders.shiftStartEnabled, !reminders.shiftStartExcluded.contains(shift.id), let start = startMinutes {
             parts.append("这天 \(EventClock.text(start - reminders.shiftStartMinutes)) 提醒上班")
         }
-        if reminders.clockOutEnabled, let end = EventClock.minutes(shift.endTime) {
+        if reminders.clockOutEnabled, let end = EventClock.minutes(times.end) {
             let time = EventClock.text((end + reminders.clockOutMinutes) % (24 * 60))
-            parts.append("\(shift.crossesMidnight ? "次日 " : "")\(time) 提醒打卡")
+            let crosses = draft.hasCustomTime ? end <= (startMinutes ?? 0) : shift.crossesMidnight
+            parts.append("\(crosses ? "次日 " : "")\(time) 提醒打卡")
         }
         let summary = parts.isEmpty ? "" : parts.joined(separator: "，") + "。"
         return summary + "对所有排了班的日子生效，按班次单独开关在「设置 › 提醒」。"
@@ -229,28 +340,15 @@ struct DayEditorSheet: View {
         })
     }
 
-    private func clockBinding(_ keyPath: WritableKeyPath<ReminderSettings, String>) -> Binding<Date> {
-        Binding(get: {
-            EventClock.date(key: ScheduleCalendar.todayKey, time: document.reminders[keyPath: keyPath])
-        }, set: { value in
-            let text = EventClock.split(value).time
-            store.updateReminders { $0[keyPath: keyPath] = text }
-        })
-    }
-
     // MARK: - 日程页
 
+    /// 日程页就是「在这天新建日程」：直接填表单，按右上角「添加」。
+    /// 这天已有的日程排在最后，点一下编辑，左滑删除。
     private var eventsPage: some View {
         let occurrences = store.occurrences(on: date)
-        return Form {
-            Section {
-                if occurrences.isEmpty {
-                    Text("这天还没有日程")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.vertical, 10)
-                } else {
+        return EventEditorForm(draft: $newEvent, hasUntil: $newEventHasUntil) {
+            if !occurrences.isEmpty {
+                Section {
                     ForEach(occurrences) { occurrence in
                         Button { eventTarget = .edit(occurrence) } label: {
                             EventRow(occurrence: occurrence, day: date)
@@ -268,41 +366,16 @@ struct DayEditorSheet: View {
                             }
                         }
                     }
-                }
-            } footer: {
-                if occurrences.contains(where: { $0.event.recurrence.isRepeating }) {
-                    Text("重复日程左滑删除的只是这一次。")
-                }
-            }
-
-            Section {
-                Button {
-                    eventTarget = .new(on: date, reminders: document.reminders)
-                } label: {
-                    Label("新建日程", systemImage: "plus.circle.fill")
-                        .font(.body.weight(.semibold))
-                }
-            }
-
-            Section {
-                Picker(selection: reminderBinding(\.eventDefaultMinutes)) {
-                    Text("不提醒").tag(Int?.none)
-                    ForEach([0, 5, 10, 15, 30, 60], id: \.self) { minutes in
-                        Text(EventEditorSheet.reminderLabel(minutes)).tag(Int?.some(minutes))
+                } header: {
+                    Text("这天已有 \(occurrences.count) 条日程")
+                } footer: {
+                    if occurrences.contains(where: { $0.event.recurrence.isRepeating }) {
+                        Text("重复日程左滑删除的只是这一次。")
                     }
-                } label: {
-                    Label("新日程默认提醒", systemImage: "bell")
                 }
-                DatePicker(selection: clockBinding(\.allDayEventTime), displayedComponents: [.hourAndMinute]) {
-                    Label("全天日程提醒时间", systemImage: "sun.horizon")
-                }
-            } header: {
-                Text("提醒")
-            } footer: {
-                Text("每条日程点开还能单独改提醒时间。")
             }
         }
-        .contentMargins(.top, shiftsEnabled ? Self.segmentBarHeight - 20 : 0, for: .scrollContent)
+        .contentMargins(.top, 4, for: .scrollContent)
         .scrollContentBackground(.hidden)
     }
 
@@ -339,6 +412,11 @@ struct DayEditorSheet: View {
 
     /// 换主要班次：工时按「主要 + 次要」两个班次的默认工时重算。
     private func selectPrimary(_ shift: ShiftDefinition) {
+        // 换了班次，这天单独改过的上下班时间就不作数了
+        if draft.shiftId != shift.id {
+            draft.startTime = nil
+            draft.endTime = nil
+        }
         draft.shiftId = shift.id
         if draft.secondaryShiftId == shift.id { draft.secondaryShiftId = nil }
         draft.hours = min(24, shift.defaultHours + secondaryDefaultHours)
@@ -390,6 +468,8 @@ struct DayEditorSheet: View {
 
     private func loadDraft() {
         guard !loaded else { return }
+        // 新日程按设置里的默认提醒和下一个整点填好时间
+        newEvent = EventEditorTarget.new(on: date, reminders: document.reminders).event
         if let existing = store.record(on: date) {
             draft = existing
             // 次要班次指向的班次已经删掉了就当没有。

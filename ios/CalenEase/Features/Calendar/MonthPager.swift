@@ -103,6 +103,9 @@ private struct MonthPagerScroll: View, Equatable {
     /// 手指一松、分页滚动已经定下要停在哪一页时就记下来。翻页器正往那儿减速，
     /// 这时 store 跟着改月份，不能再反过来给滚动视图下一次「滚到那一页」的指令。
     @State private var settlingTarget: Int?
+    /// 这一次拖动是从哪一页开始的。松手后只许停在它左右一页之内——
+    /// 轻轻一甩不会越过下个月，减速途中系统再问一次目标也不会多翻一页。
+    @State private var dragAnchor = PagerAnchor()
 
     init(document: ScheduleDocument,
          todayKey: String,
@@ -170,7 +173,7 @@ private struct MonthPagerScroll: View, Equatable {
         .frame(height: contentHeight)
         // 松手那一刻就知道要停在哪一页：月份、选中的日子、震动都在这时候跟上，
         // 不用等减速动画走完——之前等到停稳才切，看着总慢半拍、不跟手。
-        .scrollTargetBehavior(PagingWithTarget { page in
+        .scrollTargetBehavior(PagingWithTarget(anchor: dragAnchor) { page in
             let index = lowerBound + page
             guard index != focusedIndex, Self.range.contains(index) else { return }
             settlingTarget = index
@@ -194,8 +197,13 @@ private struct MonthPagerScroll: View, Equatable {
             if newValue > 0 { rows.value = newValue }
         }
         .onScrollPhaseChange { _, phase in
+            if phase == .interacting, dragAnchor.page == nil {
+                // 手指按下：记住从哪一页开始拖（减速途中又按住的话，以正要停的那页为准）
+                dragAnchor.page = (settlingTarget ?? position ?? focusedIndex) - lowerBound
+            }
             // 停稳了再把月份交给 store。拖到一半就切的话，下面的日程面板会在手指底下重算。
             guard phase == .idle else { return }
+            dragAnchor.page = nil
             settlingTarget = nil
             guard let position, position != focusedIndex else { return }
             onSettle(position)
@@ -214,15 +222,29 @@ private struct MonthPagerScroll: View, Equatable {
     }
 }
 
-/// 系统的整页分页，外加一个回调：手指松开、目标页一定下来就报出第几页。
+/// 拖动起点。引用类型：分页规则在滚动引擎里被调用，读它不触发重算。
+final class PagerAnchor {
+    var page: Int?
+}
+
+/// 按页对齐、一次最多翻一页，外加一个回调：手指松开、目标页一定下来就报出第几页。
+///
+/// 原来用系统的 `.paging`：甩得稍快就会被惯性带过两页（9 月一甩到了 11 月），
+/// 减速时又慢吞吞地滑。改成 `viewAligned(limitBehavior: .alwaysByOne)`，
+/// 再用拖动起点夹一道：过半或轻甩就干脆利落地落到相邻那一页，永远不跳页。
 private struct PagingWithTarget: ScrollTargetBehavior {
+    let anchor: PagerAnchor
     let onTarget: (Int) -> Void
 
     func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
-        PagingScrollTargetBehavior().updateTarget(&target, context: context)
+        ViewAlignedScrollTargetBehavior(limitBehavior: .alwaysByOne).updateTarget(&target, context: context)
         let width = context.containerSize.width
         guard width > 0 else { return }
-        let page = Int((target.rect.minX / width).rounded())
+        var page = Int((target.rect.minX / width).rounded())
+        if let start = anchor.page {
+            page = min(max(page, start - 1), start + 1)
+        }
+        target.rect.origin.x = CGFloat(page) * width
         // 这时还在布局 / 手势回调里，改状态放到下一轮
         DispatchQueue.main.async { onTarget(page) }
     }

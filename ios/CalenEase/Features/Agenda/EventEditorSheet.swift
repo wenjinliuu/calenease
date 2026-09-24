@@ -50,7 +50,7 @@ enum EventClock {
     }
 }
 
-/// 新建 / 编辑一条日程。
+/// 新建 / 编辑一条日程。表单本身是 `EventEditorForm`，日历抽屉的「日程」页直接嵌同一份表单。
 struct EventEditorSheet: View {
     let target: EventEditorTarget
 
@@ -61,7 +61,6 @@ struct EventEditorSheet: View {
     @State private var draft: CalendarEvent
     @State private var hasUntil: Bool
     @State private var isConfirmingDelete = false
-    @FocusState private var titleFocused: Bool
 
     init(target: EventEditorTarget) {
         self.target = target
@@ -69,90 +68,9 @@ struct EventEditorSheet: View {
         _hasUntil = State(initialValue: target.event.recurrence.until != nil)
     }
 
-    private var document: ScheduleDocument { store.document }
-    private var shiftsEnabled: Bool { document.features.shiftsEnabled }
-    private var workShifts: [ShiftDefinition] { document.orderedShifts.filter { !$0.isRest } }
-
-    private var repeatKinds: [EventRecurrence.Kind] {
-        EventRecurrence.Kind.allCases.filter { $0 != .shift || (shiftsEnabled && !workShifts.isEmpty) }
-    }
-
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("标题", text: $draft.title)
-                        .font(.headline)
-                        .focused($titleFocused)
-                        .submitLabel(.done)
-                    ColorPaletteRow(palette: AccentHex.eventPalette, selection: $draft.color)
-                    SymbolPickerRow(selection: $draft.symbol, tint: draft.color)
-                }
-
-                Section {
-                    Toggle("全天", isOn: $draft.isAllDay.animation(.snappy(duration: 0.25)))
-                    DatePicker("开始", selection: startBinding,
-                               displayedComponents: draft.isAllDay ? [.date] : [.date, .hourAndMinute])
-                    DatePicker("结束", selection: endBinding, in: startValue...,
-                               displayedComponents: draft.isAllDay ? [.date] : [.date, .hourAndMinute])
-                }
-                .environment(\.locale, Locale(identifier: "zh_CN"))
-
-                repeatSection
-
-                Section("提醒") {
-                    Picker("提醒", selection: $draft.reminderMinutes) {
-                        Text("不提醒").tag(Int?.none)
-                        if draft.isAllDay {
-                            Text("当天 \(document.reminders.allDayEventTime)").tag(Int?.some(0))
-                            Text("前一天 \(document.reminders.allDayEventTime)").tag(Int?.some(1440))
-                        } else {
-                            ForEach([0, 5, 10, 15, 30, 60, 120, 1440], id: \.self) { minutes in
-                                Text(Self.reminderLabel(minutes)).tag(Int?.some(minutes))
-                            }
-                        }
-                    }
-                }
-
-                Section("地点与链接") {
-                    HStack(spacing: 10) {
-                        Image(systemName: "mappin.and.ellipse")
-                            .foregroundStyle(.secondary)
-                            .frame(width: 22)
-                        TextField("地点", text: optionalText(\.location))
-                        if let mapURL = Self.mapURL(draft.location) {
-                            Link(destination: mapURL) {
-                                Image(systemName: "map")
-                            }
-                            .buttonStyle(.borderless)
-                            .accessibilityLabel("在地图中打开")
-                        }
-                    }
-                    HStack(spacing: 10) {
-                        Image(systemName: "link")
-                            .foregroundStyle(.secondary)
-                            .frame(width: 22)
-                        TextField("链接（会议、网页）", text: optionalText(\.url))
-                            .keyboardType(.URL)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        if let link = Self.webURL(draft.url) {
-                            Link(destination: link) {
-                                Image(systemName: "arrow.up.right.square")
-                            }
-                            .buttonStyle(.borderless)
-                            .accessibilityLabel("打开链接")
-                        }
-                    }
-                }
-
-                Section("备注") {
-                    TextField("要带的东西、注意事项……", text: Binding(get: { draft.note ?? "" },
-                                                        set: { draft.note = $0.isEmpty ? nil : $0 }),
-                              axis: .vertical)
-                        .lineLimit(1...5)
-                }
-
+            EventEditorForm(draft: $draft, hasUntil: $hasUntil, focusesTitle: target.isNew) {
                 if !target.isNew {
                     Section {
                         Button(role: .destructive) {
@@ -180,7 +98,7 @@ struct EventEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存", action: save)
-                        .disabled(draft.title.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .disabled(!Self.canSave(draft))
                 }
             }
             .confirmationDialog("这是重复日程", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
@@ -188,17 +106,200 @@ struct EventEditorSheet: View {
                 Button("删除全部重复", role: .destructive) { delete(all: true) }
                 Button("取消", role: .cancel) {}
             }
-            .onAppear { if target.isNew { titleFocused = true } }
-            .onChange(of: draft.isAllDay) { _, allDay in
-                // 全天和定时的提醒选项不一样，切换时换成对应的默认值
-                if allDay {
-                    draft.reminderMinutes = draft.reminderMinutes == nil ? nil : 0
-                } else {
-                    draft.reminderMinutes = draft.reminderMinutes == nil ? nil : document.reminders.eventDefaultMinutes ?? 15
-                }
-            }
         }
         .presentationDragIndicator(.visible)
+    }
+
+    /// 「地图」里搜这个地点。
+    static func mapURL(_ location: String?) -> URL? {
+        guard let text = location?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty,
+              let query = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+        else { return nil }
+        return URL(string: "maps://?q=\(query)")
+    }
+
+    /// 用户填的链接：没写协议的补上 https://。
+    static func webURL(_ text: String?) -> URL? {
+        guard var value = text?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+        if !value.contains("://") { value = "https://" + value }
+        guard let url = URL(string: value), url.host() != nil || url.scheme != "https" else { return nil }
+        return url
+    }
+
+    static func reminderLabel(_ minutes: Int) -> String {
+        switch minutes {
+        case 0: "开始时"
+        case 1440: "提前 1 天"
+        default: "提前 \(ReminderPlanner.lead(minutes))"
+        }
+    }
+
+    // MARK: - 存取
+
+    static func canSave(_ draft: CalendarEvent) -> Bool {
+        !draft.title.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// 存盘前把草稿收拾干净：去空白、结束不早于开始、重复规则补齐默认值、链接补协议。
+    static func finalized(_ draft: CalendarEvent, hasUntil: Bool, document: ScheduleDocument) -> CalendarEvent {
+        var event = draft
+        event.title = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if event.endDate < event.startDate { event.endDate = event.startDate }
+        if !event.isAllDay, event.endDate == event.startDate, event.endTime < event.startTime {
+            event.endTime = event.startTime
+        }
+        switch event.recurrence.kind {
+        case .weekly where event.recurrence.weekdays.isEmpty:
+            event.recurrence.weekdays = [ScheduleCalendar.weekdayIndex(event.startDate)]
+        case .shift where event.recurrence.shiftId == nil:
+            event.recurrence.shiftId = document.orderedShifts.first { !$0.isRest }?.id
+        default:
+            break
+        }
+        if !event.recurrence.isRepeating || !hasUntil { event.recurrence.until = nil }
+        event.location = event.location?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if event.location?.isEmpty == true { event.location = nil }
+        event.url = webURL(event.url)?.absoluteString
+        if !event.recurrence.isRepeating { event.exceptions = [] }
+        return event
+    }
+
+    private func save() {
+        let event = Self.finalized(draft, hasUntil: hasUntil, document: store.document)
+        store.saveEvent(event)
+        if event.reminderMinutes != nil {
+            Task { await NotificationScheduler.requestAuthorization() }
+        }
+        showToast(target.isNew ? "已添加日程" : "已保存日程", symbol: "calendar.badge.checkmark")
+        dismiss()
+    }
+
+    private func delete(all: Bool) {
+        if all {
+            store.deleteEvent(id: target.event.id)
+        } else if let date = target.occurrenceDate {
+            store.excludeOccurrence(eventId: target.event.id, on: date)
+        }
+        showToast(all ? "已删除日程" : "已删除这一次", symbol: "trash")
+        dismiss()
+    }
+}
+
+/// 日程表单：标题、颜色图标、时间、重复、提醒、地点链接、备注。
+/// `trailing` 接在最后，编辑时放删除按钮。
+struct EventEditorForm<Trailing: View>: View {
+    @Binding var draft: CalendarEvent
+    @Binding var hasUntil: Bool
+    let focusesTitle: Bool
+    let trailing: () -> Trailing
+
+    @Environment(ScheduleStore.self) private var store
+    @FocusState private var titleFocused: Bool
+
+    init(draft: Binding<CalendarEvent>,
+         hasUntil: Binding<Bool>,
+         focusesTitle: Bool = false,
+         @ViewBuilder trailing: @escaping () -> Trailing) {
+        _draft = draft
+        _hasUntil = hasUntil
+        self.focusesTitle = focusesTitle
+        self.trailing = trailing
+    }
+
+    private var document: ScheduleDocument { store.document }
+    private var shiftsEnabled: Bool { document.features.shiftsEnabled }
+    private var workShifts: [ShiftDefinition] { document.orderedShifts.filter { !$0.isRest } }
+
+    private var repeatKinds: [EventRecurrence.Kind] {
+        EventRecurrence.Kind.allCases.filter { $0 != .shift || (shiftsEnabled && !workShifts.isEmpty) }
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                TextField("标题", text: $draft.title)
+                    .font(.headline)
+                    .focused($titleFocused)
+                    .submitLabel(.done)
+                ColorPaletteRow(palette: AccentHex.eventPalette, selection: $draft.color)
+                SymbolPickerRow(selection: $draft.symbol, tint: draft.color)
+            }
+
+            Section {
+                Toggle("全天", isOn: $draft.isAllDay.animation(.snappy(duration: 0.25)))
+                DatePicker("开始", selection: startBinding,
+                           displayedComponents: draft.isAllDay ? [.date] : [.date, .hourAndMinute])
+                DatePicker("结束", selection: endBinding, in: startValue...,
+                           displayedComponents: draft.isAllDay ? [.date] : [.date, .hourAndMinute])
+            }
+            .environment(\.locale, Locale(identifier: "zh_CN"))
+
+            repeatSection
+
+            Section("提醒") {
+                Picker("提醒", selection: $draft.reminderMinutes) {
+                    Text("不提醒").tag(Int?.none)
+                    if draft.isAllDay {
+                        Text("当天 \(document.reminders.allDayEventTime)").tag(Int?.some(0))
+                        Text("前一天 \(document.reminders.allDayEventTime)").tag(Int?.some(1440))
+                    } else {
+                        ForEach([0, 5, 10, 15, 30, 60, 120, 1440], id: \.self) { minutes in
+                            Text(EventEditorSheet.reminderLabel(minutes)).tag(Int?.some(minutes))
+                        }
+                    }
+                }
+            }
+
+            Section("地点与链接") {
+                HStack(spacing: 10) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 22)
+                    TextField("地点", text: optionalText(\.location))
+                    if let mapURL = EventEditorSheet.mapURL(draft.location) {
+                        Link(destination: mapURL) {
+                            Image(systemName: "map")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("在地图中打开")
+                    }
+                }
+                HStack(spacing: 10) {
+                    Image(systemName: "link")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 22)
+                    TextField("链接（会议、网页）", text: optionalText(\.url))
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    if let link = EventEditorSheet.webURL(draft.url) {
+                        Link(destination: link) {
+                            Image(systemName: "arrow.up.right.square")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("打开链接")
+                    }
+                }
+            }
+
+            Section("备注") {
+                TextField("要带的东西、注意事项……", text: Binding(get: { draft.note ?? "" },
+                                                    set: { draft.note = $0.isEmpty ? nil : $0 }),
+                          axis: .vertical)
+                    .lineLimit(1...5)
+            }
+
+            trailing()
+        }
+        .onAppear { if focusesTitle { titleFocused = true } }
+        .onChange(of: draft.isAllDay) { _, allDay in
+            // 全天和定时的提醒选项不一样，切换时换成对应的默认值
+            if allDay {
+                draft.reminderMinutes = draft.reminderMinutes == nil ? nil : 0
+            } else {
+                draft.reminderMinutes = draft.reminderMinutes == nil ? nil : document.reminders.eventDefaultMinutes ?? 15
+            }
+        }
     }
 
     // MARK: - 重复
@@ -301,68 +402,11 @@ struct EventEditorSheet: View {
                 set: { draft[keyPath: keyPath] = $0.isEmpty ? nil : $0 })
     }
 
-    /// 「地图」里搜这个地点。
-    static func mapURL(_ location: String?) -> URL? {
-        guard let text = location?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty,
-              let query = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
-        else { return nil }
-        return URL(string: "maps://?q=\(query)")
-    }
+}
 
-    /// 用户填的链接：没写协议的补上 https://。
-    static func webURL(_ text: String?) -> URL? {
-        guard var value = text?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
-        if !value.contains("://") { value = "https://" + value }
-        guard let url = URL(string: value), url.host() != nil || url.scheme != "https" else { return nil }
-        return url
-    }
-
-    static func reminderLabel(_ minutes: Int) -> String {
-        switch minutes {
-        case 0: "开始时"
-        case 1440: "提前 1 天"
-        default: "提前 \(ReminderPlanner.lead(minutes))"
-        }
-    }
-
-    // MARK: - 存取
-
-    private func save() {
-        var event = draft
-        event.title = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        if event.endDate < event.startDate { event.endDate = event.startDate }
-        if !event.isAllDay, event.endDate == event.startDate, event.endTime < event.startTime {
-            event.endTime = event.startTime
-        }
-        switch event.recurrence.kind {
-        case .weekly where event.recurrence.weekdays.isEmpty:
-            event.recurrence.weekdays = [ScheduleCalendar.weekdayIndex(event.startDate)]
-        case .shift where event.recurrence.shiftId == nil:
-            event.recurrence.shiftId = workShifts.first?.id
-        default:
-            break
-        }
-        if !event.recurrence.isRepeating || !hasUntil { event.recurrence.until = nil }
-        event.location = event.location?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if event.location?.isEmpty == true { event.location = nil }
-        event.url = Self.webURL(event.url)?.absoluteString
-        if !event.recurrence.isRepeating { event.exceptions = [] }
-        store.saveEvent(event)
-        if event.reminderMinutes != nil {
-            Task { await NotificationScheduler.requestAuthorization() }
-        }
-        showToast(target.isNew ? "已添加日程" : "已保存日程", symbol: "calendar.badge.checkmark")
-        dismiss()
-    }
-
-    private func delete(all: Bool) {
-        if all {
-            store.deleteEvent(id: target.event.id)
-        } else if let date = target.occurrenceDate {
-            store.excludeOccurrence(eventId: target.event.id, on: date)
-        }
-        showToast(all ? "已删除日程" : "已删除这一次", symbol: "trash")
-        dismiss()
+extension EventEditorForm where Trailing == EmptyView {
+    init(draft: Binding<CalendarEvent>, hasUntil: Binding<Bool>, focusesTitle: Bool = false) {
+        self.init(draft: draft, hasUntil: hasUntil, focusesTitle: focusesTitle) { EmptyView() }
     }
 }
 
@@ -407,14 +451,17 @@ struct EventRow: View {
     var body: some View {
         let event = occurrence.event
         let tone = Tone.event(event.color)
+        // 在「事项」里打了勾的，这里同步划掉：标题加删除线、变灰，色条也淡下去
+        let done = occurrence.isCompleted
         HStack(spacing: 10) {
             RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(tone.solid)
+                .fill(tone.solid.opacity(done ? 0.4 : 1))
                 .frame(width: 4, height: 30)
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.title)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .strikethrough(done, color: .secondary)
+                    .foregroundStyle(done ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     Text(detail)
@@ -435,9 +482,16 @@ struct EventRow: View {
                 .lineLimit(1)
             }
             Spacer(minLength: 0)
+            if done {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(tone.solid.opacity(0.7))
+                    .accessibilityLabel("已完成")
+            }
         }
         .frame(minHeight: 38)
         .contentShape(Rectangle())
+        .animation(.snappy(duration: 0.25), value: done)
     }
 
     private var detail: String {

@@ -29,6 +29,11 @@ struct DayRecord: Codable, Hashable, Sendable, Identifiable {
     var manualOvertime: Double?
     var source: RecordSource
     var cycleId: String?
+    /// 只改这一天的上下班时间（"HH:mm"）。nil 表示照班次设置。
+    /// 某天临时早走两小时，不用跑去设置里改整个班次；工时按这两个时间重算。
+    /// 网页版没有这两个字段，导入导出时原样忽略。
+    var startTime: String?
+    var endTime: String?
 
     var id: String { date }
 
@@ -42,7 +47,9 @@ struct DayRecord: Codable, Hashable, Sendable, Identifiable {
          note: String? = nil,
          manualOvertime: Double? = nil,
          source: RecordSource = .manual,
-         cycleId: String? = nil) {
+         cycleId: String? = nil,
+         startTime: String? = nil,
+         endTime: String? = nil) {
         self.date = date
         self.shiftId = shiftId
         self.secondaryShiftId = secondaryShiftId
@@ -54,6 +61,24 @@ struct DayRecord: Codable, Hashable, Sendable, Identifiable {
         self.manualOvertime = manualOvertime
         self.source = source
         self.cycleId = cycleId
+        self.startTime = startTime
+        self.endTime = endTime
+    }
+
+    /// 这一天有没有单独改过上下班时间。
+    var hasCustomTime: Bool { startTime != nil && endTime != nil }
+
+    /// 这一天实际的上下班时间：改过就用改过的，否则用班次的。
+    func times(for shift: ShiftDefinition) -> (start: String, end: String) {
+        if let startTime, let endTime { return (startTime, endTime) }
+        return (shift.startTime, shift.endTime)
+    }
+
+    /// 详情里显示的区间，例如 `08:00–18:00`。
+    func fullRange(for shift: ShiftDefinition) -> String {
+        let times = times(for: shift)
+        guard !times.start.isEmpty, !times.end.isEmpty else { return "" }
+        return "\(times.start)–\(times.end)"
     }
 
     /// 统计"实际工时"时算不算数：计划出勤、有工时，且已确认或日期已过。

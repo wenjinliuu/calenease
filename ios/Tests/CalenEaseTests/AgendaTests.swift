@@ -225,17 +225,30 @@ final class AgendaTests: XCTestCase {
         XCTAssertEqual(hits.map(\.isCompleted), [false, true, false])
     }
 
-    func testTrendChartInsertsCrossingPoints() {
+    func testTrendChartSplitsPlannedCurveAtGaps() {
         let points = [
             HoursTrendChart.Point(index: 0, label: "1月", basic: 160, planned: 180),
             HoursTrendChart.Point(index: 1, label: "2月", basic: 160, planned: 140),
             HoursTrendChart.Point(index: 3, label: "4月", basic: 160, planned: 170),
         ]
-        let areas = HoursTrendChart.areaPoints(points)
-        // 1 月到 2 月之间正好在中点穿过基本线；2 月和 4 月之间隔了没排班的 3 月，断开不连
-        XCTAssertEqual(areas.count, 4)
-        XCTAssertEqual(areas[1].x, 0.5, accuracy: 0.0001)
-        XCTAssertEqual(areas[1].planned, areas[1].basic)
-        XCTAssertEqual(areas.map(\.segment), [0, 0, 0, 1])
+        // 2 月和 4 月之间隔了没排班的 3 月，断开不连
+        let segments = HoursTrendChart.segments(points)
+        XCTAssertEqual(segments.map { $0.map(\.index) }, [[0, 1], [3]])
+    }
+
+    func testMonotoneCurvePassesThroughPointsWithoutOvershoot() {
+        let curve = MonotoneCurve(xs: [0, 1, 2, 3], ys: [160, 180, 140, 150])
+        for (x, y) in zip([0.0, 1, 2, 3], [160.0, 180, 140, 150]) {
+            XCTAssertEqual(curve.value(at: x), y, accuracy: 0.0001)
+        }
+        // 两点之间不冲过头：1→2 是往下的一段，中间的值夹在 140 和 180 之间
+        for step in 1..<10 {
+            let value = curve.value(at: 1 + Double(step) / 10)
+            XCTAssertLessThanOrEqual(value, 180.0001)
+            XCTAssertGreaterThanOrEqual(value, 139.9999)
+        }
+        // 平的一段保持平
+        let flat = MonotoneCurve(xs: [0, 1, 2], ys: [160, 160, 160])
+        XCTAssertEqual(flat.value(at: 0.5), 160, accuracy: 0.0001)
     }
 }

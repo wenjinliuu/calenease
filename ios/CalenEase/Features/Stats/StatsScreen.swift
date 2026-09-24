@@ -408,10 +408,13 @@ struct LegendRow: View {
 
 /// 每月工时走势图。
 ///
-/// 横轴用月份序号（数字）而不是月份文字：两条线交叉的地方要在两个月之间插一个交点，
-/// 文字横轴插不进去。高出基本工时的部分填橙色，少于基本工时的部分填红色，
-/// 两块面积都在交点处收成零——之前只按每个月的点填，交叉那一段会串色。
-/// 线和面积都用折线连，不用平滑曲线：平滑曲线和交点对不上。
+/// 两条线都是平滑曲线（单调三次插值：过每个月的点，两点之间不会冲过头），
+/// 曲线和面积由同一个插值函数算出来，自己画在图表的底层 / 上层；Swift Charts 只负责坐标轴、
+/// 月份上的圆点和长按提示。之前面积交给 `AreaMark` 按月份的点连折线，
+/// 和曲线对不上，交叉那一段颜色也不对。
+///
+/// 计划高出基本的部分填橙色，低于基本的部分填红色。面积按细小的横向切片逐片填色，
+/// 切片里两条曲线交叉时在交点处分开，两种颜色各归各的，交叉处不会串色。
 struct HoursTrendChart: View, Equatable {
     struct Point: Hashable, Identifiable {
         let index: Int
@@ -419,14 +422,6 @@ struct HoursTrendChart: View, Equatable {
         let basic: Double
         let planned: Double
         var id: Int { index }
-    }
-
-    /// 面积用的点：x 可以落在两个月之间（交点）。`segment` 断开没排班的月份。
-    struct AreaPoint: Hashable {
-        let x: Double
-        let basic: Double
-        let planned: Double
-        let segment: Int
     }
 
     let points: [Point]
@@ -441,88 +436,39 @@ struct HoursTrendChart: View, Equatable {
     /// 排了班的月份。没排班的月份不画计划线，否则会和基本工时线重合。
     private var scheduled: [Point] { points.filter { $0.planned > 0 } }
 
-    /// 相邻两个排了班的月份之间，如果计划线穿过基本线，就在交点处补一个点。
-    static func areaPoints(_ scheduled: [Point]) -> [AreaPoint] {
-        var result: [AreaPoint] = []
-        var segment = 0
-        for (offset, point) in scheduled.enumerated() {
-            if offset > 0 {
-                let previous = scheduled[offset - 1]
-                if point.index - previous.index > 1 {
-                    segment += 1
-                } else {
-                    let before = previous.planned - previous.basic
-                    let after = point.planned - point.basic
-                    if before * after < 0 {
-                        let t = before / (before - after)
-                        let basic = previous.basic + (point.basic - previous.basic) * t
-                        result.append(AreaPoint(x: Double(previous.index) + t, basic: basic,
-                                                planned: basic, segment: segment))
-                    }
-                }
+    /// 计划曲线按连续排了班的月份分段：中间隔着没排班的月份就断开。
+    static func segments(_ scheduled: [Point]) -> [[Point]] {
+        var result: [[Point]] = []
+        for point in scheduled {
+            if let last = result.last?.last, point.index - last.index == 1 {
+                result[result.count - 1].append(point)
+            } else {
+                result.append([point])
             }
-            result.append(AreaPoint(x: Double(point.index), basic: point.basic,
-                                    planned: point.planned, segment: segment))
         }
         return result
     }
 
     var body: some View {
         let scheduled = scheduled
-        let areas = Self.areaPoints(scheduled)
         let selected = selectedIndex.flatMap { index in points.first { $0.index == index } }
         let lastIndex = Double(max(points.count - 1, 0))
+        let basicCurve = MonotoneCurve(xs: points.map { Double($0.index) }, ys: points.map(\.basic))
+        let plannedCurves = showsPlanned
+            ? Self.segments(scheduled).map { segment in
+                MonotoneCurve(xs: segment.map { Double($0.index) }, ys: segment.map(\.planned))
+            }
+            : []
 
         VStack(alignment: .leading, spacing: 14) {
             Chart {
+                // 透明的点只用来撑开纵轴范围；单调插值不越过数据点，曲线不会跑出这个范围
                 ForEach(points) { point in
-                    AreaMark(x: .value("月份", Double(point.index)),
-                             y: .value("基本工时", point.basic),
-                             series: .value("类型", "基本底"))
-                        .foregroundStyle(
-                            LinearGradient(colors: [Palette.cyan.opacity(0.3), Palette.cyan.opacity(0.03)],
-                                           startPoint: .top, endPoint: .bottom)
-                        )
-                        .interpolationMethod(.linear)
+                    PointMark(x: .value("月份", Double(point.index)), y: .value("基本工时", point.basic))
+                        .foregroundStyle(.clear)
                 }
 
                 if showsPlanned {
-                    ForEach(Array(areas.enumerated()), id: \.offset) { _, point in
-                        AreaMark(x: .value("月份", point.x),
-                                 yStart: .value("基本工时", point.basic),
-                                 yEnd: .value("高出", max(point.planned, point.basic)),
-                                 series: .value("类型", "高出\(point.segment)"))
-                            .foregroundStyle(Palette.orange.opacity(0.3))
-                            .interpolationMethod(.linear)
-                    }
-                    ForEach(Array(areas.enumerated()), id: \.offset) { _, point in
-                        AreaMark(x: .value("月份", point.x),
-                                 yStart: .value("不足", min(point.planned, point.basic)),
-                                 yEnd: .value("基本工时", point.basic),
-                                 series: .value("类型", "不足\(point.segment)"))
-                            .foregroundStyle(Palette.red.opacity(0.22))
-                            .interpolationMethod(.linear)
-                    }
-                }
-
-                ForEach(points) { point in
-                    LineMark(x: .value("月份", Double(point.index)),
-                             y: .value("基本工时", point.basic),
-                             series: .value("类型", "基本"))
-                        .foregroundStyle(Palette.cyan)
-                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                        .interpolationMethod(.linear)
-                }
-
-                if showsPlanned {
-                    ForEach(Array(areas.enumerated()), id: \.offset) { _, point in
-                        LineMark(x: .value("月份", point.x),
-                                 y: .value("计划工时", point.planned),
-                                 series: .value("类型", "计划\(point.segment)"))
-                            .foregroundStyle(Palette.purple)
-                            .lineStyle(StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
-                            .interpolationMethod(.linear)
-                    }
                     ForEach(scheduled) { point in
                         PointMark(x: .value("月份", Double(point.index)),
                                   y: .value("计划工时", point.planned))
@@ -546,11 +492,25 @@ struct HoursTrendChart: View, Equatable {
                         }
                 }
             }
+            .chartBackground { proxy in
+                GeometryReader { geometry in
+                    if let plotFrame = proxy.plotFrame {
+                        let origin = geometry[plotFrame].origin
+                        TrendFills(proxy: proxy, origin: origin, basic: basicCurve, planned: plannedCurves)
+                    }
+                }
+                .allowsHitTesting(false)
+            }
             .chartXScale(domain: 0...max(lastIndex, 1))
             // 长按 0.3 秒选中，按住左右拖换月份，松手收起。只在换到另一个月时才更新状态，
             // 手指在同一个月里挪动不触发重画。
             .chartOverlay { proxy in
                 GeometryReader { geometry in
+                    if let plotFrame = proxy.plotFrame {
+                        TrendLines(proxy: proxy, origin: geometry[plotFrame].origin,
+                                   basic: basicCurve, planned: plannedCurves)
+                            .allowsHitTesting(false)
+                    }
                     Rectangle()
                         .fill(.clear)
                         .contentShape(Rectangle())
@@ -603,6 +563,169 @@ struct HoursTrendChart: View, Equatable {
             Text("长按图表查看当月明细")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+        }
+    }
+}
+
+/// 单调三次插值（Fritsch–Carlson）：曲线过每一个数据点，相邻两点之间不会冲过头，
+/// 所以不会凭空画出比哪个月都高或都低的波峰。
+struct MonotoneCurve {
+    let xs: [Double]
+    let ys: [Double]
+    private let slopes: [Double]
+
+    init(xs: [Double], ys: [Double]) {
+        self.xs = xs
+        self.ys = ys
+        let n = xs.count
+        guard n > 1 else { slopes = Array(repeating: 0, count: n); return }
+        let d = (0..<(n - 1)).map { (ys[$0 + 1] - ys[$0]) / max(xs[$0 + 1] - xs[$0], 1e-9) }
+        var m = [Double](repeating: 0, count: n)
+        m[0] = d[0]
+        m[n - 1] = d[n - 2]
+        for k in 1..<(n - 1) {
+            m[k] = d[k - 1] * d[k] <= 0 ? 0 : (d[k - 1] + d[k]) / 2
+        }
+        for k in 0..<(n - 1) {
+            if d[k] == 0 {
+                m[k] = 0
+                m[k + 1] = 0
+                continue
+            }
+            let a = m[k] / d[k], b = m[k + 1] / d[k]
+            let length = a * a + b * b
+            if length > 9 {
+                let t = 3 / length.squareRoot()
+                m[k] = t * a * d[k]
+                m[k + 1] = t * b * d[k]
+            }
+        }
+        slopes = m
+    }
+
+    var isEmpty: Bool { xs.isEmpty }
+    var range: ClosedRange<Double> { (xs.first ?? 0)...(xs.last ?? 0) }
+
+    func value(at x: Double) -> Double {
+        guard let first = xs.first, let last = xs.last else { return 0 }
+        if xs.count == 1 || x <= first { return ys[0] }
+        if x >= last { return ys[ys.count - 1] }
+        var k = 0
+        while k < xs.count - 2 && x > xs[k + 1] { k += 1 }
+        let h = xs[k + 1] - xs[k]
+        let t = (x - xs[k]) / h
+        let t2 = t * t, t3 = t2 * t
+        return (2 * t3 - 3 * t2 + 1) * ys[k] + (t3 - 2 * t2 + t) * h * slopes[k]
+            + (-2 * t3 + 3 * t2) * ys[k + 1] + (t3 - t2) * h * slopes[k + 1]
+    }
+
+    /// 在 [lower, upper] 上等距取样，每个月之间取 `density` 个点。
+    func samples(from lower: Double, to upper: Double, density: Int = 24) -> [Double] {
+        guard upper > lower else { return [lower] }
+        let count = max(2, Int(((upper - lower) * Double(density)).rounded(.up)) + 1)
+        return (0..<count).map { lower + (upper - lower) * Double($0) / Double(count - 1) }
+    }
+}
+
+/// 图表底层：基本工时下面一层淡青渐变，计划与基本之间的橙 / 红面积。
+private struct TrendFills: View {
+    let proxy: ChartProxy
+    let origin: CGPoint
+    let basic: MonotoneCurve
+    let planned: [MonotoneCurve]
+
+    var body: some View {
+        Canvas { context, _ in
+            guard !basic.isEmpty else { return }
+            func point(_ x: Double, _ y: Double) -> CGPoint? {
+                proxy.position(for: (x: x, y: y)).map { CGPoint(x: $0.x + origin.x, y: $0.y + origin.y) }
+            }
+
+            // 基本工时下方的渐变
+            let xs = basic.samples(from: basic.range.lowerBound, to: basic.range.upperBound)
+            var base = Path()
+            let bottom = origin.y + proxy.plotSize.height
+            if let first = point(xs[0], basic.value(at: xs[0])) {
+                base.move(to: CGPoint(x: first.x, y: bottom))
+                for x in xs { if let p = point(x, basic.value(at: x)) { base.addLine(to: p) } }
+                if let last = point(xs[xs.count - 1], basic.value(at: xs[xs.count - 1])) {
+                    base.addLine(to: CGPoint(x: last.x, y: bottom))
+                }
+                base.closeSubpath()
+                context.fill(base, with: .linearGradient(
+                    Gradient(colors: [Palette.cyan.opacity(0.26), Palette.cyan.opacity(0.03)]),
+                    startPoint: CGPoint(x: 0, y: origin.y), endPoint: CGPoint(x: 0, y: bottom)))
+            }
+
+            // 计划与基本之间：逐片填色，片内交叉就在交点处一分为二
+            var over = Path()
+            var under = Path()
+            for curve in planned where curve.xs.count > 1 {
+                let xs = curve.samples(from: curve.range.lowerBound, to: curve.range.upperBound)
+                for (x0, x1) in zip(xs, xs.dropFirst()) {
+                    let p0 = curve.value(at: x0), p1 = curve.value(at: x1)
+                    let b0 = basic.value(at: x0), b1 = basic.value(at: x1)
+                    let d0 = p0 - b0, d1 = p1 - b1
+                    func piece(_ xa: Double, _ pa: Double, _ ba: Double,
+                               _ xb: Double, _ pb: Double, _ bb: Double, into path: inout Path) {
+                        guard let a1 = point(xa, pa), let a2 = point(xb, pb),
+                              let c2 = point(xb, bb), let c1 = point(xa, ba) else { return }
+                        path.move(to: a1)
+                        path.addLine(to: a2)
+                        path.addLine(to: c2)
+                        path.addLine(to: c1)
+                        path.closeSubpath()
+                    }
+                    if d0 * d1 < 0 {
+                        let t = d0 / (d0 - d1)
+                        let xc = x0 + (x1 - x0) * t
+                        let yc = b0 + (b1 - b0) * t
+                        if d0 > 0 {
+                            piece(x0, p0, b0, xc, yc, yc, into: &over)
+                            piece(xc, yc, yc, x1, p1, b1, into: &under)
+                        } else {
+                            piece(x0, p0, b0, xc, yc, yc, into: &under)
+                            piece(xc, yc, yc, x1, p1, b1, into: &over)
+                        }
+                    } else if d0 + d1 > 0 {
+                        piece(x0, p0, b0, x1, p1, b1, into: &over)
+                    } else if d0 + d1 < 0 {
+                        piece(x0, p0, b0, x1, p1, b1, into: &under)
+                    }
+                }
+            }
+            context.fill(over, with: .color(Palette.orange.opacity(0.32)))
+            context.fill(under, with: .color(Palette.red.opacity(0.34)))
+        }
+    }
+}
+
+/// 图表上层：基本（青）、计划（紫）两条平滑曲线。
+private struct TrendLines: View {
+    let proxy: ChartProxy
+    let origin: CGPoint
+    let basic: MonotoneCurve
+    let planned: [MonotoneCurve]
+
+    var body: some View {
+        Canvas { context, _ in
+            func path(_ curve: MonotoneCurve) -> Path {
+                var path = Path()
+                guard !curve.isEmpty else { return path }
+                let xs = curve.samples(from: curve.range.lowerBound, to: curve.range.upperBound)
+                for (offset, x) in xs.enumerated() {
+                    guard let p = proxy.position(for: (x: x, y: curve.value(at: x))) else { continue }
+                    let point = CGPoint(x: p.x + origin.x, y: p.y + origin.y)
+                    if offset == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                }
+                return path
+            }
+            context.stroke(path(basic), with: .color(Palette.cyan),
+                           style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            for curve in planned where curve.xs.count > 1 {
+                context.stroke(path(curve), with: .color(Palette.purple),
+                               style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+            }
         }
     }
 }

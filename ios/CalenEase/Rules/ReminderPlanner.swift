@@ -33,9 +33,12 @@ enum ReminderPlanner {
                 guard let day = DayNumber.of(record.date), day >= today - 1, day <= lastDay,
                       let shift = document.shift(record.shiftId),
                       shift.countsAsWork, !shift.isRest,
-                      let start = minutes(of: shift.startTime), let end = minutes(of: shift.endTime)
+                      case let times = record.times(for: shift),
+                      let start = minutes(of: times.start), let end = minutes(of: times.end)
                 else { continue }
-                let endDay = shift.crossesMidnight || end <= start ? day + 1 : day
+                // 这天单独改过时间的，按改过的时间提醒；结束不晚于开始就是跨天
+                let crosses = record.hasCustomTime ? end <= start : (shift.crossesMidnight || end <= start)
+                let endDay = crosses ? day + 1 : day
 
                 if settings.shiftStartEnabled, !excluded.contains(shift.id),
                    let fire = date(day: day, minutes: start - settings.shiftStartMinutes, calendar: calendar) {
@@ -43,7 +46,7 @@ enum ReminderPlanner {
                         id: "shift-start-\(record.date)",
                         fireDate: fire,
                         title: "\(shift.name)快开始了",
-                        body: "\(shift.fullRange)，\(lead(settings.shiftStartMinutes))后上班。"))
+                        body: "\(record.fullRange(for: shift))，\(lead(settings.shiftStartMinutes))后上班。"))
                 }
                 if settings.clockOutEnabled,
                    let fire = date(day: endDay, minutes: end + settings.clockOutMinutes, calendar: calendar) {
@@ -51,7 +54,7 @@ enum ReminderPlanner {
                         id: "clock-out-\(record.date)",
                         fireDate: fire,
                         title: "记得下班打卡",
-                        body: "\(shift.name)已在 \(shift.endTime) 结束。"))
+                        body: "\(shift.name)已在 \(times.end) 结束。"))
                 }
             }
         }

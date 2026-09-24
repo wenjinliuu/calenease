@@ -146,11 +146,15 @@ struct CalendarMonthGrid: View, Equatable {
         return value
     }
 
-    /// 整块网格的高度（星期表头 + 表头间距 + 每行格子与行距）。行数可以带小数，
+    /// 整块网格的高度（星期表头 + 表头间距 + 每行格子与行距 + 底边余量）。行数可以带小数，
     /// 滑动切月时在 5 行和 6 行之间插值用。
+    ///
+    /// 底边余量：选中蓝圈比格子往下多伸 `focusOutset`，最后一行选中时这截会伸出网格；
+    /// 外层按网格高度裁切，不留这点地方蓝圈的下边就被切掉了。
     static func height(rows: CGFloat, layout: CellLayout) -> CGFloat {
         let cell = DayCellMetrics.height(for: layout)
         return 13 + 10 + rows * cell + max(rows - 1, 0) * DayCellMetrics.rowSpacing
+            + DayCellMetrics.bottomInset
     }
 
     static func height(year: Int, month: Int, layout: CellLayout) -> CGFloat {
@@ -192,15 +196,18 @@ private struct WeekEventBars: View {
                 let tone = Tone.event(segment.occurrence.event.color)
                 let continues = segment.occurrence.end > weekStart + segment.column + segment.span - 1
                 let width = CGFloat(segment.span) * columnWidth + CGFloat(segment.span - 1) * spacing
+                let done = segment.occurrence.isCompleted
                 Text(segment.occurrence.event.title)
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(tone.ink)
+                    // 事项里打了勾的，格子里的色条也划掉
+                    .strikethrough(done, color: tone.ink)
+                    .foregroundStyle(tone.ink.opacity(done ? 0.55 : 1))
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .padding(.horizontal, 3)
                     .frame(width: width - 4, height: DayCellMetrics.barHeight, alignment: .leading)
                     // 色条带一点透明：跨过选中那天时，底下的蓝圈隐约透出来，不被整段盖住
-                    .background(tone.fill.opacity(0.78), in: UnevenRoundedRectangle(
+                    .background(tone.fill.opacity(done ? 0.45 : 0.78), in: UnevenRoundedRectangle(
                         topLeadingRadius: segment.startsHere ? 3.5 : 0,
                         bottomLeadingRadius: segment.startsHere ? 3.5 : 0,
                         bottomTrailingRadius: continues ? 0 : 3.5,
@@ -239,10 +246,12 @@ enum DayCellMetrics {
     static let paddingTop: CGFloat = 8
     static let paddingBottom: CGFloat = 9
     static let corner: CGFloat = 10
-    /// 选中蓝圈比格子往下多伸出的距离。
+    /// 选中蓝圈（连同淡蓝底）比格子往下多伸出的距离。
     static let focusOutset: CGFloat = 3
-    /// 留白放在行与行之间，不放在格子里。日程色条占了一部分高度，行距收到 10pt。
-    static let rowSpacing: CGFloat = 10
+    /// 留白放在行与行之间，不放在格子里。上下两格选中框之间只剩一道细缝就够了，行距收到 8pt。
+    static let rowSpacing: CGFloat = 8
+    /// 网格底下给最后一行的选中框留的余量（蓝圈外伸 + 描边宽度）。
+    static let bottomInset: CGFloat = focusOutset + 1
     static let columnSpacing: CGFloat = 1
     /// 日程色条。
     static let barHeight: CGFloat = 14
@@ -303,10 +312,12 @@ private struct DayCell: View {
             .frame(maxWidth: .infinity)
             .frame(height: height, alignment: .top)
             .background {
-                // 今天和多选选中用同一层淡底；选中另外还有一圈描边，分得开
-                if isSelected || isToday {
+                // 今天、单选选中、多选选中用同一层淡底；选中另外还有一圈描边，分得开。
+                // 单选时淡底和蓝圈一起往下伸，底边对齐，不在蓝圈里面露出一道没填满的缝。
+                if isSelected || isToday || isFocused {
                     RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous)
                         .fill(Palette.todayFill)
+                        .padding(.bottom, isFocused ? -DayCellMetrics.focusOutset : 0)
                 }
             }
             .overlay(alignment: .topLeading) { rail(tagMarks) }
@@ -337,7 +348,7 @@ private struct DayCell: View {
                         .foregroundStyle(.white, Palette.blue)
                         .background(Circle().fill(Palette.card).padding(1))
                         // 落在行与行之间的留白里，不挡格子里的字
-                        .offset(y: 7)
+                        .offset(y: 6)
                         .transition(.scale(scale: 0.4).combined(with: .opacity))
                         .accessibilityHidden(true)
                 }
@@ -441,8 +452,9 @@ private struct DayCell: View {
 
     @ViewBuilder
     private var timeRow: some View {
-        if let shift, !shift.fullRange.isEmpty, !shift.isRest {
-            Text(shift.fullRange)
+        // 这天单独改过上下班时间的，显示改过的
+        if let shift, let record, !shift.isRest, !record.fullRange(for: shift).isEmpty {
+            Text(record.fullRange(for: shift))
                 .font(.system(size: 8, weight: .medium))
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
@@ -557,7 +569,7 @@ private struct DayCell: View {
         } else if let shift {
             parts.append(shift.name)
             if let secondaryShift { parts.append("次要班次\(secondaryShift.name)") }
-            if !shift.fullRange.isEmpty { parts.append(shift.fullRange) }
+            if let record, case let range = record.fullRange(for: shift), !range.isEmpty { parts.append(range) }
         } else {
             parts.append("未排班")
         }

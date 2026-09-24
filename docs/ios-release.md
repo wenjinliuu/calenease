@@ -1,19 +1,31 @@
-# 循环班表 iOS 上架指南
+# 省心日历 iOS 上架指南
 
 iOS 版是 SwiftUI 原生实现（`ios/`），和网页版共用同一套业务规则与备份格式。
 本文只讲发布，工程结构见 [`../ios/README.md`](../ios/README.md)。
 
 ## 一、现状速览
 
+以下 App Store Connect / Apple Developer 的值由 `TestFlight` 工作流的核对步骤
+（`ios/Scripts/asc-verify.py`，App Store Connect API 只读查询）实际读出，2026-09-24 核对。
+
 | 项目 | 值 |
 | --- | --- |
-| Bundle ID | `com.wenjinliu.shiftledger` |
-| App 名称（桌面显示） | 循环班表 |
+| App Store Connect App 名称 | 省心日历-循环班表（Apple ID 6815659759，主要语言 zh-Hans） |
+| SKU | `calenease-ios` |
+| Bundle ID | `com.wenjinliu.calenease`（Identifiers 里的名称 CalenEase，已开 iCloud 能力） |
+| App 名称（桌面显示） | 省心日历 |
+| Xcode 工程 / Scheme | `ios/CalenEase.xcodeproj` / `CalenEase` |
+| iCloud 容器 | `iCloud.com.wenjinliu.calenease`（需在 App ID 上勾选，见下文） |
 | 版本 / Build | `MARKETING_VERSION = 1.0.0`，`CURRENT_PROJECT_VERSION = 1` |
 | 设备 | 仅 iPhone（`TARGETED_DEVICE_FAMILY = 1`），仅竖屏 |
 | 最低系统 | iOS 26 |
-| 隐私清单 | `ios/ShiftLedger/Resources/PrivacyInfo.xcprivacy`（无收集、无跟踪） |
-| 隐私政策页 | `/privacy/`，线上地址 https://wenjinliuu.github.io/shift-ledger/privacy/ |
+| 隐私清单 | `ios/CalenEase/Resources/PrivacyInfo.xcprivacy`（无收集、无跟踪） |
+| 隐私政策页 | `/privacy/`，线上地址 https://wenjinliuu.github.io/calenease/privacy/ |
+| 技术支持页 | https://wenjinliuu.github.io/calenease/support/ |
+
+旧版「循环班表」（`com.wenjinliu.shiftledger`，SKU `shift-ledger`）是另一个 App，
+新 App 读不到它沙盒里的数据；老用户在旧版导出备份（或直接用旧版 iCloud 云盘
+「循环班表」文件夹里的备份），在新 App「设置 › 备份 › 从文件导入」即可恢复，格式完全兼容。
 
 版本号、Bundle ID、Info.plist 全部由 `ios/project.yml` 生成，改完重新
 `./Scripts/bootstrap.sh` 即可，不要手工改 `.xcodeproj`（它不入库）。
@@ -28,28 +40,29 @@ iOS 版是 SwiftUI 原生实现（`ios/`），和网页版共用同一套业务�
 
 ```bash
 cd ios
-./Scripts/bootstrap.sh --open   # 生成 ShiftLedger.xcodeproj 并打开
+./Scripts/bootstrap.sh --open   # 生成 CalenEase.xcodeproj 并打开
 ```
 
 Xcode 里一次性配置：
 
-1. 选中 `ShiftLedger` target → **Signing & Capabilities**
+1. 选中 `CalenEase` target → **Signing & Capabilities**
    - 勾选 Automatically manage signing
    - Team 选自己的开发者账号（审核通过后才会出现）
-   - 确认 Bundle Identifier 为 `com.wenjinliu.shiftledger`
+   - 确认 Bundle Identifier 为 `com.wenjinliu.calenease`
 2. 真机跑一遍，重点验证：
    - 循环排班生成整年班表，往后翻月份能自动延续
    - 单日改班后，重新进入不会被循环覆盖
    - 设置页导出备份能拉起分享面板；导入网页版导出的 JSON 能还原
-   - 杀进程重开数据仍在（写在 Application Support 的 `shift-ledger.json`）
+   - 杀进程重开数据仍在（写在 Application Support 的 `calenease.json`）
 
 ## 四、提交到 App Store Connect
 
-1. **创建 App**：App Store Connect → App → 新建 App
-   - 平台 iOS，名称「循环班表」（名称需全局唯一，被占用时可用「循环班表 · 倒班工时」等）
-   - 主要语言：简体中文，Bundle ID 选上面的，SKU 可填 `shift-ledger`
+1. **App 已创建**：「省心日历-循环班表」，Bundle ID `com.wenjinliu.calenease`，SKU `calenease-ios`，
+   主要语言简体中文。想核对就跑一次 `TestFlight` 工作流并勾选「只核对」，日志里会列出全部 App、
+   Bundle ID、SKU 和各 App ID 的 iCloud 容器。
 2. **归档上传**：两条路都行
    - CI（推荐）：仓库 Actions → `TestFlight` → Run workflow，或推一个 `v*` tag。
+     第一步先用 API 核对 Bundle ID 与 App 都已注册，缺了直接报错，不再等到签名才失败。
      归档阶段不签名，发布签名由导出阶段的 App Store Connect 密钥自动签发——
      带自动签名归档会去申请「开发」描述文件，而它要求团队里注册过设备，CI 上必然失败。
    - 本地：Xcode → Product → Destination 选 `Any iOS Device` → Archive → Distribute App
@@ -76,12 +89,25 @@ API 密钥在 App Store Connect → 用户和访问 → 集成 → App Store Con
 角色至少选 **App Manager**（要让 `xcodebuild -allowProvisioningUpdates` 能自动创建证书和描述文件）。
 只能下载一次，注意保存。构建号默认取 GitHub run number。
 
+### iCloud 备份
+
+App 把备份写进 iCloud 云盘容器 `iCloud.com.wenjinliu.calenease`（「文件」App 里显示为「省心日历」文件夹）。
+需要在 Apple Developer → Identifiers → `com.wenjinliu.calenease` → iCloud → 勾选 CloudKit/iCloud Documents，
+并建好、勾选这个容器。TestFlight 工作流从该 App ID 的描述文件里读出实际勾选的容器：
+
+- 容器在 → 给包加上 iCloud 权限；
+- 容器不在，或还没有描述文件可查（新 App 第一次导出之前）→ 这次不加 iCloud 权限并在日志里警告，
+  App 里的备份自动存到本机并提示原因。第一次上传成功后描述文件就有了，下一次构建会自动核对并启用。
+
+容器名定在 `CalenEase.entitlements`、`ICloudBackupStore.containerID`、`project.yml` 的 `NSUbiquitousContainers`
+和 `testflight.yml` 的 `ICLOUD_CONTAINER` 四处，要改一起改。
+
 ## 五、元数据草稿（可直接改用）
 
 - **副标题**：为倒班人群设计的排班与工时账本
 - **关键词**：倒班,轮班,排班,班表,工时,加班,四班三倒,考勤,值班,夜班
 - **描述**：
-  > 循环班表是为不按星期工作的人设计的个人排班工具。自定义班次、职责标签与循环模板，
+  > 省心日历（原名循环班表）是为不按星期工作的人设计的个人排班日历。自定义班次、职责标签与循环模板，
   > 按四班两倒、做二休二、三班倒等常见规律自动生成整年班表；工时与加班分别统计，
   > 支持标准工时、综合计算工时、不定时工时与手动记录；自动识别法定节假日并推算每月
   > 基本工时。全部数据保存在设备本机，不需要注册登录，支持 JSON 备份导出与恢复。

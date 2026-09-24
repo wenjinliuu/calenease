@@ -1,20 +1,21 @@
 import SwiftUI
 
-/// 事项页：所有日程按日、周、月三种方式看，有点像 Outlook 的日历。
+/// 事项页：所有日程按日、周两种方式看，有点像 Outlook 的日历。
 ///
 /// - 日：顶上一排一周的日期，下面一天一段竖着往下排，上下滑时顶上的日期跟着走；
 ///   点顶上的日期，下面滑到那一天。今天那一段里有一条「现在」的红线。
-/// - 周：一周七列的时间格子，左右翻周。
-/// - 月：月历（只画日程条）+ 选中那天的事项列表。
+///   当天的班次是日期标题后面的一枚小徽章，不和日程排成一样的条目。
+/// - 周：周一到周日七列共用一条时间轴，左右滑动翻周，时间刻度不跟着翻页错开。
 ///
-/// 三种视图共用同一个「选中的日子」，切来切去停在同一天。
+/// 月视图去掉了：日历页本身就是月视图。两种视图共用同一个「选中的日子」。
 struct AgendaScreen: View {
     @Environment(ScheduleStore.self) private var store
 
     @AppStorage("agenda.mode") private var modeRaw = AgendaMode.day.rawValue
     @State private var day: Int = DayNumber.of(ScheduleCalendar.todayKey) ?? 0
     @State private var editorTarget: EventEditorTarget?
-    @State private var timelineDay: DateKeyBox?
+    /// 内容有没有滚到顶栏底下，决定顶栏下沿画不画渐变。
+    @State private var isScrolled = false
 
     private var mode: AgendaMode { AgendaMode(rawValue: modeRaw) ?? .day }
     private var today: Int { DayNumber.of(store.todayKey) ?? 0 }
@@ -24,12 +25,9 @@ struct AgendaScreen: View {
             Group {
                 switch mode {
                 case .day:
-                    AgendaDayList(day: $day, onEdit: open)
+                    AgendaDayList(day: $day, isScrolled: $isScrolled, onEdit: open)
                 case .week:
-                    AgendaWeekView(day: $day, onEdit: open)
-                case .month:
-                    AgendaMonthView(day: $day, onEdit: open,
-                                    onOpenDay: { timelineDay = DateKeyBox(key: DayNumber.key($0)) })
+                    AgendaWeekView(day: $day, isScrolled: $isScrolled, onEdit: open)
                 }
             }
             .safeAreaInset(edge: .top, spacing: 0) { pinnedBar }
@@ -38,9 +36,6 @@ struct AgendaScreen: View {
             .overlay(alignment: .bottomTrailing) { addButton }
             .sheet(item: $editorTarget) { target in
                 EventEditorSheet(target: target)
-            }
-            .sheet(item: $timelineDay) { box in
-                DayTimelineSheet(startDate: box.key)
             }
         }
     }
@@ -59,10 +54,22 @@ struct AgendaScreen: View {
             }
         }
         .padding(.bottom, 6)
-        .background { PinnedBarBackground() }
+        .background { PinnedBarBackground(showsFade: isScrolled) }
     }
 
-    private var header: some View {
+    /// 重复日程左滑删掉的只是这一次，单次日程整条删掉。
+    private func delete(_ occurrence: EventOccurrence) {
+        withAnimation(.snappy(duration: 0.28)) {
+            if occurrence.event.recurrence.isRepeating {
+                store.excludeOccurrence(eventId: occurrence.event.id, on: occurrence.startKey)
+            } else {
+                store.deleteEvent(id: occurrence.event.id)
+            }
+        }
+        showToast(occurrence.event.recurrence.isRepeating ? "已删除这一次" : "已删除日程", symbol: "trash")
+    }
+
+    private func header(shift: ShiftDefinition?) -> some View {
         let date = DayNumber.civil(day)
         let currentYear = DayNumber.civil(today).year
         return HStack(alignment: .center, spacing: 10) {
@@ -88,7 +95,7 @@ struct AgendaScreen: View {
                 ForEach(AgendaMode.allCases) { item in Text(item.label).tag(item) }
             }
             .pickerStyle(.segmented)
-            .frame(width: 132)
+            .frame(width: 96)
 
             Button {
                 withAnimation(.smooth(duration: 0.35)) { day = today }
@@ -120,14 +127,14 @@ struct AgendaScreen: View {
     }
 }
 
+/// 以前存过的 "month" 读出来是 nil，落回日视图。
 enum AgendaMode: String, CaseIterable, Identifiable {
-    case day, week, month
+    case day, week
     var id: String { rawValue }
     var label: String {
         switch self {
         case .day: "日"
         case .week: "周"
-        case .month: "月"
         }
     }
 }
@@ -245,6 +252,7 @@ private struct WeekStrip: View {
 /// 一天一段，竖着一直往下排。滚到哪一天，顶上的日期条就选中哪一天。
 private struct AgendaDayList: View {
     @Binding var day: Int
+    @Binding var isScrolled: Bool
     let onEdit: (EventEditorTarget) -> Void
 
     @Environment(ScheduleStore.self) private var store
@@ -267,6 +275,11 @@ private struct AgendaDayList: View {
             .padding(.bottom, 90)
         }
         .scrollPosition(id: $position, anchor: .top)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top > 1
+        } action: { _, scrolled in
+            withAnimation(.easeOut(duration: 0.18)) { isScrolled = scrolled }
+        }
         .onAppear { position = day }
         .onChange(of: position) { _, newValue in
             guard let newValue else { return }
@@ -288,13 +301,17 @@ private struct AgendaDayList: View {
     }
 }
 
-/// 日视图里的一天：日期标题，班次，一条条日程；今天还有一条「现在」红线。
+/// 日视图里的一天：日期标题（后面挂着当天班次的小徽章），一条条日程；今天还有一条「现在」红线。
+/// 每条日程左滑露出删除。
 private struct AgendaDaySection: View {
     let day: Int
     let isToday: Bool
     let onEdit: (EventEditorTarget) -> Void
 
     @Environment(ScheduleStore.self) private var store
+    @Environment(\.showToast) private var showToast
+    /// 哪一条日程正左滑开着。同一时间只开一条，滑开另一条时这条自动合上。
+    @State private var openRow: String?
 
     private var key: String { DayNumber.key(day) }
 
@@ -305,11 +322,7 @@ private struct AgendaDaySection: View {
         let shift = record.flatMap { $0.planned ? document.shift($0.shiftId) : nil }
 
         VStack(alignment: .leading, spacing: 10) {
-            header
-
-            if let shift {
-                ShiftEntry(shift: shift)
-            }
+            header(shift: shift)
 
             if occurrences.isEmpty {
                 Button {
@@ -329,15 +342,17 @@ private struct AgendaDaySection: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(occurrences.enumerated()), id: \.element.id) { index, occurrence in
                         if index == nowIndex { NowMarker() }
-                        TimelineEntry(occurrence: occurrence,
-                                      day: key,
-                                      isLast: index == occurrences.count - 1,
-                                      onOpen: { onEdit(.edit(occurrence)) },
-                                      onToggle: {
-                                          withAnimation(.snappy(duration: 0.25)) {
-                                              store.toggleCompletion(eventId: occurrence.event.id, on: occurrence.startKey)
-                                          }
-                                      })
+                        SwipeToDelete(id: occurrence.id, openRow: $openRow, onDelete: { delete(occurrence) }) {
+                            TimelineEntry(occurrence: occurrence,
+                                          day: key,
+                                          isLast: index == occurrences.count - 1,
+                                          onOpen: { onEdit(.edit(occurrence)) },
+                                          onToggle: {
+                                              withAnimation(.snappy(duration: 0.25)) {
+                                                  store.toggleCompletion(eventId: occurrence.event.id, on: occurrence.startKey)
+                                              }
+                                          })
+                        }
                     }
                     if nowIndex == occurrences.count { NowMarker() }
                 }
@@ -351,7 +366,19 @@ private struct AgendaDaySection: View {
         }
     }
 
-    private var header: some View {
+    /// 重复日程左滑删掉的只是这一次，单次日程整条删掉。
+    private func delete(_ occurrence: EventOccurrence) {
+        withAnimation(.snappy(duration: 0.28)) {
+            if occurrence.event.recurrence.isRepeating {
+                store.excludeOccurrence(eventId: occurrence.event.id, on: occurrence.startKey)
+            } else {
+                store.deleteEvent(id: occurrence.event.id)
+            }
+        }
+        showToast(occurrence.event.recurrence.isRepeating ? "已删除这一次" : "已删除日程", symbol: "trash")
+    }
+
+    private func header(shift: ShiftDefinition?) -> some View {
         let date = DayNumber.civil(day)
         let weekday = ScheduleCalendar.weekdaySymbols[DayNumber.weekday(day)]
         let festival = Festivals.festival(on: key)
@@ -367,6 +394,7 @@ private struct AgendaDaySection: View {
                     .padding(.vertical, 2)
                     .background(Palette.red, in: Capsule())
             }
+            if let shift { ShiftBadge(shift: shift) }
             if let festival {
                 Text(festival.name)
                     .font(.caption.weight(.semibold))
@@ -415,25 +443,116 @@ private struct NowMarker: View {
     }
 }
 
-/// 当天的班次，排在日程前面。
-private struct ShiftEntry: View {
+/// 当天的班次：日期标题后面的一枚小徽章（色点 + 班次名），当标题的一部分看，
+/// 不和日程排成一样的条目，一天天往下翻不显得乱。
+private struct ShiftBadge: View {
     let shift: ShiftDefinition
 
     var body: some View {
-        HStack(spacing: 12) {
-            ShiftOrb(shift: shift, size: 30)
-                .frame(width: 48)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(shift.name).font(.subheadline.weight(.semibold))
-                if !shift.fullRange.isEmpty {
-                    Text(shift.fullRange)
-                        .font(.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 0)
+        HStack(spacing: 4) {
+            Text(shift.shortName)
+                .font(.system(size: 9.5, weight: .bold))
+                .foregroundStyle(shift.inkOnTint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(minWidth: 15)
+                .frame(height: 15)
+                .padding(.horizontal, shift.shortName.count > 1 ? 2 : 0)
+                .background(shift.tint, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+            Text(shift.name)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(shift.tint)
+                .lineLimit(1)
         }
+        .padding(.leading, 2)
+        .padding(.trailing, 7)
+        .padding(.vertical, 2)
+        .background(shift.tint.opacity(0.12), in: Capsule())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(shift.fullRange.isEmpty ? shift.name : "\(shift.name)，\(shift.fullRange)")
+    }
+}
+
+/// 左滑露出一颗红色删除按钮；滑过一大半直接删。只认横向拖动，竖着滑照常滚动列表。
+struct SwipeToDelete<Content: View>: View {
+    let id: String
+    @Binding var openRow: String?
+    let onDelete: () -> Void
+    @ViewBuilder let content: () -> Content
+
+    @State private var offset: CGFloat = 0
+    @State private var startOffset: CGFloat = 0
+    @State private var dragging = false
+    private let buttonWidth: CGFloat = 76
+
+    var body: some View {
+        content()
+            .offset(x: offset)
+            .background(alignment: .trailing) {
+                Button(role: .destructive) {
+                    close()
+                    onDelete()
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "trash.fill").font(.system(size: 16, weight: .semibold))
+                        Text("删除").font(.caption2.weight(.semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(width: max(0, -offset - 8))
+                    .frame(maxHeight: .infinity)
+                    .background(Palette.red, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.vertical, 4)
+                    .opacity(offset < -12 ? 1 : 0)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHidden(true)
+            }
+            // 只裁左右：时间线上胶囊之间的连线要伸到下一条，上下不能裁
+            .mask { Rectangle().padding(.vertical, -400) }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 18)
+                    .onChanged { value in
+                        let dx = value.translation.width, dy = value.translation.height
+                        guard dragging || abs(dx) > abs(dy) * 1.4 else { return }
+                        if !dragging {
+                            dragging = true
+                            startOffset = offset
+                            if openRow != id { openRow = id }
+                        }
+                        offset = min(0, startOffset + dx)
+                    }
+                    .onEnded { value in
+                        guard dragging else { return }
+                        dragging = false
+                        let predicted = value.predictedEndTranslation.width
+                        withAnimation(.snappy(duration: 0.25)) {
+                            if offset < -220 || predicted < -380 {
+                                offset = -600
+                            } else if offset < -buttonWidth / 2 || predicted < -120 {
+                                offset = -buttonWidth
+                                openRow = id
+                            } else {
+                                close()
+                            }
+                        }
+                        if offset <= -600 {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                onDelete()
+                                offset = 0
+                                if openRow == id { openRow = nil }
+                            }
+                        }
+                    }
+            )
+            .onChange(of: openRow) { _, row in
+                if row != id, offset != 0 { withAnimation(.snappy(duration: 0.22)) { offset = 0 } }
+            }
+            .accessibilityAction(named: "删除") { onDelete() }
+    }
+
+    private func close() {
+        offset = 0
+        if openRow == id { openRow = nil }
     }
 }
 
@@ -535,59 +654,27 @@ struct TimelineEntry: View {
 
 // MARK: - 周视图
 
-/// 一周七列的时间格子，左右翻周。
+/// 周视图：周一到周日七列，共用同一条竖着的时间轴。
+///
+/// 原来是横向分页、每一页各带一个竖向滚动：翻页时新的一周总从 7 点开始，旧的一周停在别处，
+/// 刻度和色块在手指底下错开；日期表头也占了很大一块。现在只有一个竖向滚动，
+/// 左右滑动只换这一周的内容，时间停在哪就还在哪；表头压成一行「一 22」。
 private struct AgendaWeekView: View {
     @Binding var day: Int
+    @Binding var isScrolled: Bool
     let onEdit: (EventEditorTarget) -> Void
 
     @Environment(ScheduleStore.self) private var store
-    @State private var position: Int?
+    /// 翻周的方向，给切换动画用：往后翻从右边推进来，往前翻从左边。
+    @State private var forward = true
 
-    private static func weekStart(_ day: Int) -> Int { day - DayNumber.weekday(day) }
+    static let hourHeight: CGFloat = 40
+    static let gutter: CGFloat = 34
+    /// 时间轴上下各留一点，0 点和 24 点的刻度字不被切掉。
+    static let gridInset: CGFloat = 8
+
+    private var weekStart: Int { day - DayNumber.weekday(day) }
     private var today: Int { DayNumber.of(store.todayKey) ?? 0 }
-    private var weeks: [Int] {
-        let anchor = Self.weekStart(today)
-        return stride(from: anchor - 7 * 104, through: anchor + 7 * 104, by: 7).map { $0 }
-    }
-
-    var body: some View {
-        ScrollView(.horizontal) {
-            LazyHStack(spacing: 0) {
-                ForEach(weeks, id: \.self) { start in
-                    WeekGridPage(weekStart: start, selected: day, today: today, onEdit: onEdit,
-                                 onSelect: { day = $0 })
-                        .containerRelativeFrame(.horizontal)
-                }
-            }
-            .scrollTargetLayout()
-        }
-        .scrollTargetBehavior(.paging)
-        .scrollIndicators(.hidden)
-        .scrollPosition(id: $position)
-        .onAppear { position = Self.weekStart(day) }
-        .onChange(of: position) { _, start in
-            guard let start, Self.weekStart(day) != start else { return }
-            day = start + DayNumber.weekday(day)
-        }
-        .onChange(of: day) { _, newDay in
-            let start = Self.weekStart(newDay)
-            guard position != start else { return }
-            withAnimation(.smooth(duration: 0.35)) { position = start }
-        }
-    }
-}
-
-private struct WeekGridPage: View {
-    let weekStart: Int
-    let selected: Int
-    let today: Int
-    let onEdit: (EventEditorTarget) -> Void
-    let onSelect: (Int) -> Void
-
-    @Environment(ScheduleStore.self) private var store
-
-    private static let hourHeight: CGFloat = 44
-    private static let gutter: CGFloat = 38
 
     var body: some View {
         let days = (0..<7).map { weekStart + $0 }
@@ -595,245 +682,243 @@ private struct WeekGridPage: View {
         let allDay = perDay.map { $0.filter { $0.event.isAllDay } }
 
         VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Color.clear.frame(width: Self.gutter)
-                ForEach(days, id: \.self) { number in
-                    dayHeader(number)
+            Group {
+                header(days)
+                if allDay.contains(where: { !$0.isEmpty }) {
+                    allDayRow(allDay)
                 }
             }
-            .padding(.bottom, 4)
+            .id(weekStart)
+            .transition(slide)
 
-            if allDay.contains(where: { !$0.isEmpty }) {
-                HStack(alignment: .top, spacing: 0) {
-                    Text("全天")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .frame(width: Self.gutter)
-                    ForEach(Array(allDay.enumerated()), id: \.offset) { index, items in
-                        VStack(spacing: 2) {
-                            ForEach(items.prefix(2)) { occurrence in
-                                let tone = Tone.event(occurrence.event.color)
-                                Button { onEdit(.edit(occurrence)) } label: {
-                                    Text(occurrence.event.title)
-                                        .font(.system(size: 9, weight: .semibold))
-                                        .foregroundStyle(tone.ink)
-                                        .lineLimit(1)
-                                        .padding(.horizontal, 2)
-                                        .frame(maxWidth: .infinity, minHeight: 16)
-                                        .background(tone.fill, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            if items.count > 2 {
-                                Text("+\(items.count - 2)").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.horizontal, 1)
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-                .padding(.bottom, 4)
-            }
             Divider()
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    ZStack(alignment: .topLeading) {
-                        VStack(spacing: 0) {
-                            ForEach(0..<24, id: \.self) { hour in
-                                HStack(alignment: .top, spacing: 0) {
-                                    Text(String(format: "%02d", hour))
-                                        .font(.caption2)
-                                        .monospacedDigit()
-                                        .foregroundStyle(.tertiary)
-                                        .frame(width: Self.gutter - 4, alignment: .trailing)
-                                        .padding(.trailing, 4)
-                                        .offset(y: -6)
-                                    Rectangle().fill(Palette.hairline).frame(height: 0.5)
-                                }
-                                .frame(height: Self.hourHeight, alignment: .top)
-                                .id(hour)
-                            }
-                        }
-                        GeometryReader { geometry in
-                            let columnWidth = (geometry.size.width - Self.gutter) / 7
-                            ForEach(Array(days.enumerated()), id: \.offset) { index, number in
-                                if number == today {
-                                    Rectangle()
-                                        .fill(Palette.todayFill.opacity(0.5))
-                                        .frame(width: columnWidth, height: Self.hourHeight * 24)
-                                        .offset(x: Self.gutter + CGFloat(index) * columnWidth)
-                                        .allowsHitTesting(false)
-                                }
-                                let timed = perDay[index].filter { !$0.event.isAllDay }
-                                ForEach(TimelineLayout.place(timed, day: number), id: \.occurrence.id) { item in
-                                    block(item, columnWidth: columnWidth, column: index)
+                    WeekTimeGrid(days: days, perDay: perDay, today: today, onEdit: onEdit)
+                        .id(weekStart)
+                        .transition(slide)
+                        .overlay(alignment: .topLeading) {
+                            // 滚动定位用的锚点，一小时一个，和时间轴同一套坐标
+                            VStack(spacing: 0) {
+                                ForEach(0..<24, id: \.self) { hour in
+                                    Color.clear.frame(height: Self.hourHeight).id(hour)
                                 }
                             }
+                            .padding(.top, Self.gridInset)
+                            .allowsHitTesting(false)
                         }
-                        .frame(height: Self.hourHeight * 24)
-                    }
-                    .padding(.top, 8)
-                    .padding(.bottom, 90)
+                        .padding(.bottom, 90)
                 }
-                .onAppear { proxy.scrollTo(7, anchor: .top) }
+                .onScrollGeometryChange(for: Bool.self) { geometry in
+                    geometry.contentOffset.y + geometry.contentInsets.top > 1
+                } action: { _, scrolled in
+                    withAnimation(.easeOut(duration: 0.18)) { isScrolled = scrolled }
+                }
+                .onAppear {
+                    let hour = Calendar.current.component(.hour, from: Date())
+                    proxy.scrollTo(max(0, min(hour - 1, 16)), anchor: .top)
+                }
             }
         }
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 24)
+                .onEnded { value in
+                    let dx = value.translation.width, dy = value.translation.height
+                    guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
+                    step(dx < 0 ? 1 : -1)
+                }
+        )
+        .sensoryFeedback(.selection, trigger: weekStart)
     }
 
-    private func dayHeader(_ number: Int) -> some View {
-        let date = DayNumber.civil(number)
-        let isSelected = number == selected
-        let isToday = number == today
-        return Button { onSelect(number) } label: {
-            VStack(spacing: 2) {
-                Text(ScheduleCalendar.weekdaySymbols[DayNumber.weekday(number)])
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Text("\(date.day)")
-                    .font(.system(size: 15, weight: isSelected || isToday ? .bold : .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(isSelected ? AnyShapeStyle(.white)
-                                     : isToday ? AnyShapeStyle(Palette.red) : AnyShapeStyle(.primary))
-                    .frame(width: 28, height: 28)
-                    .background {
-                        if isSelected { Circle().fill(isToday ? Palette.red : Palette.blue) }
+    private var slide: AnyTransition {
+        .asymmetric(insertion: .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
+                    removal: .move(edge: forward ? .leading : .trailing).combined(with: .opacity))
+    }
+
+    private func step(_ weeks: Int) {
+        forward = weeks > 0
+        withAnimation(.snappy(duration: 0.3)) { day += 7 * weeks }
+    }
+
+    /// 一行：星期 + 日期。选中的那天蓝底，今天红字（选中又是今天就红底）。
+    private func header(_ days: [Int]) -> some View {
+        HStack(spacing: 0) {
+            Color.clear.frame(width: Self.gutter)
+            ForEach(days, id: \.self) { number in
+                let date = DayNumber.civil(number)
+                let isSelected = number == day
+                let isToday = number == today
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) { day = number }
+                } label: {
+                    HStack(spacing: 2) {
+                        Text(ScheduleCalendar.weekdaySymbols[DayNumber.weekday(number)])
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary))
+                        Text("\(date.day)")
+                            .font(.system(size: 13, weight: isSelected || isToday ? .bold : .medium))
+                            .monospacedDigit()
+                            .foregroundStyle(isSelected ? AnyShapeStyle(.white)
+                                             : isToday ? AnyShapeStyle(Palette.red) : AnyShapeStyle(.primary))
                     }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 24)
+                    .background {
+                        if isSelected {
+                            Capsule().fill(isToday ? Palette.red : Palette.blue).padding(.horizontal, 2)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(date.month)月\(date.day)日 周\(ScheduleCalendar.weekdaySymbols[DayNumber.weekday(number)])")
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
-            .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+    }
+
+    private func allDayRow(_ allDay: [[EventOccurrence]]) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            Text("全天")
+                .font(.system(size: 9.5))
+                .foregroundStyle(.tertiary)
+                .frame(width: Self.gutter)
+                .padding(.top, 2)
+            ForEach(Array(allDay.enumerated()), id: \.offset) { _, items in
+                VStack(spacing: 2) {
+                    ForEach(items.prefix(2)) { occurrence in
+                        let tone = Tone.event(occurrence.event.color)
+                        Button { onEdit(.edit(occurrence)) } label: {
+                            Text(occurrence.event.title)
+                                .font(.system(size: 9, weight: .semibold))
+                                .strikethrough(occurrence.isCompleted, color: tone.ink)
+                                .foregroundStyle(tone.ink)
+                                .lineLimit(1)
+                                .padding(.horizontal, 2)
+                                .frame(maxWidth: .infinity, minHeight: 16)
+                                .background(tone.fill, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if items.count > 2 {
+                        Text("+\(items.count - 2)").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 1)
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.bottom, 4)
+    }
+}
+
+/// 一周的时间格子。刻度线、刻度字、色块、「现在」红线全在同一个坐标系里摆，
+/// 分钟换算成 y 只有一个公式，不会一个跟着行高走、一个跟着偏移走而对不齐。
+private struct WeekTimeGrid: View {
+    let days: [Int]
+    let perDay: [[EventOccurrence]]
+    let today: Int
+    let onEdit: (EventEditorTarget) -> Void
+
+    private var hourHeight: CGFloat { AgendaWeekView.hourHeight }
+    private var gutter: CGFloat { AgendaWeekView.gutter }
+    private var inset: CGFloat { AgendaWeekView.gridInset }
+
+    private func y(_ minutes: Int) -> CGFloat { inset + CGFloat(minutes) / 60 * hourHeight }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let columnWidth = (geometry.size.width - gutter - 4) / 7
+            ZStack(alignment: .topLeading) {
+                // 今天那一列淡底
+                if let index = days.firstIndex(of: today) {
+                    Rectangle()
+                        .fill(Palette.todayFill.opacity(0.55))
+                        .frame(width: columnWidth, height: hourHeight * 24)
+                        .offset(x: gutter + CGFloat(index) * columnWidth, y: inset)
+                }
+                // 刻度线与刻度字
+                ForEach(0...24, id: \.self) { hour in
+                    Rectangle()
+                        .fill(Palette.hairline)
+                        .frame(width: geometry.size.width - gutter - 4, height: 0.5)
+                        .offset(x: gutter, y: y(hour * 60))
+                    Text(String(format: "%02d", hour))
+                        .font(.system(size: 9.5))
+                        .monospacedDigit()
+                        .foregroundStyle(.tertiary)
+                        .frame(width: gutter - 6, height: 12, alignment: .trailing)
+                        .offset(y: y(hour * 60) - 6)
+                }
+                // 列分隔线
+                ForEach(1..<7, id: \.self) { index in
+                    Rectangle()
+                        .fill(Palette.hairline.opacity(0.6))
+                        .frame(width: 0.5, height: hourHeight * 24)
+                        .offset(x: gutter + CGFloat(index) * columnWidth, y: inset)
+                }
+                // 日程色块
+                ForEach(Array(days.enumerated()), id: \.offset) { index, number in
+                    let timed = perDay[index].filter { !$0.event.isAllDay }
+                    ForEach(TimelineLayout.place(timed, day: number), id: \.occurrence.id) { item in
+                        block(item, columnWidth: columnWidth, column: index)
+                    }
+                }
+                // 现在
+                if let index = days.firstIndex(of: today) {
+                    TimelineView(.everyMinute) { context in
+                        let parts = Calendar.current.dateComponents([.hour, .minute], from: context.date)
+                        let minutes = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+                        HStack(spacing: 0) {
+                            Circle().fill(Palette.red).frame(width: 7, height: 7)
+                            Rectangle().fill(Palette.red).frame(height: 1.5)
+                        }
+                        .frame(width: columnWidth + 3.5)
+                        .offset(x: gutter + CGFloat(index) * columnWidth - 3.5, y: y(minutes) - 3.5)
+                    }
+                    .allowsHitTesting(false)
+                }
+            }
+        }
+        .frame(height: hourHeight * 24 + inset * 2)
     }
 
     private func block(_ item: TimelineLayout.Placed, columnWidth: CGFloat, column: Int) -> some View {
         let tone = Tone.event(item.occurrence.event.color)
+        let done = item.occurrence.isCompleted
         let width = columnWidth / CGFloat(item.columns)
-        let height = max(18, CGFloat(item.end - item.start) / 60 * Self.hourHeight - 1)
+        let height = max(16, CGFloat(item.end - item.start) / 60 * hourHeight - 1)
         return Button { onEdit(.edit(item.occurrence)) } label: {
-            Text(item.occurrence.event.title)
-                .font(.system(size: 9.5, weight: .semibold))
-                .foregroundStyle(tone.ink)
-                .lineLimit(height > 30 ? 3 : 1)
-                .padding(3)
-                .frame(width: max(8, width - 2), height: height, alignment: .topLeading)
-                .background(tone.fill)
-                .overlay(alignment: .leading) { Rectangle().fill(tone.solid).frame(width: 2) }
-                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(item.occurrence.event.title)
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .strikethrough(done, color: tone.ink)
+                    .lineLimit(height > 30 ? 3 : 1)
+                if height > 44, !item.occurrence.event.isAllDay {
+                    Text(item.occurrence.event.startTime)
+                        .font(.system(size: 8.5))
+                        .monospacedDigit()
+                        .opacity(0.8)
+                }
+            }
+            .foregroundStyle(tone.ink.opacity(done ? 0.55 : 1))
+            .padding(.horizontal, 3)
+            .padding(.vertical, 2)
+            .frame(width: max(8, width - 2), height: height, alignment: .topLeading)
+            .background(tone.fill.opacity(done ? 0.5 : 1))
+            .overlay(alignment: .leading) { Rectangle().fill(tone.solid).frame(width: 2) }
+            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
         }
         .buttonStyle(.plain)
-        .offset(x: Self.gutter + CGFloat(column) * columnWidth + CGFloat(item.column) * width + 1,
-                y: CGFloat(item.start) / 60 * Self.hourHeight)
-    }
-}
-
-// MARK: - 月视图
-
-/// 月历（只画日程条）+ 选中那天的事项。点一下选中，再点一下打开那天的时间轴。
-private struct AgendaMonthView: View {
-    @Binding var day: Int
-    let onEdit: (EventEditorTarget) -> Void
-    let onOpenDay: (Int) -> Void
-
-    @Environment(ScheduleStore.self) private var store
-    @State private var position: Int?
-
-    private static func monthIndex(_ day: Int) -> Int {
-        let date = DayNumber.civil(day)
-        return date.year * 12 + date.month - 1
-    }
-
-    private var today: Int { DayNumber.of(store.todayKey) ?? 0 }
-    private var range: ClosedRange<Int> {
-        let current = Self.monthIndex(today)
-        return (current - 60)...(current + 60)
-    }
-
-    /// 月视图里的月历不画班次那两行，每格放三条日程。
-    private var agendaDocument: ScheduleDocument {
-        var copy = store.document
-        copy.features.shiftsEnabled = false
-        copy.display.eventSlots = 3
-        return copy
-    }
-
-    var body: some View {
-        let document = agendaDocument
-        let layout = CellLayout(document: document)
-        let gridHeight = CalendarMonthGrid.height(rows: 6, layout: layout)
-        let selectedKey = DayNumber.key(day)
-        let occurrences = store.occurrences(on: selectedKey)
-
-        ScrollView {
-            VStack(spacing: 14) {
-                ScrollView(.horizontal) {
-                    LazyHStack(alignment: .top, spacing: 0) {
-                        ForEach(range, id: \.self) { index in
-                            let monthKey = ScheduleCalendar.monthKey(year: index / 12, month: index % 12)
-                            CalendarMonthGrid(year: index / 12,
-                                              month: index % 12,
-                                              document: document,
-                                              todayKey: store.todayKey,
-                                              holidays: store.holidays,
-                                              selectedDay: selectedKey.hasPrefix(monthKey) ? selectedKey : nil,
-                                              onSelect: { key in
-                                                  guard let number = DayNumber.of(key) else { return }
-                                                  if number == day {
-                                                      onOpenDay(number)
-                                                  } else {
-                                                      withAnimation(.snappy(duration: 0.2)) { day = number }
-                                                  }
-                                              })
-                                .equatable()
-                                .frame(height: gridHeight, alignment: .top)
-                                .padding(.horizontal, 6)
-                                .containerRelativeFrame(.horizontal)
-                        }
-                    }
-                    .scrollTargetLayout()
-                }
-                .scrollTargetBehavior(.paging)
-                .scrollIndicators(.hidden)
-                .scrollPosition(id: $position)
-                .frame(height: gridHeight)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    if occurrences.isEmpty {
-                        Text("这天还没有日程")
-                            .font(.subheadline)
-                            .foregroundStyle(.tertiary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, 12)
-                    } else {
-                        ForEach(Array(occurrences.enumerated()), id: \.element.id) { index, occurrence in
-                            TimelineEntry(occurrence: occurrence,
-                                          day: selectedKey,
-                                          isLast: index == occurrences.count - 1,
-                                          onOpen: { onEdit(.edit(occurrence)) },
-                                          onToggle: {
-                                              withAnimation(.snappy(duration: 0.25)) {
-                                                  store.toggleCompletion(eventId: occurrence.event.id,
-                                                                         on: occurrence.startKey)
-                                              }
-                                          })
-                        }
-                    }
-                }
-                .padding(.horizontal, 18)
-            }
-            .padding(.bottom, 90)
-        }
-        .onAppear { position = Self.monthIndex(day) }
-        .onChange(of: position) { _, index in
-            // 翻到别的月：本月选今天，其他月选 1 号
-            guard let index, Self.monthIndex(day) != index else { return }
-            day = index == Self.monthIndex(today)
-                ? today
-                : DayNumber.from(year: index / 12, month: index % 12 + 1, day: 1)
-        }
-        .onChange(of: day) { _, newDay in
-            let index = Self.monthIndex(newDay)
-            guard position != index else { return }
-            withAnimation(.smooth(duration: 0.35)) { position = index }
-        }
+        .offset(x: gutter + CGFloat(column) * columnWidth + CGFloat(item.column) * width + 1,
+                y: y(item.start))
     }
 }

@@ -6,9 +6,9 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "循环班表",
-    short_name: "循环班表",
-    description: "不按星期工作的个人循环班表",
+    name: "省心日历",
+    short_name: "省心日历",
+    description: "不按星期工作的个人排班日历",
     start_url: `${basePath}/`,
     scope: `${basePath}/`,
     display: "standalone",

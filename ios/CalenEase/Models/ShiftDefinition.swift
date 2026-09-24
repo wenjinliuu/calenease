@@ -50,6 +50,14 @@ struct ShiftDefinition: Identifiable, Codable, Hashable, Sendable {
         ShiftDefinition.duration(startTime: startTime, endTime: endTime, crossesMidnight: crossesMidnight)
     }
 
+    /// 按某天临时改过的上下班时间算工时：新的时长减去这个班次本来就扣掉的那部分
+    /// （班次时长和默认工时之差，通常是吃饭休息）。结束不晚于开始就按跨天算。
+    func hours(startTime start: String, endTime end: String) -> Double {
+        let span = ShiftDefinition.duration(startTime: start, endTime: end, crossesMidnight: false)
+        let unpaid = startTime.isEmpty || endTime.isEmpty ? 0 : max(0, duration - defaultHours)
+        return max(0, min(24, span - unpaid))
+    }
+
     static func duration(startTime: String, endTime: String, crossesMidnight: Bool) -> Double {
         guard let start = minutes(of: startTime), let end = minutes(of: endTime) else { return 0 }
         var finish = end
