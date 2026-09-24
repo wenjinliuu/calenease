@@ -1,5 +1,5 @@
 import XCTest
-@testable import ShiftLedger
+@testable import CalenEase
 
 /// 日程重复、倒数日、提醒排程。
 final class AgendaTests: XCTestCase {

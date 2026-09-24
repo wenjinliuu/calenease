@@ -4,7 +4,7 @@ set -euo pipefail
 IOS_DIR=$(cd "$(dirname "$0")/.." && pwd)
 ROOT_DIR=$(cd "$IOS_DIR/.." && pwd)
 SOURCE_DIR="$ROOT_DIR/DesignAssets/AppIcon"
-ASSET_DIR="$IOS_DIR/ShiftLedger/Resources/AppIcon.icon/Assets"
+ASSET_DIR="$IOS_DIR/CalenEase/Resources/AppIcon.icon/Assets"
 
 mkdir -p "$ASSET_DIR"
 cp "$SOURCE_DIR/calendar-background.svg" "$ASSET_DIR/CalendarBackground.svg"

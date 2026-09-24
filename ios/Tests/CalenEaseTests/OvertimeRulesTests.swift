@@ -1,5 +1,5 @@
 import XCTest
-@testable import ShiftLedger
+@testable import CalenEase
 
 /// 加班判定的一致性测试，对应 web 版 `tests/schedule.test.ts` 里的加班用例。
 final class OvertimeRulesTests: XCTestCase {

@@ -41,7 +41,7 @@ final class ScheduleStore {
         let parts = ScheduleCalendar.calendar.dateComponents([.year, .month], from: Date())
         focusedYear = parts.year ?? 2026
         focusedMonth = (parts.month ?? 1) - 1
-        self.fileURL = fileURL ?? Self.defaultFileURL()
+        self.fileURL = fileURL ?? Self.migrateLegacyFile(to: Self.defaultFileURL())
         if let document {
             self.document = document
             isReady = true
@@ -56,7 +56,26 @@ final class ScheduleStore {
                                                  appropriateFor: nil,
                                                  create: true))
             ?? URL.documentsDirectory
-        return base.appendingPathComponent("shift-ledger.json")
+        return base.appendingPathComponent(fileName)
+    }
+
+    static let fileName = "calenease.json"
+    /// 改名前（循环班表）的数据文件名。
+    static let legacyFileName = "shift-ledger.json"
+
+    /// 新文件还没有、旧文件在：把旧文件原样搬成新名字。只搬一次，搬不动就原地读旧文件，
+    /// 数据一条都不会丢。备份、网页版导出的 JSON 结构没变，照样能导入。
+    static func migrateLegacyFile(to url: URL) -> URL {
+        let manager = FileManager.default
+        guard !manager.fileExists(atPath: url.path) else { return url }
+        let legacy = url.deletingLastPathComponent().appendingPathComponent(legacyFileName)
+        guard manager.fileExists(atPath: legacy.path) else { return url }
+        do {
+            try manager.moveItem(at: legacy, to: url)
+            return url
+        } catch {
+            return legacy
+        }
     }
 
     // MARK: - 读写

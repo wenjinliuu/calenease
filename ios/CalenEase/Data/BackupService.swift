@@ -9,7 +9,7 @@ import SwiftUI
 enum BackupService {
 
     static func encode(_ document: ScheduleDocument) throws -> Data {
-        let payload = BackupPayload(app: "shift-ledger",
+        let payload = BackupPayload(app: "calenease",
                                     version: ScheduleDocument.version,
                                     exportedAt: ISO8601DateFormatter().string(from: Date()),
                                     data: document)
@@ -20,7 +20,7 @@ enum BackupService {
 
     /// 写到临时目录，交给系统分享面板。
     static func writeTemporaryFile(_ document: ScheduleDocument) throws -> URL {
-        let name = "循环班表备份-\(ScheduleCalendar.todayKey).json"
+        let name = "省心日历备份-\(ScheduleCalendar.todayKey).json"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
         try encode(document).write(to: url, options: .atomic)
         return url
@@ -60,7 +60,7 @@ enum BackupService {
         case unreadable
 
         var errorDescription: String? {
-            "读不出这个文件，请选择循环班表导出的 JSON 备份。"
+            "读不出这个文件，请选择省心日历（或旧版循环班表）导出的 JSON 备份。"
         }
     }
 }

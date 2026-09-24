@@ -1,5 +1,5 @@
 import XCTest
-@testable import ShiftLedger
+@testable import CalenEase
 
 /// 放假安排、系统农历与节日。
 final class HolidayCalendarTests: XCTestCase {

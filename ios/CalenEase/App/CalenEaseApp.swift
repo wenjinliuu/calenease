@@ -2,7 +2,7 @@ import SwiftUI
 import UserNotifications
 
 @main
-struct ShiftLedgerApp: App {
+struct CalenEaseApp: App {
     @State private var store = ScheduleStore()
     @State private var preferences = AppPreferences()
     @State private var backups = BackupCenter()

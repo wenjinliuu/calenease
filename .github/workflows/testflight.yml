@@ -1,5 +1,9 @@
 name: TestFlight
 
+# 省心日历（CalenEase）归档、签名、上传 TestFlight。
+# App Store Connect 上的 App：「省心日历-循环班表」，Bundle ID com.wenjinliu.calenease，SKU calenease-ios。
+# 签名沿用仓库 Secrets 里的 App Store Connect API 密钥，密钥不进代码。
+
 on:
   workflow_dispatch:
     inputs:
@@ -8,7 +12,7 @@ on:
         required: false
         type: string
       lookup_only:
-        description: "只核对 App Store Connect 注册信息（列出 App / Bundle ID / SKU），不归档上传"
+        description: "只核对 App Store Connect 注册信息（列出 App / Bundle ID / SKU / iCloud 容器），不归档上传"
         required: false
         type: boolean
         default: false
@@ -16,18 +20,24 @@ on:
     tags: ["v*"]
 
 concurrency:
-  group: testflight
+  group: calenease-testflight
   cancel-in-progress: false
+
+env:
+  # iCloud 备份要用的容器，和 ios/CalenEase/Resources/CalenEase.entitlements、
+  # ICloudBackupStore.containerID 必须一字不差。是否真的加进包里由 verify 按 Apple 后台核对结果决定。
+  ICLOUD_CONTAINER: iCloud.com.wenjinliu.calenease
 
 jobs:
   # 先用 App Store Connect API 只读核对：project.yml 里的 Bundle ID 已在 Apple Developer 注册、
-  # App Store Connect 里已有对应 App、iCloud 能力已打开。缺一样都在这里失败，
-  # 不用等到 macOS 上归档完、导出签名时才报「No profiles found」。
+  # App Store Connect 里已有对应 App、App ID 打开了 iCloud 能力并勾选了上面的容器。
+  # Bundle ID / App 缺一样都在这里失败，不用等到 macOS 上归档完、导出签名时才报「No profiles found」。
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      icloud: ${{ steps.check.outputs.icloud }}
     env:
-      ENABLE_ICLOUD: 'true'
       KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
     steps:
@@ -42,13 +52,14 @@ jobs:
           chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
 
       - name: Verify App Store Connect registration
+        id: check
         run: |
           pip install --quiet 'pyjwt[crypto]'
           BUNDLE_ID=$(awk '/PRODUCT_BUNDLE_IDENTIFIER:/ {print $2; exit}' ios/project.yml)
           echo "project.yml 里的 Bundle ID：$BUNDLE_ID"
           if [ "${{ inputs.lookup_only }}" != "true" ]; then
             export EXPECTED_BUNDLE_ID="$BUNDLE_ID"
-            if [ "$ENABLE_ICLOUD" = "true" ]; then export REQUIRED_CAPABILITIES=ICLOUD; fi
+            export REQUIRED_CAPABILITIES=ICLOUD
           fi
           python3 ios/Scripts/asc-verify.py
 
@@ -67,8 +78,7 @@ jobs:
         working-directory: ios
 
     env:
-      # iCloud 备份的开关，见下面「Embed entitlements into archive」那一步的说明。
-      ENABLE_ICLOUD: 'true'
+      ENABLE_ICLOUD: ${{ needs.verify.outputs.icloud }}
       TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -115,11 +125,11 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild archive \
-            -project ShiftLedger.xcodeproj \
-            -scheme ShiftLedger \
+            -project CalenEase.xcodeproj \
+            -scheme CalenEase \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath build/ShiftLedger.xcarchive \
+            -archivePath build/CalenEase.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -127,35 +137,38 @@ jobs:
             CURRENT_PROJECT_VERSION=${{ steps.build.outputs.number }} \
             | xcbeautify --renderer github-actions
 
-      - name: Verify archived App Icon
+      - name: Verify archived app
         run: |
-          APP_PATH=$(find build/ShiftLedger.xcarchive/Products/Applications -maxdepth 1 -type d -name '*.app' -print -quit)
-          test -n "$APP_PATH"
+          APP_PATH=build/CalenEase.xcarchive/Products/Applications/CalenEase.app
+          test -d "$APP_PATH"
           test -f "$APP_PATH/Assets.car"
           find "$APP_PATH" -maxdepth 1 -type f -name 'AppIcon*.png' -print -quit | grep -q .
+          # 桌面显示名、Bundle ID 必须是新值
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")
+          DISPLAY_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP_PATH/Info.plist")
+          echo "Bundle ID：$BUNDLE_ID，桌面名称：$DISPLAY_NAME"
+          test "$BUNDLE_ID" = "com.wenjinliu.calenease"
+          test "$DISPLAY_NAME" = "省心日历"
 
       # 把 entitlements 写进归档里的 App（iCloud 备份要用）。
       #
       # 归档是 CODE_SIGNING_ALLOWED=NO，Xcode 跳过了处理 entitlements 的那一步，
       # 归档出来的 App 身上一条 entitlement 都没有；而 -exportArchive 重新签名时
-      # 取的正是「归档里 App 已有的 entitlements」。不补这一步，最终包里没有 iCloud 权限，
-      # 真机上拿不到 iCloud 容器。「对个号」踩过这个坑，做法照搬：ad-hoc 签一次把
-      # entitlements 写进去，导出时整个重签，只有 entitlements 会被继承下去。
+      # 取的正是「归档里 App 已有的 entitlements」。不补这一步，最终包里没有 iCloud 权限。
+      # 做法：ad-hoc 签一次把 entitlements 写进去，导出时整个重签，只有 entitlements 会被继承下去。
       #
-      # 前提是 Apple Developer 后台已经给 App ID com.wenjinliu.shiftledger 打开 iCloud 能力、
-      # 建好并勾选容器 iCloud.com.wenjinliu.shiftledger。没开的话导出会报
-      # 「Authentication failed / No profiles for 'com.wenjinliu.shiftledger' were found」——
+      # 只有 verify 确认 App ID com.wenjinliu.calenease 已勾选 ICLOUD_CONTAINER 才做；
+      # 否则导出会报「No profiles for 'com.wenjinliu.calenease' were found」——
       # CI 用的 App Store Connect 密钥能签发描述文件，但改不了 App ID 的能力。
-      # 所以用 ENABLE_ICLOUD 开关控制：后台已配好（2026-09-23），现在是 'true'。
-      # 关着时装出来的包没有 iCloud 权限，App 里的备份会自动落到本机，并提示原因。
+      # 跳过时包里没有 iCloud 权限，App 里的备份会自动落到本机，并提示原因。
       - name: Embed entitlements into archive
         if: env.ENABLE_ICLOUD == 'true'
         run: |
           set -e
-          APP_PATH=$(find build/ShiftLedger.xcarchive/Products/Applications -maxdepth 1 -type d -name '*.app' -print -quit)
-          test -n "$APP_PATH"
+          APP_PATH=build/CalenEase.xcarchive/Products/Applications/CalenEase.app
+          grep -q "$ICLOUD_CONTAINER" CalenEase/Resources/CalenEase.entitlements
           codesign --force --sign - \
-            --entitlements ShiftLedger/Resources/ShiftLedger.entitlements \
+            --entitlements CalenEase/Resources/CalenEase.entitlements \
             --generate-entitlement-der \
             "$APP_PATH"
           echo "=== 归档里的 entitlements ==="
@@ -182,7 +195,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild -exportArchive \
-            -archivePath build/ShiftLedger.xcarchive \
+            -archivePath build/CalenEase.xcarchive \
             -exportOptionsPlist build/ExportOptions.plist \
             -exportPath build/export \
             -allowProvisioningUpdates \
@@ -191,12 +204,26 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             | xcbeautify --renderer github-actions
 
+      - name: Summary
+        if: success()
+        run: |
+          {
+            echo "### 省心日历 已上传 TestFlight"
+            echo "- App：省心日历-循环班表（com.wenjinliu.calenease，SKU calenease-ios）"
+            echo "- 构建号：${{ steps.build.outputs.number }}"
+            if [ "$ENABLE_ICLOUD" = "true" ]; then
+              echo "- iCloud 备份：已启用（$ICLOUD_CONTAINER）"
+            else
+              echo "- iCloud 备份：未启用——App ID 上还没核对到 $ICLOUD_CONTAINER，备份先存本机"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload dSYMs as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dsyms-${{ steps.build.outputs.number }}
-          path: ios/build/ShiftLedger.xcarchive/dSYMs
+          name: calenease-dsyms-${{ steps.build.outputs.number }}
+          path: ios/build/CalenEase.xcarchive/dSYMs
           if-no-files-found: ignore
 
       - name: Clean up API key

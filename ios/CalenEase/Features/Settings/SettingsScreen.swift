@@ -54,7 +54,7 @@ struct SettingsScreen: View {
                     NavigationLink {
                         AboutView()
                     } label: {
-                        Label("关于循环班表", systemImage: "info.circle")
+                        Label("关于省心日历", systemImage: "info.circle")
                     }
                 }
             }

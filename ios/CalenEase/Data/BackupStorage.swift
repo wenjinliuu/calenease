@@ -37,9 +37,14 @@ struct BackupItem: Identifiable, Hashable, Sendable {
 
 /// 文件名约定。自动备份按周期命名，同一个周期里写的是同一个文件名，于是反复覆盖。
 enum BackupNaming {
-    static let autoPrefix = "shift-ledger-auto-"
-    static let manualPrefix = "shift-ledger-manual-"
-    static let safetyPrefix = "shift-ledger-safety-"
+    static let autoPrefix = "calenease-auto-"
+    static let manualPrefix = "calenease-manual-"
+    static let safetyPrefix = "calenease-safety-"
+    /// 改名「省心日历」之前（循环班表）写的备份文件名前缀。只认不写：
+    /// 从旧版拷过来、或旧容器里留下的备份照样列出来、能恢复。
+    static let legacyAutoPrefix = "shift-ledger-auto-"
+    static let legacyManualPrefix = "shift-ledger-manual-"
+    static let legacySafetyPrefix = "shift-ledger-safety-"
     static let suffix = ".json"
 
     private static func stamp(_ date: Date, format: String) -> String {
@@ -72,9 +77,9 @@ enum BackupNaming {
 
     static func kind(of name: String) -> BackupItem.Kind? {
         guard name.hasSuffix(suffix) else { return nil }
-        if name.hasPrefix(autoPrefix) { return .auto }
-        if name.hasPrefix(manualPrefix) { return .manual }
-        if name.hasPrefix(safetyPrefix) { return .safety }
+        if name.hasPrefix(autoPrefix) || name.hasPrefix(legacyAutoPrefix) { return .auto }
+        if name.hasPrefix(manualPrefix) || name.hasPrefix(legacyManualPrefix) { return .manual }
+        if name.hasPrefix(safetyPrefix) || name.hasPrefix(legacySafetyPrefix) { return .safety }
         return nil
     }
 }
@@ -161,12 +166,12 @@ struct LocalBackupStore: BackupStore {
 /// iCloud 备份：把和「导出备份」同格式的 JSON 放进 iCloud 云盘容器的 `Documents`。
 ///
 /// 不是数据同步，是一份份不可变的快照；用户在「文件」App 的 iCloud 云盘里
-/// 能看到一个「循环班表」文件夹。容器标识符在 `ShiftLedger.entitlements` 里声明，两处必须一致。
+/// 能看到一个「省心日历」文件夹。容器标识符在 `CalenEase.entitlements` 里声明，两处必须一致。
 ///
 /// 这一套照搬「对个号」踩过的坑：容器首次访问要等几秒、没下载到本机的文件要先拉下来、
 /// 写入要走 `NSFileCoordinator`、三种「用不了」要分开说清楚。
 struct ICloudBackupStore: BackupStore {
-    static let containerID = "iCloud.com.wenjinliu.shiftledger"
+    static let containerID = "iCloud.com.wenjinliu.calenease"
 
     let location = BackupItem.Location.iCloud
 
@@ -209,7 +214,7 @@ struct ICloudBackupStore: BackupStore {
             return "这台设备没有登录 iCloud。登录 Apple 账户后才能备份到 iCloud，现在会先存在本机。"
         }
         guard containerURL() != nil else {
-            return "拿不到 iCloud 云盘。请到「设置 → Apple 账户 → iCloud → iCloud 云盘」确认已打开，并允许「循环班表」使用。"
+            return "拿不到 iCloud 云盘。请到「设置 → Apple 账户 → iCloud → iCloud 云盘」确认已打开，并允许「省心日历」使用。"
         }
         return nil
     }

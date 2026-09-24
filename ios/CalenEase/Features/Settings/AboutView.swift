@@ -12,8 +12,8 @@ struct AboutView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("循环班表").font(.title3.weight(.bold))
-                    Text("专门为不按星期工作的人设计的个人循环班表：自定义班次与循环模板，工时与加班分别统计，自动标注放假与调休。")
+                    Text("省心日历").font(.title3.weight(.bold))
+                    Text("排班、日程、工时一本账，专门为不按星期工作的人设计：自定义班次与循环模板，工时与加班分别统计，自动标注放假与调休。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -22,13 +22,13 @@ struct AboutView: View {
             }
 
             Section("链接") {
-                Link(destination: URL(string: "https://wenjinliuu.github.io/shift-ledger/privacy/")!) {
+                Link(destination: URL(string: "https://wenjinliuu.github.io/calenease/privacy/")!) {
                     Label("隐私政策", systemImage: "hand.raised")
                 }
-                Link(destination: URL(string: "https://wenjinliuu.github.io/shift-ledger/support/")!) {
+                Link(destination: URL(string: "https://wenjinliuu.github.io/calenease/support/")!) {
                     Label("反馈与支持", systemImage: "bubble.left.and.bubble.right")
                 }
-                Link(destination: URL(string: "https://wenjinliuu.github.io/shift-ledger/")!) {
+                Link(destination: URL(string: "https://wenjinliuu.github.io/calenease/")!) {
                     Label("网页版", systemImage: "safari")
                 }
             }

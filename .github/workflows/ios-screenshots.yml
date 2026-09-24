@@ -11,7 +11,7 @@ on:
         type: string
 
 concurrency:
-  group: ios-screenshots-${{ github.ref }}
+  group: calenease-screenshots-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -35,10 +35,12 @@ jobs:
       - name: Install tools
         run: brew install xcodegen xcbeautify
 
+      - name: Sync icon source artwork
+        run: bash Scripts/sync-app-icon.sh
+
       - name: Generate project
         run: xcodegen generate
 
-      # 优先挑 6.9 英寸的 Pro Max，挑不到再退回任意 iPhone
       # 优先挑 6.9 英寸的 Pro Max，挑不到再退回任意可用 iPhone
       - name: Pick simulator
         id: sim
@@ -62,8 +64,8 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild \
-            -project ShiftLedger.xcodeproj \
-            -scheme ShiftLedgerScreenshots \
+            -project CalenEase.xcodeproj \
+            -scheme CalenEaseScreenshots \
             -configuration Debug \
             -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }}" \
             -resultBundlePath build/Screenshots.xcresult \
@@ -83,7 +85,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshots-${{ github.run_number }}
+          name: calenease-screenshots-${{ github.run_number }}
           path: ios/build/screenshots
           if-no-files-found: warn
 

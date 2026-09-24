@@ -1,5 +1,7 @@
 name: iOS Build & Test
 
+# 省心日历（CalenEase）：生成工程、模拟器编译、跑单元测试，并核对编译出的图标和桌面名称。
+
 on:
   push:
     branches: [main]
@@ -7,7 +9,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ios-build-${{ github.ref }}
+  group: calenease-ios-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -73,16 +75,21 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild \
-            -project ShiftLedger.xcodeproj \
-            -scheme ShiftLedger \
+            -project CalenEase.xcodeproj \
+            -scheme CalenEase \
             -configuration Debug \
             -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }}" \
             CODE_SIGNING_ALLOWED=NO \
             clean test | xcbeautify --renderer github-actions
 
-      - name: Verify compiled App Icon
+      - name: Verify compiled app
         run: |
-          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -type d -path '*/Build/Products/Debug-iphonesimulator/ShiftLedger.app' -print -quit)
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -type d -path '*/Build/Products/Debug-iphonesimulator/CalenEase.app' -print -quit)
           test -n "$APP_PATH"
           test -f "$APP_PATH/Assets.car"
           find "$APP_PATH" -maxdepth 1 -type f -name 'AppIcon*.png' -print -quit | grep -q .
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")
+          DISPLAY_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP_PATH/Info.plist")
+          echo "Bundle ID：$BUNDLE_ID，桌面名称：$DISPLAY_NAME"
+          test "$BUNDLE_ID" = "com.wenjinliu.calenease"
+          test "$DISPLAY_NAME" = "省心日历"

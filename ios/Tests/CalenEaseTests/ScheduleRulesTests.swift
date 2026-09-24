@@ -1,5 +1,5 @@
 import XCTest
-@testable import ShiftLedger
+@testable import CalenEase
 
 /// 排班与数据迁移的一致性测试，用例逐条对应 web 版 `tests/schedule.test.ts`。
 /// 同一份数据在网页端和 App 上必须得到相同结论，否则备份互导就会走样。

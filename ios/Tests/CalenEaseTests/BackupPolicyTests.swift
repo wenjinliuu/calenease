@@ -1,5 +1,5 @@
 import XCTest
-@testable import ShiftLedger
+@testable import CalenEase
 
 /// 备份的命名与回收。「不该删的被删了」一旦上线就不可逆，所以单独测。
 final class BackupPolicyTests: XCTestCase {

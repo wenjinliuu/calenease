@@ -8,7 +8,9 @@ import UserNotifications
 @MainActor
 enum NotificationScheduler {
 
-    static let prefix = "shiftledger."
+    static let prefix = "calenease."
+    /// 改名前排的通知用这个前缀，重排时一起撤掉，免得旧通知和新通知重复响。
+    static let legacyPrefix = "shiftledger."
     private static var pending: Task<Void, Never>?
 
     /// 数据里有没有任何需要提醒的东西。没有就不去打扰系统、也不弹权限框。
@@ -52,7 +54,7 @@ enum NotificationScheduler {
         let center = UNUserNotificationCenter.current()
         let ours = await center.pendingNotificationRequests()
             .map(\.identifier)
-            .filter { $0.hasPrefix(prefix) }
+            .filter { $0.hasPrefix(prefix) || $0.hasPrefix(legacyPrefix) }
         center.removePendingNotificationRequests(withIdentifiers: ours)
 
         guard wantsNotifications(document) else { return }

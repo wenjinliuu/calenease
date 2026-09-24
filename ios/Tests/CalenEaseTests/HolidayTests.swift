@@ -1,5 +1,5 @@
 import XCTest
-@testable import ShiftLedger
+@testable import CalenEase
 
 /// 法定节假日判定，用例对应 web 版 `tests/holidays.test.ts`，
 /// 另外补了农历节日的抽查，确保本机农历表与网页端 `lunar-typescript` 结论一致。

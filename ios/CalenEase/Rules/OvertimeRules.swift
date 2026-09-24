@@ -1,7 +1,7 @@
 import Foundation
 
 /// 加班判定。逐条移植自 web 版 `calculateOvertime`，
-/// `Tests/ShiftLedgerTests/OvertimeRulesTests.swift` 就是照着
+/// `Tests/CalenEaseTests/OvertimeRulesTests.swift` 就是照着
 /// web 版 `tests/schedule.test.ts` 写的，两端结论必须一致。
 enum OvertimeRules {
 
