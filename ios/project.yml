@@ -1,4 +1,4 @@
-name: ShiftLedger
+name: CalenEase
 options:
   bundleIdPrefix: com.wenjinliu
   deploymentTarget:
@@ -20,11 +20,11 @@ settings:
     SWIFT_EMIT_LOC_STRINGS: YES
 
 targets:
-  ShiftLedger:
+  CalenEase:
     type: application
     platform: iOS
     sources:
-      - path: ShiftLedger
+      - path: CalenEase
       # 放假安排快照：仓库根目录的 holidays/v1/ 原样打进包里（由 Update China holidays
       # 工作流维护），第一次打开没网也有数据。App 运行时再从腾讯云更新。
       - path: ../holidays
@@ -32,9 +32,9 @@ targets:
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.wenjinliu.shiftledger
+        PRODUCT_BUNDLE_IDENTIFIER: com.wenjinliu.calenease
         # iCloud 备份要的 entitlements。容器标识符和 `ICloudBackupStore.containerID` 必须一字不差。
-        CODE_SIGN_ENTITLEMENTS: ShiftLedger/Resources/ShiftLedger.entitlements
+        CODE_SIGN_ENTITLEMENTS: CalenEase/Resources/CalenEase.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1"
@@ -43,9 +43,9 @@ targets:
         SUPPORTS_MACCATALYST: NO
         SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
     info:
-      path: ShiftLedger/Resources/Info.plist
+      path: CalenEase/Resources/Info.plist
       properties:
-        CFBundleDisplayName: 循环班表
+        CFBundleDisplayName: 省心日历
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDevelopmentRegion: zh_CN
@@ -57,53 +57,53 @@ targets:
         # 本机备份放在 Documents/Backups，在「文件」App 里看得见、拷得走。
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
-        # iCloud 云盘里显示成一个叫「循环班表」的文件夹，而不是一串容器标识符。
+        # iCloud 云盘里显示成一个叫「省心日历」的文件夹，而不是一串容器标识符。
         NSUbiquitousContainers:
-          iCloud.com.wenjinliu.shiftledger:
+          iCloud.com.wenjinliu.calenease:
             NSUbiquitousContainerIsDocumentScopePublic: true
-            NSUbiquitousContainerName: 循环班表
+            NSUbiquitousContainerName: 省心日历
             NSUbiquitousContainerSupportedFolderLevels: Any
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
 
-  ShiftLedgerTests:
+  CalenEaseTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: Tests/ShiftLedgerTests
+      - path: Tests/CalenEaseTests
     dependencies:
-      - target: ShiftLedger
+      - target: CalenEase
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.wenjinliu.shiftledger.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.wenjinliu.calenease.tests
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_STYLE: Automatic
         CODE_SIGNING_ALLOWED: NO
 
-  ShiftLedgerUITests:
+  CalenEaseUITests:
     type: bundle.ui-testing
     platform: iOS
     sources:
-      - path: Tests/ShiftLedgerUITests
+      - path: Tests/CalenEaseUITests
     dependencies:
-      - target: ShiftLedger
+      - target: CalenEase
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.wenjinliu.shiftledger.uitests
+        PRODUCT_BUNDLE_IDENTIFIER: com.wenjinliu.calenease.uitests
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_STYLE: Automatic
         CODE_SIGNING_ALLOWED: NO
-        TEST_TARGET_NAME: ShiftLedger
+        TEST_TARGET_NAME: CalenEase
 
 schemes:
-  ShiftLedger:
+  CalenEase:
     build:
       targets:
-        ShiftLedger: all
-        ShiftLedgerTests: [test]
+        CalenEase: all
+        CalenEaseTests: [test]
     test:
       targets:
-        - ShiftLedgerTests
+        - CalenEaseTests
       gatherCoverageData: false
     run:
       config: Debug
@@ -111,14 +111,14 @@ schemes:
       config: Release
 
   # 截图专用：只跑 UI 测试，产物是 App Store 素材，不参与日常 CI
-  ShiftLedgerScreenshots:
+  CalenEaseScreenshots:
     build:
       targets:
-        ShiftLedger: all
-        ShiftLedgerUITests: [test]
+        CalenEase: all
+        CalenEaseUITests: [test]
     test:
       targets:
-        - ShiftLedgerUITests
+        - CalenEaseUITests
       gatherCoverageData: false
     run:
       config: Debug

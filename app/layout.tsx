@@ -11,13 +11,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "循环班表｜不按星期工作的个人班表",
-  description: "为轮班、倒班和值守人群设计的个人循环班表，支持自定义班次、职责标签、工时与加班统计。",
-  applicationName: "循环班表",
+  title: "省心日历｜排班、日程与工时",
+  description: "省心日历（原循环班表）：为轮班、倒班和值守人群设计的个人排班日历，支持自定义班次、职责标签、工时与加班统计。",
+  applicationName: "省心日历",
   manifest: `${basePath}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
-    title: "循环班表",
+    title: "省心日历",
     statusBarStyle: "default",
   },
   icons: {

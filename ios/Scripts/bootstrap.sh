@@ -11,8 +11,8 @@ if ! command -v xcodegen >/dev/null 2>&1; then
 fi
 
 xcodegen generate
-echo "已生成 ios/ShiftLedger.xcodeproj"
+echo "已生成 ios/CalenEase.xcodeproj"
 
 if [ "${1:-}" = "--open" ]; then
-  open ShiftLedger.xcodeproj
+  open CalenEase.xcodeproj
 fi

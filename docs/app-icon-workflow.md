@@ -3,7 +3,7 @@
 ## 文件位置
 
 - 设计母版：`DesignAssets/AppIcon/*.svg`（四个独立矢量图层）
-- Xcode 编译文件：`ios/ShiftLedger/Resources/AppIcon.icon/`
+- Xcode 编译文件：`ios/CalenEase/Resources/AppIcon.icon/`
 - 素材同步脚本：`ios/Scripts/sync-app-icon.sh`
 - 工程设置：`ios/project.yml`，App Icon 名称为 `AppIcon`
 

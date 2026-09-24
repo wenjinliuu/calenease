@@ -44,8 +44,8 @@ import {
 } from "./lib/schedule";
 
 const APP_VERSION = "1.0.0";
-const PRIVACY_URL = "https://wenjinliuu.github.io/shift-ledger/privacy/";
-const SUPPORT_URL = "https://github.com/wenjinliuu/shift-ledger/issues";
+const PRIVACY_URL = "https://wenjinliuu.github.io/calenease/privacy/";
+const SUPPORT_URL = "https://github.com/wenjinliuu/calenease/issues";
 
 type View = "calendar" | "stats" | "settings";
 type StatsScope = "month" | "year";
@@ -738,7 +738,7 @@ export default function Home() {
           <Icon name="spark" />
         </div>
         <div className="brand-copy">
-          <strong>循环班表</strong>
+          <strong>省心日历</strong>
           <span>不按星期工作的个人班表</span>
         </div>
         <nav>
@@ -2147,7 +2147,7 @@ function SettingsView({
       [
         JSON.stringify(
           {
-            app: "shift-ledger",
+            app: "calenease",
             version: DATA_VERSION,
             exportedAt: new Date().toISOString(),
             data,
@@ -2161,7 +2161,7 @@ function SettingsView({
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `循环班表备份-${dateKey(new Date())}.json`;
+    anchor.download = `省心日历备份-${dateKey(new Date())}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -2177,7 +2177,7 @@ function SettingsView({
       setData(next);
       setMessage(`已导入 ${next.records.length} 天记录`);
     } catch {
-      setMessage("导入失败：请选择循环班表导出的 JSON 备份");
+      setMessage("导入失败：请选择省心日历（或旧版循环班表）导出的 JSON 备份");
     } finally {
       if (importInput.current) importInput.current.value = "";
     }
@@ -2667,7 +2667,7 @@ function SettingsView({
         <section className="glass-panel setting-card wide about-card">
           <div>
             <p className="eyebrow">关于</p>
-            <h2>循环班表 {APP_VERSION}</h2>
+            <h2>省心日历 {APP_VERSION}</h2>
             <span>
               数据只保存在本机，不上传服务器。工时为个人预估，最终以公司考勤记录
               和适用制度为准。

@@ -1,18 +1,20 @@
 name: App Icon Preview
 
+# 省心日历（CalenEase）App 图标：Xcode 原生编译验证为准，第三方预览只作参考。
+
 on:
   push:
     branches: [main]
     paths:
       - "DesignAssets/AppIcon/**"
-      - "ios/ShiftLedger/Resources/AppIcon.icon/**"
+      - "ios/CalenEase/Resources/AppIcon.icon/**"
       - "ios/project.yml"
       - "ios/Scripts/sync-app-icon.sh"
       - ".github/workflows/icon-preview.yml"
   workflow_dispatch:
 
 concurrency:
-  group: shift-ledger-app-icon-${{ github.ref }}
+  group: calenease-app-icon-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -49,11 +51,11 @@ jobs:
           set -o pipefail
           mkdir -p build
           xcodebuild archive \
-            -project ShiftLedger.xcodeproj \
-            -scheme ShiftLedger \
+            -project CalenEase.xcodeproj \
+            -scheme CalenEase \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath build/ShiftLedger.xcarchive \
+            -archivePath build/CalenEase.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -62,8 +64,8 @@ jobs:
 
       - name: Verify Xcode compiled AppIcon.icon
         run: |
-          APP_PATH=$(find build/ShiftLedger.xcarchive/Products/Applications -maxdepth 1 -type d -name '*.app' -print -quit)
-          test -n "$APP_PATH"
+          APP_PATH=build/CalenEase.xcarchive/Products/Applications/CalenEase.app
+          test -d "$APP_PATH"
           test -f "$APP_PATH/Assets.car"
           find "$APP_PATH" -maxdepth 1 -type f -name 'AppIcon*.png' -print -quit | grep -q .
           if grep -Eiq 'app icon.*(conflict|error)|failed to generate flattened icon' build/native-icon-build.log; then
@@ -83,7 +85,7 @@ jobs:
         run: |
           bash ios/Scripts/sync-app-icon.sh
           mkdir -p build/app-icon
-          cp -R ios/ShiftLedger/Resources/AppIcon.icon build/app-icon/AppIcon.icon
+          cp -R ios/CalenEase/Resources/AppIcon.icon build/app-icon/AppIcon.icon
 
       - name: Check third-party renderer
         continue-on-error: true
@@ -91,14 +93,14 @@ jobs:
 
       - name: Inspect icon bundle (third-party)
         continue-on-error: true
-        run: npx -y -p icon-composer-mcp@1.1.0 icon-composer inspect ios/ShiftLedger/Resources/AppIcon.icon
+        run: npx -y -p icon-composer-mcp@1.1.0 icon-composer inspect ios/CalenEase/Resources/AppIcon.icon
 
       - name: Render preview appearances (third-party)
         continue-on-error: true
         run: |
           for rendition in Default Dark TintedLight TintedDark ClearLight ClearDark; do
             npx -y -p icon-composer-mcp@1.1.0 icon-composer render \
-              ios/ShiftLedger/Resources/AppIcon.icon \
+              ios/CalenEase/Resources/AppIcon.icon \
               "build/app-icon/${rendition}.png" \
               --platform iOS \
               --rendition "$rendition" \
@@ -110,7 +112,7 @@ jobs:
         continue-on-error: true
         run: |
           npx -y -p icon-composer-mcp@1.1.0 icon-composer export-marketing \
-            ios/ShiftLedger/Resources/AppIcon.icon \
+            ios/CalenEase/Resources/AppIcon.icon \
             build/app-icon/Marketing-1024.png \
             --size 1024
 
@@ -118,6 +120,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: shift-ledger-app-icon-${{ github.sha }}
+          name: calenease-app-icon-${{ github.sha }}
           path: build/app-icon
           if-no-files-found: warn

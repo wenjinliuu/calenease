@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "技术支持｜循环班表",
-  description: "循环班表技术支持：常见问题、使用说明与联系方式。",
+  title: "技术支持｜省心日历",
+  description: "省心日历技术支持：常见问题、使用说明与联系方式。",
 };
 
 const SUPPORT_EMAIL = "wenjinliuu@outlook.com";
@@ -14,7 +14,7 @@ const SUPPORT_EMAIL = "wenjinliuu@outlook.com";
 export default function Support() {
   return (
     <main className="legal-page">
-      <h1>循环班表 技术支持</h1>
+      <h1>省心日历 技术支持</h1>
       <p className="legal-meta">使用说明、常见问题与联系方式</p>
 
       <h2>联系我们</h2>
@@ -72,7 +72,7 @@ export default function Support() {
           <summary>iCloud 备份提示用不了？</summary>
           <p>
             请确认已登录 Apple 账户，并在「设置 → Apple 账户 → iCloud → iCloud 云盘」中打开 iCloud 云盘、
-            允许「循环班表」使用。iCloud 暂时用不了时，备份会先存在手机本机，不会丢。
+            允许「省心日历」使用。iCloud 暂时用不了时，备份会先存在手机本机，不会丢。
           </p>
         </details>
         <details>

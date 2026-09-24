@@ -15,7 +15,7 @@ DerivedData/
 *.xcworkspace
 xcuserdata/
 *.xcuserstate
-ios/ShiftLedger/Resources/Info.plist
+ios/CalenEase/Resources/Info.plist
 *.ipa
 *.dSYM.zip
 ExportOptions.plist
