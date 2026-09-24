@@ -7,6 +7,11 @@ on:
         description: "构建号（留空则用 GitHub run number）"
         required: false
         type: string
+      lookup_only:
+        description: "只核对 App Store Connect 注册信息（列出 App / Bundle ID / SKU），不归档上传"
+        required: false
+        type: boolean
+        default: false
   push:
     tags: ["v*"]
 
@@ -15,7 +20,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # 先用 App Store Connect API 只读核对：project.yml 里的 Bundle ID 已在 Apple Developer 注册、
+  # App Store Connect 里已有对应 App、iCloud 能力已打开。缺一样都在这里失败，
+  # 不用等到 macOS 上归档完、导出签名时才报「No profiles found」。
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ENABLE_ICLOUD: 'true'
+      KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write App Store Connect API key
+        env:
+          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s' "$PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+
+      - name: Verify App Store Connect registration
+        run: |
+          pip install --quiet 'pyjwt[crypto]'
+          BUNDLE_ID=$(awk '/PRODUCT_BUNDLE_IDENTIFIER:/ {print $2; exit}' ios/project.yml)
+          echo "project.yml 里的 Bundle ID：$BUNDLE_ID"
+          if [ "${{ inputs.lookup_only }}" != "true" ]; then
+            export EXPECTED_BUNDLE_ID="$BUNDLE_ID"
+            if [ "$ENABLE_ICLOUD" = "true" ]; then export REQUIRED_CAPABILITIES=ICLOUD; fi
+          fi
+          python3 ios/Scripts/asc-verify.py
+
+      - name: Clean up API key
+        if: always()
+        run: rm -f ~/.appstoreconnect/private_keys/AuthKey_*.p8
+
   upload:
+    needs: verify
+    if: ${{ !inputs.lookup_only }}
     runs-on: macos-latest
     timeout-minutes: 45
 
