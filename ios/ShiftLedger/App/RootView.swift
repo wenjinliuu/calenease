@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 三个主页面：日历、统计、设置。
+/// 主页面：日历、事项、工时、设置。关掉排班功能时工时页收起来。
 /// 标签栏常驻：这三页之间来回切换很频繁，滚动时把它收起来反而要多点一次。
 struct RootView: View {
     @Environment(ScheduleStore.self) private var store
@@ -14,9 +14,12 @@ struct RootView: View {
             Tab("日历", systemImage: "calendar", value: MainTab.calendar) {
                 CalendarScreen()
             }
-            // 关掉排班功能的人没有工时可统计，统计页整页收起来
+            Tab("事项", systemImage: "checklist", value: MainTab.agenda) {
+                AgendaScreen()
+            }
+            // 工时页只属于排班那一套；关掉排班功能的人没有工时可看，整页收起来
             if store.document.features.shiftsEnabled {
-                Tab("统计", systemImage: "chart.bar.xaxis", value: MainTab.stats) {
+                Tab("工时", systemImage: "chart.bar.xaxis", value: MainTab.stats) {
                     StatsScreen()
                 }
             }
@@ -49,13 +52,13 @@ struct RootView: View {
 }
 
 enum MainTab: Hashable {
-    case calendar, stats, settings
+    case calendar, agenda, stats, settings
 }
 
 // MARK: - 第一次打开
 
 /// 新装第一次打开问一句：倒班还是固定作息。固定作息的人把排班功能关掉，
-/// 首页只剩日历、日程和倒数日，统计页也不出现。以后在设置里随时能改。
+/// 首页只剩日历、日程和倒数日，工时页也不出现。以后在设置里随时能改。
 private struct OnboardingSheet: View {
     @Environment(ScheduleStore.self) private var store
 

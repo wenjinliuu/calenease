@@ -26,8 +26,6 @@ struct DayEditorSheet: View {
     @State private var loaded = false
     /// 次要班次那一块展开了没有。默认收着，只露一个「添加次要班次」。
     @State private var showsSecondary = false
-    /// 每一页表单实际要多高。抽屉按当前页定高度。
-    @State private var pageHeights: [DaySegment: CGFloat] = [:]
     @State private var eventTarget: EventEditorTarget?
 
     private var document: ScheduleDocument { store.document }
@@ -87,15 +85,10 @@ struct DayEditorSheet: View {
             }
             .sensoryFeedback(.selection, trigger: segment)
         }
-        // 抽屉高度跟着当前这一页的内容走；内容比屏幕还高时系统封顶到全屏，表单自己滚动。
-        .presentationDetents([detentHeight.map { PresentationDetent.height($0) } ?? .medium])
+        // 两页统一一个高度：之前跟着内容走，没有日程的那页矮得只剩一条，切页时抽屉忽高忽低。
+        .presentationDetents([.fraction(0.78), .large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
-    }
-
-    private var detentHeight: CGFloat? {
-        let key = shiftsEnabled ? segment : .events
-        return pageHeights[key]
     }
 
     private var segmentBar: some View {
@@ -109,13 +102,6 @@ struct DayEditorSheet: View {
         .frame(height: Self.segmentBarHeight, alignment: .top)
         .frame(maxWidth: .infinity)
         .background(Palette.grouped)
-    }
-
-    /// 量表单内容的总高度（含导航栏、分段条和底部安全区）。
-    private func measured(_ page: DaySegment) -> PageHeightReader {
-        PageHeightReader { height in
-            withAnimation(.smooth(duration: 0.3)) { pageHeights[page] = height }
-        }
     }
 
     // MARK: - 排班页
@@ -161,6 +147,8 @@ struct DayEditorSheet: View {
                 Text("这里只修改当天，不会改变后续循环。要改变未来，请使用「循环排班」。")
             }
 
+            shiftReminderSection
+
             if store.record(on: date) != nil {
                 Section {
                     Button(role: .destructive) {
@@ -176,7 +164,78 @@ struct DayEditorSheet: View {
         }
         .contentMargins(.top, shiftsEnabled ? Self.segmentBarHeight - 20 : 0, for: .scrollContent)
         .scrollContentBackground(.hidden)
-        .modifier(measured(.shift))
+    }
+
+    // MARK: - 提醒
+
+    /// 班次页底部的提醒：开关和提前多久，就地改，不用再跑去设置里。
+    private var shiftReminderSection: some View {
+        let reminders = document.reminders
+        return Section {
+            Toggle(isOn: reminderBinding(\.shiftStartEnabled)) {
+                Label("上班前提醒", systemImage: "alarm")
+            }
+            if reminders.shiftStartEnabled {
+                Picker("提前", selection: reminderBinding(\.shiftStartMinutes)) {
+                    ForEach([15, 30, 45, 60, 90, 120, 180], id: \.self) { minutes in
+                        Text(ReminderPlanner.lead(minutes)).tag(minutes)
+                    }
+                }
+            }
+            Toggle(isOn: reminderBinding(\.clockOutEnabled)) {
+                Label("下班打卡提醒", systemImage: "figure.walk.departure")
+            }
+            if reminders.clockOutEnabled {
+                Picker("下班后", selection: reminderBinding(\.clockOutMinutes)) {
+                    ForEach([0, 5, 10, 15, 30], id: \.self) { minutes in
+                        Text(minutes == 0 ? "准点" : ReminderPlanner.lead(minutes)).tag(minutes)
+                    }
+                }
+            }
+        } header: {
+            Text("提醒")
+        } footer: {
+            Text(reminderFooter)
+        }
+    }
+
+    private var reminderFooter: String {
+        guard let shift = selectedShift, !shift.isRest, !shift.startTime.isEmpty else {
+            return "对所有排了班的日子生效，休息日不提醒。按班次单独开关在「设置 › 提醒」。"
+        }
+        var parts: [String] = []
+        let reminders = document.reminders
+        if reminders.shiftStartEnabled, !reminders.shiftStartExcluded.contains(shift.id),
+           let start = EventClock.minutes(shift.startTime) {
+            parts.append("这天 \(EventClock.text(start - reminders.shiftStartMinutes)) 提醒上班")
+        }
+        if reminders.clockOutEnabled, let end = EventClock.minutes(shift.endTime) {
+            let time = EventClock.text((end + reminders.clockOutMinutes) % (24 * 60))
+            parts.append("\(shift.crossesMidnight ? "次日 " : "")\(time) 提醒打卡")
+        }
+        let summary = parts.isEmpty ? "" : parts.joined(separator: "，") + "。"
+        return summary + "对所有排了班的日子生效，按班次单独开关在「设置 › 提醒」。"
+    }
+
+    /// 改提醒设置；打开任何一项时顺手请求通知权限。
+    private func reminderBinding<Value>(_ keyPath: WritableKeyPath<ReminderSettings, Value>) -> Binding<Value> {
+        Binding(get: { document.reminders[keyPath: keyPath] }, set: { newValue in
+            withAnimation(.snappy(duration: 0.25)) {
+                store.updateReminders { $0[keyPath: keyPath] = newValue }
+            }
+            if (newValue as? Bool) == true {
+                Task { await NotificationScheduler.requestAuthorization() }
+            }
+        })
+    }
+
+    private func clockBinding(_ keyPath: WritableKeyPath<ReminderSettings, String>) -> Binding<Date> {
+        Binding(get: {
+            EventClock.date(key: ScheduleCalendar.todayKey, time: document.reminders[keyPath: keyPath])
+        }, set: { value in
+            let text = EventClock.split(value).time
+            store.updateReminders { $0[keyPath: keyPath] = text }
+        })
     }
 
     // MARK: - 日程页
@@ -224,10 +283,27 @@ struct DayEditorSheet: View {
                         .font(.body.weight(.semibold))
                 }
             }
+
+            Section {
+                Picker(selection: reminderBinding(\.eventDefaultMinutes)) {
+                    Text("不提醒").tag(Int?.none)
+                    ForEach([0, 5, 10, 15, 30, 60], id: \.self) { minutes in
+                        Text(EventEditorSheet.reminderLabel(minutes)).tag(Int?.some(minutes))
+                    }
+                } label: {
+                    Label("新日程默认提醒", systemImage: "bell")
+                }
+                DatePicker(selection: clockBinding(\.allDayEventTime), displayedComponents: [.hourAndMinute]) {
+                    Label("全天日程提醒时间", systemImage: "sun.horizon")
+                }
+            } header: {
+                Text("提醒")
+            } footer: {
+                Text("每条日程点开还能单独改提醒时间。")
+            }
         }
         .contentMargins(.top, shiftsEnabled ? Self.segmentBarHeight - 20 : 0, for: .scrollContent)
         .scrollContentBackground(.hidden)
-        .modifier(measured(.events))
     }
 
     // MARK: - 次要班次
@@ -330,20 +406,6 @@ struct DayEditorSheet: View {
         }
         original = draft
         loaded = true
-    }
-}
-
-/// 量一个表单的总高度：内容 + 上下内边距（导航栏、分段条让出的边距、底部安全区）。
-private struct PageHeightReader: ViewModifier {
-    let onChange: (CGFloat) -> Void
-
-    func body(content: Content) -> some View {
-        content.onScrollGeometryChange(for: CGFloat.self) { geometry in
-            (geometry.contentSize.height + geometry.contentInsets.top + geometry.contentInsets.bottom).rounded(.up)
-        } action: { _, height in
-            guard height > 0 else { return }
-            onChange(height)
-        }
     }
 }
 

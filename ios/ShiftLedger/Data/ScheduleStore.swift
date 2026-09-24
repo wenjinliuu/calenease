@@ -427,6 +427,18 @@ final class ScheduleStore {
         }
     }
 
+    /// 事项页右边那个圈：勾上 / 取消这一次的完成。
+    func toggleCompletion(eventId: String, on date: String) {
+        update { document in
+            guard let index = document.events.firstIndex(where: { $0.id == eventId }) else { return }
+            if document.events[index].completions.contains(date) {
+                document.events[index].completions.removeAll { $0 == date }
+            } else {
+                document.events[index].completions.append(date)
+            }
+        }
+    }
+
     /// 某一天的日程。
     func occurrences(on date: String) -> [EventOccurrence] {
         EventEngine.occurrences(of: document.events, on: date, shiftDays: EventEngine.shiftDays(of: document))

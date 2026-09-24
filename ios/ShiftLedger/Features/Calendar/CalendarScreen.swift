@@ -17,6 +17,8 @@ struct CalendarScreen: View {
     @State private var batchMode = false
     @State private var batchDates: Set<String> = []
     @State private var isBatchEditorPresented = false
+    /// 点格子选中时震一下。翻月自动选 1 号时月份那边已经震过了，不再叠一次。
+    @State private var tapTick = 0
 
     /// 进出多选用的弹簧：略带一点回弹，行动条展开、网格下移、格子描边淡入都走这一条，
     /// 几样东西同一节奏动，看起来是一个整体在让位，而不是各动各的。
@@ -30,22 +32,6 @@ struct CalendarScreen: View {
             ScrollView {
                 VStack(spacing: 14) {
                     VStack(spacing: 0) {
-                        header
-                            .padding(.horizontal, 12)
-                            .padding(.bottom, 10)
-
-                        // 行动条一直在布局里，只是收起时高度为零并裁掉：展开时从上往下拉开，
-                        // 下面的网格跟着同一条弹簧平滑下移，而不是先整块顶下去再淡入。
-                        batchBar
-                            .padding(.horizontal, 12)
-                            .padding(.bottom, 12)
-                            .frame(height: batchMode ? nil : 0, alignment: .top)
-                            .clipped()
-                            .opacity(batchMode ? 1 : 0)
-                            .scaleEffect(batchMode ? 1 : 0.96, anchor: .top)
-                            .allowsHitTesting(batchMode)
-                            .accessibilityHidden(!batchMode)
-
                         MonthPager(focusedIndex: store.focusedIndex,
                                    batchMode: batchMode,
                                    selectedDates: batchDates,
@@ -61,16 +47,19 @@ struct CalendarScreen: View {
                                  onEditEvent: { sheet = .event(.edit($0)) },
                                  onNewEvent: { sheet = .event(.new(on: selectedDate, reminders: document.reminders)) },
                                  onTimeline: { sheet = .timeline(selectedDate) })
-                        if shiftsEnabled { nextShiftCard }
                         CountdownSection { countdown in
                             sheet = .countdown(countdown)
                         }
                     }
                     .padding(.horizontal, 16)
                 }
-                .padding(.top, 4)
+                .padding(.top, 2)
                 .padding(.bottom, 24)
             }
+            // 标题行和多选行动条固定在顶上，不跟着内容上下滑；内容从它底下滑过去，
+            // 交界处一段渐变淡出。自己画渐变，不用系统的滚动边缘效果——
+            // 那个在不同系统版本上样子不一样，这里要各版本一致。
+            .safeAreaInset(edge: .top, spacing: 0) { pinnedBar }
             .background(Palette.canvas)
             .toolbarVisibility(.hidden, for: .navigationBar)
             .sheet(item: $sheet) { item in
@@ -99,13 +88,15 @@ struct CalendarScreen: View {
                 BatchEditorSheet(dates: batchDates.sorted())
             }
             .sensoryFeedback(.selection, trigger: store.focusedMonthKey)
-            .sensoryFeedback(.selection, trigger: selectedDate)
+            .sensoryFeedback(.selection, trigger: tapTick)
             .onChange(of: store.focusedIndex) { _, index in
                 // 翻到别的月：本月选今天，其他月选 1 号。跳转已经选好了那个月里的某天就不动。
                 guard !selectedDate.hasPrefix(store.focusedMonthKey) else { return }
-                selectedDate = index == store.currentMonthIndex
-                    ? store.todayKey
-                    : ScheduleCalendar.key(year: store.focusedYear, month: store.focusedMonth, day: 1)
+                withAnimation(.snappy(duration: 0.3)) {
+                    selectedDate = index == store.currentMonthIndex
+                        ? store.todayKey
+                        : ScheduleCalendar.key(year: store.focusedYear, month: store.focusedMonth, day: 1)
+                }
             }
             .onChange(of: shiftsEnabled) { _, enabled in
                 if !enabled {
@@ -117,6 +108,28 @@ struct CalendarScreen: View {
     }
 
     // MARK: - 标题行
+
+    private var pinnedBar: some View {
+        VStack(spacing: 0) {
+            header
+                .padding(.horizontal, 18)
+                .padding(.top, 4)
+                .padding(.bottom, 10)
+
+            // 行动条一直在布局里，只是收起时高度为零并裁掉：展开时从上往下拉开，
+            // 下面的网格跟着同一条弹簧平滑下移，而不是先整块顶下去再淡入。
+            batchBar
+                .padding(.horizontal, 12)
+                .padding(.bottom, 10)
+                .frame(height: batchMode ? nil : 0, alignment: .top)
+                .clipped()
+                .opacity(batchMode ? 1 : 0)
+                .scaleEffect(batchMode ? 1 : 0.96, anchor: .top)
+                .allowsHitTesting(batchMode)
+                .accessibilityHidden(!batchMode)
+        }
+        .background { PinnedBarBackground() }
+    }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -152,7 +165,7 @@ struct CalendarScreen: View {
             Button {
                 jump(to: store.todayKey)
             } label: {
-                TodayGlyph(day: Int(store.todayKey.suffix(2)) ?? 1)
+                TodayBadge(day: Int(store.todayKey.suffix(2)) ?? 1)
                     .frame(width: 38, height: 38)
                     .background(Palette.card, in: Circle())
             }
@@ -268,6 +281,7 @@ struct CalendarScreen: View {
                 sheet = .day(date, shiftsEnabled ? .shift : .events)
             } else {
                 withAnimation(.snappy(duration: 0.2)) { selectedDate = date }
+                tapTick += 1
             }
             return
         }
@@ -281,66 +295,6 @@ struct CalendarScreen: View {
         }
     }
 
-    // MARK: - 下一班
-
-    private var upcoming: DayRecord? {
-        document.records.first {
-            $0.date >= store.todayKey && $0.planned && document.shift($0.shiftId)?.countsAsWork == true
-                && document.shift($0.shiftId)?.isRest == false
-        }
-    }
-
-    @ViewBuilder
-    private var nextShiftCard: some View {
-        if let upcoming, let shift = document.shift(upcoming.shiftId) {
-            Button {
-                jump(to: upcoming.date)
-            } label: {
-                HStack(spacing: 12) {
-                    ShiftOrb(shift: shift, size: 42)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("下一班 · \(shift.name)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-                        Text(nextShiftDetail(upcoming, shift: shift))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-                .card(cornerRadius: 20, padding: 14)
-            }
-            .buttonStyle(.plain)
-        } else {
-            Button { isGeneratorPresented = true } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "calendar")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("暂无后续班次").font(.subheadline.weight(.semibold))
-                        Text("可逐日添加，或使用循环排班。")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .card(cornerRadius: 20, padding: 14)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private func nextShiftDetail(_ record: DayRecord, shift: ShiftDefinition) -> String {
-        var parts = [Self.relativeLabel(record.date, today: store.todayKey)]
-        if !shift.fullRange.isEmpty { parts.append(shift.fullRange) }
-        if document.work.trackHours { parts.append("\(HoursFormatter.compact(record.hours)) 小时") }
-        return parts.joined(separator: " · ")
-    }
-
     /// 今天、明天、后天说人话，再远就写日期。
     static func relativeLabel(_ date: String, today: String) -> String {
         switch ScheduleCalendar.dayDifference(date, today) {
@@ -351,6 +305,25 @@ struct CalendarScreen: View {
         case -2: "前天"
         default: date
         }
+    }
+}
+
+/// 固定在顶上的标题栏的底：上面实色，往下一段渐变淡出，内容从底下滑过去时自然过渡。
+struct PinnedBarBackground: View {
+    var fade: CGFloat = 22
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Palette.canvas
+            LinearGradient(stops: [.init(color: Palette.canvas, location: 0),
+                                   .init(color: Palette.canvas.opacity(0.85), location: 0.35),
+                                   .init(color: Palette.canvas.opacity(0), location: 1)],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: fade)
+        }
+        .padding(.bottom, -fade)
+        .ignoresSafeArea(edges: .top)
+        .allowsHitTesting(false)
     }
 }
 
@@ -373,29 +346,6 @@ enum CalendarSheet: Identifiable {
     }
 }
 
-/// 「今天」按钮上的小日历：顶上一道红，下面是今天几号。
-private struct TodayGlyph: View {
-    let day: Int
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Rectangle().fill(Palette.red).frame(height: 5)
-            Text("\(day)")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .frame(maxHeight: .infinity)
-        }
-        .frame(width: 20, height: 20)
-        .background(Palette.inset)
-        .clipShape(RoundedRectangle(cornerRadius: 4.5, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 4.5, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.7), lineWidth: 1.4)
-        }
-        .foregroundStyle(.primary)
-    }
-}
-
 /// 选中那一天的面板：节日 / 休班、日期与农历、当天班次、当天日程。
 private struct DayPanel: View {
     let date: String
@@ -414,12 +364,16 @@ private struct DayPanel: View {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
-                        Text(dateTitle).font(.headline)
+                        Text(dateTitle)
+                            .font(.headline)
+                            .monospacedDigit()
+                            .contentTransition(.numericText(value: Double(DayNumber.of(date) ?? 0)))
                         badges
                     }
                     Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .contentTransition(.numericText(value: Double(DayNumber.of(date) ?? 0)))
                 }
                 Spacer(minLength: 0)
                 Button(action: onTimeline) {

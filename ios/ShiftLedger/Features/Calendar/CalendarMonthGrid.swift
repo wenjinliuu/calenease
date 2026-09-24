@@ -199,7 +199,8 @@ private struct WeekEventBars: View {
                     .truncationMode(.tail)
                     .padding(.horizontal, 3)
                     .frame(width: width - 4, height: DayCellMetrics.barHeight, alignment: .leading)
-                    .background(tone.fill, in: UnevenRoundedRectangle(
+                    // 色条带一点透明：跨过选中那天时，底下的蓝圈隐约透出来，不被整段盖住
+                    .background(tone.fill.opacity(0.78), in: UnevenRoundedRectangle(
                         topLeadingRadius: segment.startsHere ? 3.5 : 0,
                         bottomLeadingRadius: segment.startsHere ? 3.5 : 0,
                         bottomTrailingRadius: continues ? 0 : 3.5,
@@ -238,6 +239,8 @@ enum DayCellMetrics {
     static let paddingTop: CGFloat = 8
     static let paddingBottom: CGFloat = 9
     static let corner: CGFloat = 10
+    /// 选中蓝圈比格子往下多伸出的距离。
+    static let focusOutset: CGFloat = 3
     /// 留白放在行与行之间，不放在格子里。日程色条占了一部分高度，行距收到 10pt。
     static let rowSpacing: CGFloat = 10
     static let columnSpacing: CGFloat = 1
@@ -311,8 +314,10 @@ private struct DayCell: View {
             .overlay(alignment: .bottom) { noteDot }
             .overlay {
                 if isFocused {
+                    // 往下多伸 3pt：右下角的「+N」落在格子底边上，不让蓝圈压住它
                     RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous)
                         .strokeBorder(Palette.blue, lineWidth: 1.6)
+                        .padding(.bottom, -DayCellMetrics.focusOutset)
                 }
             }
             .overlay {
@@ -365,9 +370,10 @@ private struct DayCell: View {
     /// 今天不改数字颜色，只把字重加到 bold——颜色留给班次和节假日。
     private var dateRow: some View {
         Text("\(day)")
-            .font(.system(size: 22, weight: isToday ? .bold : .medium))
+            .font(.system(size: 22, weight: isToday || isFocused ? .bold : .medium))
             .monospacedDigit()
-            .foregroundStyle(isUnscheduled || shift?.isRest == true ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+            // 日期颜色不跟排班走：平时一律黑字，选中的那天和蓝圈同色
+            .foregroundStyle(isFocused ? AnyShapeStyle(Palette.blue) : AnyShapeStyle(.primary))
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             .frame(height: DayCellMetrics.dateRow)
@@ -377,7 +383,7 @@ private struct DayCell: View {
     private func lunarRow(_ lunarText: String) -> some View {
         Text(festival?.shortName ?? lunarText)
             .font(.system(size: 8.5, weight: festival == nil ? .medium : .semibold))
-            .foregroundStyle(festival.map { AnyShapeStyle(Self.color(for: $0)) } ?? AnyShapeStyle(.tertiary))
+            .foregroundStyle(festival.map { AnyShapeStyle(Self.color(for: $0)) } ?? AnyShapeStyle(.primary))
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             .frame(height: DayCellMetrics.lunarRow)
@@ -514,7 +520,9 @@ private struct DayCell: View {
                 ForEach(Array(marks.enumerated()), id: \.offset) { _, mark in mark }
             }
             .frame(width: DayCellMetrics.railWidth)
-            .padding(.top, 5)
+            // 顺着圆角往里、往上收一点，选中的蓝圈不会压到角上的字
+            .padding(.top, 3.5)
+            .padding(.horizontal, 2)
         }
     }
 

@@ -21,7 +21,10 @@ final class ScreenshotTests: XCTestCase {
         capture("01b-calendar-bottom")
         tapTab("日历")
 
-        tapTab("统计")
+        tapTab("事项")
+        capture("02a-agenda")
+
+        tapTab("工时")
         capture("02-stats")
         scrollToBottom()
         capture("02b-stats-chart")

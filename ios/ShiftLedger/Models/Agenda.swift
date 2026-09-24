@@ -21,6 +21,14 @@ struct CalendarEvent: Codable, Hashable, Identifiable, Sendable {
     var reminderMinutes: Int?
     /// 重复日程里被单独删掉的那几次（按那一次的开始日期记）。
     var exceptions: [String]
+    /// 地点，纯文字；可以一键在「地图」里打开。
+    var location: String?
+    /// 链接：会议链接、网页。
+    var url: String?
+    /// 事项页时间线上那颗圆里的图标（SF Symbol 名），nil 用默认图标。
+    var symbol: String?
+    /// 已完成的那几次（按那一次的开始日期记）。事项页右边那个圈打勾。
+    var completions: [String]
 
     init(id: String = ShiftCatalog.makeId("event"),
          title: String = "",
@@ -33,7 +41,11 @@ struct CalendarEvent: Codable, Hashable, Identifiable, Sendable {
          note: String? = nil,
          recurrence: EventRecurrence = EventRecurrence(),
          reminderMinutes: Int? = nil,
-         exceptions: [String] = []) {
+         exceptions: [String] = [],
+         location: String? = nil,
+         url: String? = nil,
+         symbol: String? = nil,
+         completions: [String] = []) {
         self.id = id
         self.title = title
         self.startDate = startDate
@@ -46,6 +58,10 @@ struct CalendarEvent: Codable, Hashable, Identifiable, Sendable {
         self.recurrence = recurrence
         self.reminderMinutes = reminderMinutes
         self.exceptions = exceptions
+        self.location = location
+        self.url = url
+        self.symbol = symbol
+        self.completions = completions
     }
 
     /// 一次发生跨几天（0 = 当天结束）。
@@ -168,4 +184,123 @@ struct ReminderSettings: Codable, Hashable, Sendable {
 struct FeatureSettings: Codable, Hashable, Sendable {
     /// 排班功能。固定作息的人可以关掉：班次、循环排班、统计页都收起来。
     var shiftsEnabled = true
+}
+
+// MARK: - 解码兜底
+//
+// 这几样都是整份文档里的一部分，以后还会加字段。自动合成的解码要求每个键都在，
+// 老版本存下的文件缺一个键就整条读不出来——所以逐个字段兜底。
+
+extension CalendarEvent {
+    enum CodingKeys: String, CodingKey {
+        case id, title, startDate, endDate, isAllDay, startTime, endTime, color, note
+        case recurrence, reminderMinutes, exceptions, location, url, symbol, completions
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let start = try c.decode(String.self, forKey: .startDate)
+        self.init(id: try c.decodeIfPresent(String.self, forKey: .id) ?? ShiftCatalog.makeId("event"),
+                  title: try c.decodeIfPresent(String.self, forKey: .title) ?? "",
+                  startDate: start,
+                  endDate: try c.decodeIfPresent(String.self, forKey: .endDate),
+                  isAllDay: try c.decodeIfPresent(Bool.self, forKey: .isAllDay) ?? false,
+                  startTime: try c.decodeIfPresent(String.self, forKey: .startTime) ?? "09:00",
+                  endTime: try c.decodeIfPresent(String.self, forKey: .endTime) ?? "10:00",
+                  color: try c.decodeIfPresent(String.self, forKey: .color) ?? AccentHex.vividCyan,
+                  note: try c.decodeIfPresent(String.self, forKey: .note),
+                  recurrence: (try? c.decodeIfPresent(EventRecurrence.self, forKey: .recurrence)) ?? EventRecurrence(),
+                  reminderMinutes: try c.decodeIfPresent(Int.self, forKey: .reminderMinutes),
+                  exceptions: try c.decodeIfPresent([String].self, forKey: .exceptions) ?? [],
+                  location: try c.decodeIfPresent(String.self, forKey: .location),
+                  url: try c.decodeIfPresent(String.self, forKey: .url),
+                  symbol: try c.decodeIfPresent(String.self, forKey: .symbol),
+                  completions: try c.decodeIfPresent([String].self, forKey: .completions) ?? [])
+    }
+}
+
+extension EventRecurrence {
+    enum CodingKeys: String, CodingKey {
+        case kind, weekdays, interval, shiftId, shiftOffset, until
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init()
+        kind = (try? c.decodeIfPresent(Kind.self, forKey: .kind)) ?? .none
+        weekdays = try c.decodeIfPresent([Int].self, forKey: .weekdays) ?? []
+        interval = try c.decodeIfPresent(Int.self, forKey: .interval) ?? 2
+        shiftId = try c.decodeIfPresent(String.self, forKey: .shiftId)
+        shiftOffset = try c.decodeIfPresent(Int.self, forKey: .shiftOffset) ?? 0
+        until = try c.decodeIfPresent(String.self, forKey: .until)
+    }
+}
+
+extension Countdown {
+    enum CodingKeys: String, CodingKey {
+        case id, title, date, kind, repeatsYearly, color, pinned, remind, note
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(id: try c.decodeIfPresent(String.self, forKey: .id) ?? ShiftCatalog.makeId("countdown"),
+                  title: try c.decodeIfPresent(String.self, forKey: .title) ?? "",
+                  date: try c.decode(String.self, forKey: .date),
+                  kind: (try? c.decodeIfPresent(Kind.self, forKey: .kind)) ?? .countdown,
+                  repeatsYearly: try c.decodeIfPresent(Bool.self, forKey: .repeatsYearly) ?? false,
+                  color: try c.decodeIfPresent(String.self, forKey: .color) ?? AccentHex.vividOrange,
+                  pinned: try c.decodeIfPresent(Bool.self, forKey: .pinned) ?? false,
+                  remind: try c.decodeIfPresent(Bool.self, forKey: .remind) ?? true,
+                  note: try c.decodeIfPresent(String.self, forKey: .note))
+    }
+}
+
+extension ReminderSettings {
+    enum CodingKeys: String, CodingKey {
+        case shiftStartEnabled, shiftStartMinutes, shiftStartExcluded, clockOutEnabled, clockOutMinutes
+        case eventDefaultMinutes, allDayEventTime, countdownEnabled, countdownTime
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init()
+        shiftStartEnabled = try c.decodeIfPresent(Bool.self, forKey: .shiftStartEnabled) ?? shiftStartEnabled
+        shiftStartMinutes = try c.decodeIfPresent(Int.self, forKey: .shiftStartMinutes) ?? shiftStartMinutes
+        shiftStartExcluded = try c.decodeIfPresent([String].self, forKey: .shiftStartExcluded) ?? []
+        clockOutEnabled = try c.decodeIfPresent(Bool.self, forKey: .clockOutEnabled) ?? clockOutEnabled
+        clockOutMinutes = try c.decodeIfPresent(Int.self, forKey: .clockOutMinutes) ?? clockOutMinutes
+        // nil 是「默认不提醒」，和「没有这个键」要分开：没有这个键才用默认的 15 分钟
+        if c.contains(.eventDefaultMinutes) {
+            eventDefaultMinutes = try c.decodeIfPresent(Int.self, forKey: .eventDefaultMinutes)
+        }
+        allDayEventTime = try c.decodeIfPresent(String.self, forKey: .allDayEventTime) ?? allDayEventTime
+        countdownEnabled = try c.decodeIfPresent(Bool.self, forKey: .countdownEnabled) ?? countdownEnabled
+        countdownTime = try c.decodeIfPresent(String.self, forKey: .countdownTime) ?? countdownTime
+    }
+
+    /// 「默认不提醒」要写成 null 存下来，不能省掉这个键，否则读回来又变成 15 分钟。
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(shiftStartEnabled, forKey: .shiftStartEnabled)
+        try c.encode(shiftStartMinutes, forKey: .shiftStartMinutes)
+        try c.encode(shiftStartExcluded, forKey: .shiftStartExcluded)
+        try c.encode(clockOutEnabled, forKey: .clockOutEnabled)
+        try c.encode(clockOutMinutes, forKey: .clockOutMinutes)
+        try c.encode(eventDefaultMinutes, forKey: .eventDefaultMinutes)
+        try c.encode(allDayEventTime, forKey: .allDayEventTime)
+        try c.encode(countdownEnabled, forKey: .countdownEnabled)
+        try c.encode(countdownTime, forKey: .countdownTime)
+    }
+}
+
+extension FeatureSettings {
+    enum CodingKeys: String, CodingKey {
+        case shiftsEnabled
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init()
+        shiftsEnabled = try c.decodeIfPresent(Bool.self, forKey: .shiftsEnabled) ?? true
+    }
 }

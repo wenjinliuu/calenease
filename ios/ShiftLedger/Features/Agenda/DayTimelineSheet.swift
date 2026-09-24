@@ -24,18 +24,24 @@ struct DayTimelineSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView(.horizontal) {
-                LazyHStack(spacing: 0) {
-                    ForEach(range, id: \.self) { day in
-                        DayTimelinePage(day: day) { target in editorTarget = target }
-                            .containerRelativeFrame(.horizontal)
-                    }
+            VStack(spacing: 0) {
+                DateStrip(range: range, selection: currentDay, todayKey: store.todayKey) { day in
+                    withAnimation(.smooth(duration: 0.35)) { position = day }
                 }
-                .scrollTargetLayout()
+                Divider()
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(range, id: \.self) { day in
+                            DayTimelinePage(day: day) { target in editorTarget = target }
+                                .containerRelativeFrame(.horizontal)
+                        }
+                    }
+                    .scrollTargetLayout()
+                }
+                .scrollTargetBehavior(.paging)
+                .scrollIndicators(.hidden)
+                .scrollPosition(id: $position)
             }
-            .scrollTargetBehavior(.paging)
-            .scrollIndicators(.hidden)
-            .scrollPosition(id: $position)
             .background(Palette.canvas)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -155,11 +161,19 @@ private struct DayTimelinePage: View {
 
     // MARK: - 刻度
 
+    /// 今天那一页，离「现在」胶囊太近的整点刻度让出来，免得叠在一起。
+    private func hidesLabel(_ hour: Int) -> Bool {
+        guard key == store.todayKey else { return false }
+        let parts = ScheduleCalendar.calendar.dateComponents([.hour, .minute], from: Date())
+        let now = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+        return abs(now - hour * 60) < 15
+    }
+
     private var hourGrid: some View {
         VStack(spacing: 0) {
             ForEach(0..<25, id: \.self) { hour in
                 HStack(alignment: .top, spacing: 6) {
-                    Text(hour == 24 ? "" : String(format: "%02d:00", hour))
+                    Text(hour == 24 || hidesLabel(hour) ? "" : String(format: "%02d:00", hour))
                         .font(.caption2)
                         .monospacedDigit()
                         .foregroundStyle(.tertiary)
@@ -195,15 +209,31 @@ private struct DayTimelinePage: View {
             .accessibilityLabel("\(shift.name) \(shift.fullRange)")
     }
 
+    /// 现在几点：左边刻度栏里一颗红底白字的胶囊写着「14:05」，拉一条红线横过去，
+    /// 跟着时间往下走（和系统日历一样）。
     private var nowLine: some View {
-        let parts = ScheduleCalendar.calendar.dateComponents([.hour, .minute], from: Date())
-        let minute = CGFloat((parts.hour ?? 0) * 60 + (parts.minute ?? 0))
-        return HStack(spacing: 0) {
-            Circle().fill(Palette.red).frame(width: 7, height: 7)
-            Rectangle().fill(Palette.red).frame(height: 1)
+        TimelineView(.everyMinute) { context in
+            let parts = ScheduleCalendar.calendar.dateComponents([.hour, .minute], from: context.date)
+            let minute = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+            let y = CGFloat(minute) / 60 * Self.hourHeight
+            HStack(spacing: 0) {
+                Text(EventClock.text(minute))
+                    .font(.system(size: 11, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .frame(height: 18)
+                    .background(Palette.red, in: Capsule())
+                    .fixedSize()
+                    .frame(width: Self.gutter, alignment: .trailing)
+                Rectangle().fill(Palette.red).frame(height: 1.5)
+            }
+            .offset(y: y - 9)
+            .contentTransition(.numericText())
+            .animation(.smooth(duration: 0.4), value: minute)
         }
-        .offset(x: Self.gutter - 3, y: minute / 60 * Self.hourHeight - 3.5)
         .allowsHitTesting(false)
+        .accessibilityLabel("现在")
     }
 
     // MARK: - 色块
@@ -211,7 +241,7 @@ private struct DayTimelinePage: View {
     private func blocks(_ timed: [EventOccurrence]) -> some View {
         GeometryReader { proxy in
             let width = proxy.size.width - Self.gutter - 10
-            ForEach(Self.layout(timed, day: day), id: \.occurrence.id) { item in
+            ForEach(TimelineLayout.place(timed, day: day), id: \.occurrence.id) { item in
                 let tone = Tone.event(item.occurrence.event.color)
                 let columnWidth = width / CGFloat(item.columns)
                 let height = max(22, CGFloat(item.end - item.start) / 60 * Self.hourHeight - 2)
@@ -245,7 +275,68 @@ private struct DayTimelinePage: View {
         }
         .frame(height: Self.hourHeight * 24)
     }
+}
 
+/// 时间轴顶上那一排日期：一格一天，左右滑，选中的那天实心圆。只写星期和几号，不放日程。
+private struct DateStrip: View {
+    let range: ClosedRange<Int>
+    let selection: Int
+    let todayKey: String
+    let onSelect: (Int) -> Void
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 2) {
+                    ForEach(range, id: \.self) { day in
+                        cell(day)
+                            .id(day)
+                    }
+                }
+                .padding(.horizontal, 8)
+            }
+            .scrollIndicators(.hidden)
+            .frame(height: 62)
+            .onAppear { proxy.scrollTo(selection, anchor: .center) }
+            .onChange(of: selection) { _, day in
+                withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(day, anchor: .center) }
+            }
+        }
+    }
+
+    private func cell(_ day: Int) -> some View {
+        let date = DayNumber.civil(day)
+        let isSelected = day == selection
+        let isToday = DayNumber.key(day) == todayKey
+        return Button { onSelect(day) } label: {
+            VStack(spacing: 4) {
+                Text(date.day == 1 ? "\(date.month)月" : ScheduleCalendar.weekdaySymbols[DayNumber.weekday(day)])
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(date.day == 1 ? AnyShapeStyle(Palette.blue) : AnyShapeStyle(.secondary))
+                Text("\(date.day)")
+                    .font(.system(size: 16, weight: isSelected || isToday ? .bold : .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(isSelected ? AnyShapeStyle(.white)
+                                     : isToday ? AnyShapeStyle(Palette.red) : AnyShapeStyle(.primary))
+                    .frame(width: 32, height: 32)
+                    .background {
+                        if isSelected {
+                            Circle().fill(isToday ? Palette.red : Palette.blue)
+                        }
+                    }
+            }
+            .frame(width: 42)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(date.month)月\(date.day)日")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// 时间轴上的日程色块怎么摆：每一次日程在这一天里从几分到几分，
+/// 时间重叠的并排放，一组互相重叠的平分宽度。日视图、周视图共用。
+enum TimelineLayout {
     struct Placed {
         let occurrence: EventOccurrence
         let start: Int
@@ -255,7 +346,7 @@ private struct DayTimelinePage: View {
     }
 
     /// 时间重叠的色块并排放：一组互相重叠的日程平分宽度。
-    static func layout(_ occurrences: [EventOccurrence], day: Int) -> [Placed] {
+    static func place(_ occurrences: [EventOccurrence], day: Int) -> [Placed] {
         var items = occurrences.map { occurrence -> Placed in
             let event = occurrence.event
             let start = occurrence.start == day ? EventClock.minutes(event.startTime) ?? 0 : 0

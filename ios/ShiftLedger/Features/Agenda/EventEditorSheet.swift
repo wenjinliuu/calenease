@@ -86,6 +86,7 @@ struct EventEditorSheet: View {
                         .focused($titleFocused)
                         .submitLabel(.done)
                     ColorPaletteRow(palette: AccentHex.eventPalette, selection: $draft.color)
+                    SymbolPickerRow(selection: $draft.symbol, tint: draft.color)
                 }
 
                 Section {
@@ -113,8 +114,40 @@ struct EventEditorSheet: View {
                     }
                 }
 
+                Section("地点与链接") {
+                    HStack(spacing: 10) {
+                        Image(systemName: "mappin.and.ellipse")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 22)
+                        TextField("地点", text: optionalText(\.location))
+                        if let mapURL = Self.mapURL(draft.location) {
+                            Link(destination: mapURL) {
+                                Image(systemName: "map")
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("在地图中打开")
+                        }
+                    }
+                    HStack(spacing: 10) {
+                        Image(systemName: "link")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 22)
+                        TextField("链接（会议、网页）", text: optionalText(\.url))
+                            .keyboardType(.URL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        if let link = Self.webURL(draft.url) {
+                            Link(destination: link) {
+                                Image(systemName: "arrow.up.right.square")
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("打开链接")
+                        }
+                    }
+                }
+
                 Section("备注") {
-                    TextField("地点、要带的东西……", text: Binding(get: { draft.note ?? "" },
+                    TextField("要带的东西、注意事项……", text: Binding(get: { draft.note ?? "" },
                                                         set: { draft.note = $0.isEmpty ? nil : $0 }),
                               axis: .vertical)
                         .lineLimit(1...5)
@@ -263,6 +296,27 @@ struct EventEditorSheet: View {
         })
     }
 
+    private func optionalText(_ keyPath: WritableKeyPath<CalendarEvent, String?>) -> Binding<String> {
+        Binding(get: { draft[keyPath: keyPath] ?? "" },
+                set: { draft[keyPath: keyPath] = $0.isEmpty ? nil : $0 })
+    }
+
+    /// 「地图」里搜这个地点。
+    static func mapURL(_ location: String?) -> URL? {
+        guard let text = location?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty,
+              let query = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+        else { return nil }
+        return URL(string: "maps://?q=\(query)")
+    }
+
+    /// 用户填的链接：没写协议的补上 https://。
+    static func webURL(_ text: String?) -> URL? {
+        guard var value = text?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+        if !value.contains("://") { value = "https://" + value }
+        guard let url = URL(string: value), url.host() != nil || url.scheme != "https" else { return nil }
+        return url
+    }
+
     static func reminderLabel(_ minutes: Int) -> String {
         switch minutes {
         case 0: "开始时"
@@ -289,6 +343,9 @@ struct EventEditorSheet: View {
             break
         }
         if !event.recurrence.isRepeating || !hasUntil { event.recurrence.until = nil }
+        event.location = event.location?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if event.location?.isEmpty == true { event.location = nil }
+        event.url = Self.webURL(event.url)?.absoluteString
         if !event.recurrence.isRepeating { event.exceptions = [] }
         store.saveEvent(event)
         if event.reminderMinutes != nil {
@@ -362,6 +419,10 @@ struct EventRow: View {
                 HStack(spacing: 6) {
                     Text(detail)
                         .monospacedDigit()
+                    if let location = event.location {
+                        Label(location, systemImage: "mappin")
+                            .labelStyle(.titleAndIcon)
+                    }
                     if event.recurrence.isRepeating {
                         Image(systemName: "repeat")
                     }
@@ -385,5 +446,45 @@ struct EventRow: View {
         let index = current - occurrence.start + 1
         let total = occurrence.end - occurrence.start + 1
         return "\(event.isAllDay ? "全天" : event.timeLabel) · 第 \(index)/\(total) 天"
+    }
+}
+
+/// 事项页时间线上那颗圆里的图标。
+enum EventSymbols {
+    static let fallback = "calendar"
+    static let all = ["calendar", "alarm", "sun.max", "briefcase", "cup.and.saucer", "fork.knife",
+                      "figure.run", "dumbbell", "book", "brain.head.profile", "cart", "car",
+                      "airplane", "house", "heart", "gift", "birthday.cake", "stethoscope",
+                      "pills", "phone", "person.2", "bed.double", "leaf", "pawprint",
+                      "music.note", "gamecontroller", "graduationcap", "bolt"]
+}
+
+/// 横向一排图标，点一下选中，再点一下取消（回到默认图标）。
+struct SymbolPickerRow: View {
+    @Binding var selection: String?
+    let tint: String
+
+    var body: some View {
+        let tone = Tone.event(tint)
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(EventSymbols.all, id: \.self) { symbol in
+                    let picked = (selection ?? EventSymbols.fallback) == symbol
+                    Button {
+                        selection = symbol == EventSymbols.fallback || picked ? nil : symbol
+                    } label: {
+                        Image(systemName: symbol)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(picked ? AnyShapeStyle(.white) : AnyShapeStyle(tone.ink))
+                            .frame(width: 36, height: 36)
+                            .background(picked ? AnyShapeStyle(tone.solid) : AnyShapeStyle(tone.fill), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(symbol)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+        .scrollIndicators(.hidden)
     }
 }

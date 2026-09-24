@@ -193,4 +193,49 @@ final class AgendaTests: XCTestCase {
         XCTAssertEqual(restored.countdowns, document.countdowns)
         XCTAssertFalse(restored.features.shiftsEnabled)
     }
+
+    // MARK: - 这一轮新增
+
+    func testEventWithoutNewFieldsStillDecodes() throws {
+        let json = """
+        {"id":"event-1","title":"开会","startDate":"2026-09-24","endDate":"2026-09-24","isAllDay":false,
+         "startTime":"09:00","endTime":"10:00","color":"#32ADE6",
+         "recurrence":{"kind":"none","weekdays":[],"interval":2,"shiftOffset":0},"exceptions":[]}
+        """
+        let event = try JSONDecoder().decode(CalendarEvent.self, from: Data(json.utf8))
+        XCTAssertEqual(event.title, "开会")
+        XCTAssertNil(event.location)
+        XCTAssertTrue(event.completions.isEmpty)
+    }
+
+    func testTurningOffDefaultReminderSurvivesARoundTrip() throws {
+        var settings = ReminderSettings()
+        settings.eventDefaultMinutes = nil
+        let data = try JSONEncoder().encode(settings)
+        XCTAssertNil(try JSONDecoder().decode(ReminderSettings.self, from: data).eventDefaultMinutes)
+        // 老文件里没有这个键，才用默认的 15 分钟
+        XCTAssertEqual(try JSONDecoder().decode(ReminderSettings.self, from: Data("{}".utf8)).eventDefaultMinutes, 15)
+    }
+
+    func testCompletionToggleIsPerOccurrence() {
+        var event = CalendarEvent(title: "吃药", startDate: "2026-09-01")
+        event.recurrence.kind = .daily
+        event.completions = ["2026-09-02"]
+        let hits = EventEngine.occurrences(of: [event], from: day("2026-09-01"), to: day("2026-09-03"))
+        XCTAssertEqual(hits.map(\.isCompleted), [false, true, false])
+    }
+
+    func testTrendChartInsertsCrossingPoints() {
+        let points = [
+            HoursTrendChart.Point(index: 0, label: "1月", basic: 160, planned: 180),
+            HoursTrendChart.Point(index: 1, label: "2月", basic: 160, planned: 140),
+            HoursTrendChart.Point(index: 3, label: "4月", basic: 160, planned: 170),
+        ]
+        let areas = HoursTrendChart.areaPoints(points)
+        // 1 月到 2 月之间正好在中点穿过基本线；2 月和 4 月之间隔了没排班的 3 月，断开不连
+        XCTAssertEqual(areas.count, 4)
+        XCTAssertEqual(areas[1].x, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(areas[1].planned, areas[1].basic)
+        XCTAssertEqual(areas.map(\.segment), [0, 0, 0, 1])
+    }
 }

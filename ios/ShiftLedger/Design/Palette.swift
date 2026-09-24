@@ -223,7 +223,7 @@ enum Tone {
     /// 日程色条：淡色底 + 同色相的深字，和统计页指标块一个路子。
     static func event(_ hexColor: String) -> EventTone {
         if let cached = cacheLock.withLock({ eventCache[hexColor] }) { return cached }
-        let fillLight = ColorMath.at(hexColor, lightness: 0.92)
+        let fillLight = ColorMath.at(hexColor, lightness: 0.9)
         let fillDark = ColorMath.at(hexColor, lightness: 0.34)
         let tone = EventTone(
             fill: Color(uiColor: .dynamic(light: fillLight, dark: fillDark)),

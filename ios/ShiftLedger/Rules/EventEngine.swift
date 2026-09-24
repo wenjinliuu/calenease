@@ -10,6 +10,7 @@ struct EventOccurrence: Hashable, Identifiable, Sendable {
     var id: String { "\(event.id)@\(start)" }
     var startKey: String { DayNumber.key(start) }
     var isMultiDay: Bool { end > start }
+    var isCompleted: Bool { event.completions.contains(startKey) }
 
     /// 同一天里排列的先后：全天的在前，其余按开始时间。
     static func dayOrder(_ lhs: EventOccurrence, _ rhs: EventOccurrence) -> Bool {
