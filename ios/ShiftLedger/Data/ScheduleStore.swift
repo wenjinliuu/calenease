@@ -15,6 +15,8 @@ final class ScheduleStore {
     /// 首次读盘完成前不写盘，避免把默认数据覆盖到用户数据上。
     private(set) var isReady = false
     private(set) var lastSaveError: String?
+    /// 新装第一次打开：问一句是倒班还是固定作息。
+    var needsOnboarding = false
 
     /// 当前生效的放假与调休安排。日历格子、基本工时都从这里取；
     /// 下载到新数据时替换，读它的视图跟着重画。
@@ -72,6 +74,7 @@ final class ScheduleStore {
         guard let data = try? Data(contentsOf: fileURL) else {
             // 新装：默认数据本来就是新色板，不用再迁。
             PaletteMigration.markDone()
+            needsOnboarding = !Self.isRunningTests
             return
         }
         if let decoded = try? JSONDecoder().decode(ScheduleDocument.self, from: data) {
@@ -396,6 +399,80 @@ final class ScheduleStore {
         update { document in
             if let hours { document.targets[key] = hours } else { document.targets.removeValue(forKey: key) }
         }
+    }
+
+    // MARK: - 日程
+
+    func saveEvent(_ event: CalendarEvent) {
+        update { document in
+            if let index = document.events.firstIndex(where: { $0.id == event.id }) {
+                document.events[index] = event
+            } else {
+                document.events.append(event)
+            }
+        }
+    }
+
+    func deleteEvent(id: String) {
+        update { $0.events.removeAll { $0.id == id } }
+    }
+
+    /// 重复日程只删这一次：记进例外，其余照旧。
+    func excludeOccurrence(eventId: String, on date: String) {
+        update { document in
+            guard let index = document.events.firstIndex(where: { $0.id == eventId }) else { return }
+            if !document.events[index].exceptions.contains(date) {
+                document.events[index].exceptions.append(date)
+            }
+        }
+    }
+
+    /// 事项页右边那个圈：勾上 / 取消这一次的完成。
+    func toggleCompletion(eventId: String, on date: String) {
+        update { document in
+            guard let index = document.events.firstIndex(where: { $0.id == eventId }) else { return }
+            if document.events[index].completions.contains(date) {
+                document.events[index].completions.removeAll { $0 == date }
+            } else {
+                document.events[index].completions.append(date)
+            }
+        }
+    }
+
+    /// 某一天的日程。
+    func occurrences(on date: String) -> [EventOccurrence] {
+        EventEngine.occurrences(of: document.events, on: date, shiftDays: EventEngine.shiftDays(of: document))
+    }
+
+    // MARK: - 倒计时
+
+    func saveCountdown(_ countdown: Countdown) {
+        update { document in
+            if let index = document.countdowns.firstIndex(where: { $0.id == countdown.id }) {
+                document.countdowns[index] = countdown
+            } else {
+                document.countdowns.append(countdown)
+            }
+        }
+    }
+
+    func deleteCountdown(id: String) {
+        update { $0.countdowns.removeAll { $0.id == id } }
+    }
+
+    // MARK: - 功能与提醒
+
+    func setShiftsEnabled(_ enabled: Bool) {
+        update { $0.features.shiftsEnabled = enabled }
+    }
+
+    func updateReminders(_ transform: (inout ReminderSettings) -> Void) {
+        update { transform(&$0.reminders) }
+    }
+
+    func completeOnboarding(shiftsEnabled: Bool) {
+        setShiftsEnabled(shiftsEnabled)
+        needsOnboarding = false
     }
 
     func replaceDocument(_ next: ScheduleDocument) {

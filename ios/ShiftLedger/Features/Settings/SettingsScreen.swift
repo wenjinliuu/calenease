@@ -13,21 +13,27 @@ struct SettingsScreen: View {
     @State private var isCreatingTag = false
 
     private var document: ScheduleDocument { store.document }
+    private var shiftsEnabled: Bool { document.features.shiftsEnabled }
 
     var body: some View {
         NavigationStack {
             Form {
-                workSection
-                shiftsSection
-                tagsSection
+                featureSection
+                if shiftsEnabled {
+                    workSection
+                    shiftsSection
+                    tagsSection
+                }
                 displaySection
                 appearanceSection
 
-                Section("工时修正与备份") {
-                    NavigationLink {
-                        MonthlyTargetsView()
-                    } label: {
-                        Label("每月基本工时", systemImage: "calendar.badge.clock")
+                Section(shiftsEnabled ? "工时修正与备份" : "备份") {
+                    if shiftsEnabled {
+                        NavigationLink {
+                            MonthlyTargetsView()
+                        } label: {
+                            Label("每月基本工时", systemImage: "calendar.badge.clock")
+                        }
                     }
                     NavigationLink {
                         BackupView()
@@ -82,6 +88,30 @@ struct SettingsScreen: View {
         }
     }
 
+
+    // MARK: - 功能
+
+    private var featureSection: some View {
+        Section {
+            Toggle(isOn: Binding(get: { shiftsEnabled },
+                                 set: { enabled in
+                                     withAnimation(.snappy(duration: 0.3)) { store.setShiftsEnabled(enabled) }
+                                 })) {
+                Label("排班功能", systemImage: "arrow.triangle.2.circlepath")
+            }
+            NavigationLink {
+                RemindersView()
+            } label: {
+                Label("提醒", systemImage: "bell.badge")
+            }
+        } header: {
+            Text("功能")
+        } footer: {
+            Text(shiftsEnabled
+                 ? "固定作息、不用倒班的话可以关掉排班：班次、循环排班和工时页都会收起来，数据保留。"
+                 : "排班已关闭，已有的班表数据都还在，打开后原样回来。")
+        }
+    }
 
     // MARK: - 班次
 
@@ -313,10 +343,19 @@ struct SettingsScreen: View {
 
     private var displaySection: some View {
         Section {
-            Toggle("显示班次简称", isOn: displayBind(\.showShift))
-            Toggle("显示职责标签", isOn: displayBind(\.showTags))
-            Toggle("显示班次时间", isOn: displayBind(\.showShiftTime))
-            Toggle("显示当日工时", isOn: displayBind(\.showHours))
+            if shiftsEnabled {
+                Toggle("显示班次简称", isOn: displayBind(\.showShift))
+                Toggle("显示职责标签", isOn: displayBind(\.showTags))
+                Toggle("显示班次时间", isOn: displayBind(\.showShiftTime))
+                Toggle("显示当日工时", isOn: displayBind(\.showHours))
+            }
+            Picker("每格日程条数", selection: Binding(
+                get: { document.display.eventSlots },
+                set: { value in store.update { $0.display.eventSlots = value } }
+            )) {
+                Text("不显示").tag(0)
+                ForEach(1...3, id: \.self) { count in Text("\(count) 条").tag(count) }
+            }
             Toggle("显示农历", isOn: displayBind(\.showLunar))
             Toggle("显示放假与调休", isOn: displayBind(\.showHolidays))
         } header: {

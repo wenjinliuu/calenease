@@ -117,9 +117,11 @@ struct CalendarDisplaySettings: Codable, Hashable, Sendable {
     var showHolidays: Bool = true
     /// 日期下面一行农历，节日当天换成节日名。默认关，打开后格子高一行。
     var showLunar: Bool = false
+    /// 每个日历格子最多显示几条日程色条，0 = 不显示。
+    var eventSlots: Int = 2
 
     enum CodingKeys: String, CodingKey {
-        case showShift, showTags, showShiftTime, showHours, showHolidays, showLunar
+        case showShift, showTags, showShiftTime, showHours, showHolidays, showLunar, eventSlots
     }
 }
 
@@ -135,6 +137,7 @@ extension CalendarDisplaySettings {
         showHours = try container.decodeIfPresent(Bool.self, forKey: .showHours) ?? fallback.showHours
         showHolidays = try container.decodeIfPresent(Bool.self, forKey: .showHolidays) ?? fallback.showHolidays
         showLunar = try container.decodeIfPresent(Bool.self, forKey: .showLunar) ?? fallback.showLunar
+        eventSlots = try container.decodeIfPresent(Int.self, forKey: .eventSlots) ?? fallback.eventSlots
     }
 }
 

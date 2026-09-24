@@ -16,6 +16,11 @@ struct ScheduleDocument: Codable, Hashable, Sendable {
     /// "yyyy-MM" → 手动修正的当月基本工时。
     var targets: [String: Double] = [:]
     var records: [DayRecord] = []
+    /// 日程、倒计时、提醒、功能开关。网页版没有这几项，导入导出时各自忽略。
+    var events: [CalendarEvent] = []
+    var countdowns: [Countdown] = []
+    var reminders = ReminderSettings()
+    var features = FeatureSettings()
 
     /// 首次启动的数据：空日历 + 一组常用班次和模板。
     static func makeDefault() -> ScheduleDocument {
@@ -32,6 +37,8 @@ struct ScheduleDocument: Codable, Hashable, Sendable {
     }
 
     // MARK: - 查询
+
+    func event(_ id: String) -> CalendarEvent? { events.first { $0.id == id } }
 
     func shift(_ id: String) -> ShiftDefinition? { shifts.first { $0.id == id } }
     func tag(_ id: String) -> DutyTag? { tags.first { $0.id == id } }
@@ -73,5 +80,32 @@ struct ScheduleDocument: Codable, Hashable, Sendable {
 
     mutating func removeRecord(on date: String) {
         records.removeAll { $0.date == date }
+    }
+}
+
+extension ScheduleDocument {
+    enum CodingKeys: String, CodingKey {
+        case dataVersion, careerPreset, shifts, tags, cycleTemplates, activeCycle, display, work, targets, records
+        case events, countdowns, reminders, features
+    }
+
+    /// 后加的四个字段逐个兜底：老版本存下的文件里没有它们，不能因此整份解码失败。
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init()
+        dataVersion = try container.decodeIfPresent(Int.self, forKey: .dataVersion) ?? ScheduleDocument.version
+        careerPreset = try container.decodeIfPresent(CareerPreset.self, forKey: .careerPreset) ?? .manufacturing
+        shifts = try container.decode([ShiftDefinition].self, forKey: .shifts)
+        tags = try container.decodeIfPresent([DutyTag].self, forKey: .tags) ?? []
+        cycleTemplates = try container.decodeIfPresent([CycleTemplate].self, forKey: .cycleTemplates) ?? []
+        activeCycle = try container.decodeIfPresent(ActiveCycle.self, forKey: .activeCycle)
+        display = try container.decodeIfPresent(CalendarDisplaySettings.self, forKey: .display) ?? CalendarDisplaySettings()
+        work = try container.decodeIfPresent(WorkSettings.self, forKey: .work) ?? WorkSettings()
+        targets = try container.decodeIfPresent([String: Double].self, forKey: .targets) ?? [:]
+        records = try container.decodeIfPresent([DayRecord].self, forKey: .records) ?? []
+        events = (try? container.decodeIfPresent([CalendarEvent].self, forKey: .events)) ?? []
+        countdowns = (try? container.decodeIfPresent([Countdown].self, forKey: .countdowns)) ?? []
+        reminders = (try? container.decodeIfPresent(ReminderSettings.self, forKey: .reminders)) ?? ReminderSettings()
+        features = (try? container.decodeIfPresent(FeatureSettings.self, forKey: .features)) ?? FeatureSettings()
     }
 }

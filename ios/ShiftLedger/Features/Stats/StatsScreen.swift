@@ -1,16 +1,15 @@
 import Charts
 import SwiftUI
 
-/// 统计页。按功能开关切换成三种形态：仅排班、仅工时、工时与加班。
+/// 工时页（原来叫统计）。按功能开关切换成三种形态：仅排班、仅工时、工时与加班。
 ///
-/// 顶上先分「月度 / 年度」，下面一条和日历页同款的切换条：左右箭头逐月或逐年度翻，
-/// 点中间的标题弹出年月选择器。查看的月份和日历页是同一个，两边切了互相跟着走。
+/// 没有单独的切换条了：期间写在概览卡片的标题上，点它弹出年月选择器，
+/// 左右箭头逐月或逐年度翻，旁边一个「月 / 年」按钮来回切。
+/// 查看的月份和日历页是同一个，两边切了互相跟着走。
 struct StatsScreen: View {
     @Environment(ScheduleStore.self) private var store
     @State private var scope: StatsScope = .month
     @State private var isPeriodPickerPresented = false
-    /// 走势图上长按选中的月份（横轴标签）。
-    @State private var selectedMonthLabel: String?
 
     private var document: ScheduleDocument { store.document }
 
@@ -21,7 +20,6 @@ struct StatsScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-                    periodPanel
                     summarySection
                     if document.work.trackHours {
                         progressSection
@@ -34,7 +32,7 @@ struct StatsScreen: View {
                 .padding(.bottom, 20)
             }
             .background(Palette.canvas)
-            .navigationTitle("统计")
+            .navigationTitle("工时")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $isPeriodPickerPresented) { periodPicker }
             .sensoryFeedback(.selection, trigger: store.focusedMonthKey)
@@ -76,31 +74,64 @@ struct StatsScreen: View {
         WorkHours.periodOvertime(document, records: workRecords, months: scopeMonths)
     }
 
-    private var scopePicker: some View {
-        Picker("统计范围", selection: $scope.animation(.spring(response: 0.3, dampingFraction: 1))) {
-            ForEach(StatsScope.allCases) { item in
-                Text(item.label).tag(item)
+    /// 概览卡片顶上一行：期间（点开选年月）、前后翻、月 / 年切换。
+    private var periodHeader: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Button { isPeriodPickerPresented = true } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(scopeLabel)
+                        .font(.title3.weight(.bold))
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: Double(store.focusedIndex)))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                }
+                .foregroundStyle(.primary)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityHint("选择年月")
+
+            Spacer(minLength: 4)
+
+            circleButton("chevron.left", label: scope == .month ? "上个月" : "上个年度") { step(-1) }
+            circleButton("chevron.right", label: scope == .month ? "下个月" : "下个年度") { step(1) }
+
+            Button {
+                withAnimation(.snappy(duration: 0.3)) { scope = scope == .month ? .year : .month }
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "arrow.left.arrow.right")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(scope == .month ? "月" : "年")
+                        .font(.subheadline.weight(.bold))
+                        .contentTransition(.interpolate)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .frame(height: 32)
+                .background(Palette.blue, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(scope == .month ? "按月查看，点按切到按年度" : "按年度查看，点按切到按月")
+            .sensoryFeedback(.selection, trigger: scope)
         }
-        .pickerStyle(.segmented)
+        .animation(.snappy(duration: 0.3), value: scopeLabel)
     }
 
-    /// 月度 / 年度 + 前后切换。
-    private var periodPanel: some View {
-        VStack(spacing: 12) {
-            scopePicker
-            MonthSwitcher(label: scopeLabel,
-                          previousLabel: scope == .month ? "上个月" : "上个年度",
-                          nextLabel: scope == .month ? "下个月" : "下个年度",
-                          todayTitle: scope == .month ? "本月" : "本年度",
-                          onPrevious: { step(-1) },
-                          onNext: { step(1) },
-                          onToday: {
-                              withAnimation(.smooth(duration: 0.3)) { store.goToCurrentMonth() }
-                          },
-                          onPickLabel: { isPeriodPickerPresented = true })
+    private func circleButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.primary)
+                .frame(width: 32, height: 32)
+                .background(Palette.inset, in: Circle())
         }
-        .card(cornerRadius: 22, padding: 12)
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     /// 按月时前后一个月，按年度时前后一整个年度（12 个月）。
@@ -129,8 +160,8 @@ struct StatsScreen: View {
     private var summarySection: some View {
         let restDays = scopeRecords.filter { document.shift($0.shiftId)?.isRest == true }.count
         return VStack(alignment: .leading, spacing: 14) {
+            periodHeader
             SectionHeader(title: document.work.trackHours ? "工时概览" : "出勤概览",
-                          eyebrow: scopeLabel,
                           badge: "\(workRecords.count) 个班")
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
                       spacing: 10) {
@@ -186,159 +217,24 @@ struct StatsScreen: View {
 
     // MARK: - 工时曲线
 
-    private struct MonthlyPoint: Identifiable {
-        let id: String
-        let label: String
-        let basic: Double
-        let planned: Double
-        /// 计划减基本。正的是额外工时，负的是这个月比基本工时少排的部分。
-        var extra: Double { planned - basic }
-        /// 两条线之间的面积：高出的部分和不足的部分分开上色。
-        var surplusTop: Double { max(planned, basic) }
-        var shortfallBottom: Double { min(planned, basic) }
-    }
-
-    private var selectedPoint: MonthlyPoint? {
-        selectedMonthLabel.flatMap { label in monthlyPoints.first { $0.label == label } }
-    }
-
-    private var monthlyPoints: [MonthlyPoint] {
-        cycle.months.map { month in
+    private var monthlyPoints: [HoursTrendChart.Point] {
+        cycle.months.enumerated().map { index, month in
             let records = WorkHours.workRecords(document, in: document.records(inMonth: month))
-            return MonthlyPoint(id: month.key,
-                                label: month.label,
-                                basic: WorkHours.monthlyTarget(document, month: month),
-                                planned: records.reduce(0) { $0 + $1.hours })
+            return HoursTrendChart.Point(index: index,
+                                         label: month.label,
+                                         basic: WorkHours.monthlyTarget(document, month: month),
+                                         planned: records.reduce(0) { $0 + $1.hours })
         }
     }
 
-    /// 排了班的月份。没排班的月份不画计划线，否则会和基本工时线重合，
-    /// 看着像「计划工时正好等于基本工时」。
-    private var scheduledPoints: [MonthlyPoint] { monthlyPoints.filter { $0.planned > 0 } }
-
-    /// 基本工时打底，加班量堆在它上面：两条线之间的面积就是这个年度里
-    /// 每个月超出的部分，比并排的柱子更容易看出「哪几个月在往上顶」。
     private var hoursChartSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             SectionHeader(title: "每月工时走势", eyebrow: cycle.label,
                           badge: document.work.trackOvertime ? "含额外工时" : nil)
-
-            Chart {
-                ForEach(monthlyPoints) { point in
-                    AreaMark(x: .value("月份", point.label),
-                             y: .value("基本工时", point.basic),
-                             series: .value("类型", "基本"))
-                        .foregroundStyle(
-                            LinearGradient(colors: [Palette.cyan.opacity(0.35), Palette.cyan.opacity(0.04)],
-                                           startPoint: .top, endPoint: .bottom)
-                        )
-                        .interpolationMethod(.monotone)
-                }
-
-                if document.work.trackOvertime {
-                    // 两条线之间：高出基本工时的月份填橙色，排得比基本工时少的月份填红色，
-                    // 计划线会真的穿到基本工时线下面去。
-                    ForEach(scheduledPoints) { point in
-                        AreaMark(x: .value("月份", point.label),
-                                 yStart: .value("基本工时", point.basic),
-                                 yEnd: .value("高出", point.surplusTop),
-                                 series: .value("类型", "高出"))
-                            .foregroundStyle(Palette.orange.opacity(0.28))
-                            .interpolationMethod(.monotone)
-                        AreaMark(x: .value("月份", point.label),
-                                 yStart: .value("不足", point.shortfallBottom),
-                                 yEnd: .value("基本工时", point.basic),
-                                 series: .value("类型", "不足"))
-                            .foregroundStyle(Palette.red.opacity(0.18))
-                            .interpolationMethod(.monotone)
-                    }
-                }
-
-                ForEach(monthlyPoints) { point in
-                    LineMark(x: .value("月份", point.label),
-                             y: .value("基本工时", point.basic),
-                             series: .value("类型", "基本"))
-                        .foregroundStyle(Palette.cyan)
-                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
-                        .interpolationMethod(.monotone)
-                }
-
-                if document.work.trackOvertime {
-                    ForEach(scheduledPoints) { point in
-                        LineMark(x: .value("月份", point.label),
-                                 y: .value("计划工时", point.planned),
-                                 series: .value("类型", "计划"))
-                            .foregroundStyle(Palette.orange)
-                            .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
-                            .interpolationMethod(.monotone)
-                    }
-                }
-
-                // 长按选中某个月：一条竖线，顶上一张小卡写这个月的计划、基本、额外。
-                if let selected = selectedPoint {
-                    RuleMark(x: .value("月份", selected.label))
-                        .foregroundStyle(Color.secondary.opacity(0.5))
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                        .annotation(position: .top,
-                                    spacing: 4,
-                                    overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
-                            MonthCallout(label: selected.label,
-                                         planned: selected.planned,
-                                         basic: selected.basic,
-                                         showsExtra: document.work.trackOvertime)
-                        }
-                }
-            }
-            // 长按 0.3 秒选中，按住左右拖换月份，松手收起。用 UIKit 的长按识别器而不是
-            // `chartXSelection`：后者一碰就开始选，放在滚动页里会和上下滑动抢手势。
-            .chartOverlay { proxy in
-                GeometryReader { geometry in
-                    Rectangle()
-                        .fill(.clear)
-                        .contentShape(Rectangle())
-                        .gesture(ChartLongPress { location in
-                            guard let location, let plotFrame = proxy.plotFrame else {
-                                selectedMonthLabel = nil
-                                return
-                            }
-                            let x = location.x - geometry[plotFrame].origin.x
-                            if let label: String = proxy.value(atX: x) { selectedMonthLabel = label }
-                        })
-                }
-            }
-            .sensoryFeedback(.selection, trigger: selectedMonthLabel)
-            .chartYAxis {
-                AxisMarks(position: .leading) { value in
-                    AxisGridLine().foregroundStyle(Palette.hairline.opacity(0.4))
-                    AxisValueLabel {
-                        if let hours = value.as(Double.self) {
-                            Text(HoursFormatter.compact(hours)).font(.caption2)
-                        }
-                    }
-                }
-            }
-            .chartXAxis {
-                AxisMarks { value in
-                    AxisValueLabel {
-                        if let label = value.as(String.self) {
-                            Text(label).font(.caption2)
-                        }
-                    }
-                }
-            }
-            .chartLegend(.hidden)
-            .frame(height: 190)
-
-            HStack(spacing: 14) {
-                LegendRow(color: Palette.cyan, label: "基本工时", value: "")
-                if document.work.trackOvertime {
-                    LegendRow(color: Palette.orange, label: "计划工时", value: "")
-                }
-                Spacer(minLength: 0)
-            }
-            Text("长按图表查看当月明细")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            // 图表单独成一个视图，数据在这里算好一次交进去；长按时只重画图表自己，
+            // 不再连累整页把每个月的工时重算一遍——之前长按拖动一卡一卡就是这个原因。
+            HoursTrendChart(points: monthlyPoints, showsPlanned: document.work.trackOvertime)
+                .equatable()
         }
         .card()
     }
@@ -434,7 +330,7 @@ private struct MonthCallout: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label).font(.caption.weight(.semibold))
-            row("计划", planned, color: Palette.orange)
+            row("计划", planned, color: Palette.purple)
             row("基本", basic, color: Palette.cyan)
             if showsExtra {
                 let extra = planned - basic
@@ -444,11 +340,7 @@ private struct MonthCallout: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .background(Palette.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Palette.cardStroke, lineWidth: 1)
-        }
+        .background(Palette.inset, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
     }
 
@@ -510,6 +402,207 @@ struct LegendRow: View {
             if !value.isEmpty {
                 Text(value).font(.caption.weight(.semibold)).monospacedDigit()
             }
+        }
+    }
+}
+
+/// 每月工时走势图。
+///
+/// 横轴用月份序号（数字）而不是月份文字：两条线交叉的地方要在两个月之间插一个交点，
+/// 文字横轴插不进去。高出基本工时的部分填橙色，少于基本工时的部分填红色，
+/// 两块面积都在交点处收成零——之前只按每个月的点填，交叉那一段会串色。
+/// 线和面积都用折线连，不用平滑曲线：平滑曲线和交点对不上。
+struct HoursTrendChart: View, Equatable {
+    struct Point: Hashable, Identifiable {
+        let index: Int
+        let label: String
+        let basic: Double
+        let planned: Double
+        var id: Int { index }
+    }
+
+    /// 面积用的点：x 可以落在两个月之间（交点）。`segment` 断开没排班的月份。
+    struct AreaPoint: Hashable {
+        let x: Double
+        let basic: Double
+        let planned: Double
+        let segment: Int
+    }
+
+    let points: [Point]
+    let showsPlanned: Bool
+
+    @State private var selectedIndex: Int?
+
+    nonisolated static func == (lhs: HoursTrendChart, rhs: HoursTrendChart) -> Bool {
+        lhs.points == rhs.points && lhs.showsPlanned == rhs.showsPlanned
+    }
+
+    /// 排了班的月份。没排班的月份不画计划线，否则会和基本工时线重合。
+    private var scheduled: [Point] { points.filter { $0.planned > 0 } }
+
+    /// 相邻两个排了班的月份之间，如果计划线穿过基本线，就在交点处补一个点。
+    static func areaPoints(_ scheduled: [Point]) -> [AreaPoint] {
+        var result: [AreaPoint] = []
+        var segment = 0
+        for (offset, point) in scheduled.enumerated() {
+            if offset > 0 {
+                let previous = scheduled[offset - 1]
+                if point.index - previous.index > 1 {
+                    segment += 1
+                } else {
+                    let before = previous.planned - previous.basic
+                    let after = point.planned - point.basic
+                    if before * after < 0 {
+                        let t = before / (before - after)
+                        let basic = previous.basic + (point.basic - previous.basic) * t
+                        result.append(AreaPoint(x: Double(previous.index) + t, basic: basic,
+                                                planned: basic, segment: segment))
+                    }
+                }
+            }
+            result.append(AreaPoint(x: Double(point.index), basic: point.basic,
+                                    planned: point.planned, segment: segment))
+        }
+        return result
+    }
+
+    var body: some View {
+        let scheduled = scheduled
+        let areas = Self.areaPoints(scheduled)
+        let selected = selectedIndex.flatMap { index in points.first { $0.index == index } }
+        let lastIndex = Double(max(points.count - 1, 0))
+
+        VStack(alignment: .leading, spacing: 14) {
+            Chart {
+                ForEach(points) { point in
+                    AreaMark(x: .value("月份", Double(point.index)),
+                             y: .value("基本工时", point.basic),
+                             series: .value("类型", "基本底"))
+                        .foregroundStyle(
+                            LinearGradient(colors: [Palette.cyan.opacity(0.3), Palette.cyan.opacity(0.03)],
+                                           startPoint: .top, endPoint: .bottom)
+                        )
+                        .interpolationMethod(.linear)
+                }
+
+                if showsPlanned {
+                    ForEach(Array(areas.enumerated()), id: \.offset) { _, point in
+                        AreaMark(x: .value("月份", point.x),
+                                 yStart: .value("基本工时", point.basic),
+                                 yEnd: .value("高出", max(point.planned, point.basic)),
+                                 series: .value("类型", "高出\(point.segment)"))
+                            .foregroundStyle(Palette.orange.opacity(0.3))
+                            .interpolationMethod(.linear)
+                    }
+                    ForEach(Array(areas.enumerated()), id: \.offset) { _, point in
+                        AreaMark(x: .value("月份", point.x),
+                                 yStart: .value("不足", min(point.planned, point.basic)),
+                                 yEnd: .value("基本工时", point.basic),
+                                 series: .value("类型", "不足\(point.segment)"))
+                            .foregroundStyle(Palette.red.opacity(0.22))
+                            .interpolationMethod(.linear)
+                    }
+                }
+
+                ForEach(points) { point in
+                    LineMark(x: .value("月份", Double(point.index)),
+                             y: .value("基本工时", point.basic),
+                             series: .value("类型", "基本"))
+                        .foregroundStyle(Palette.cyan)
+                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .interpolationMethod(.linear)
+                }
+
+                if showsPlanned {
+                    ForEach(Array(areas.enumerated()), id: \.offset) { _, point in
+                        LineMark(x: .value("月份", point.x),
+                                 y: .value("计划工时", point.planned),
+                                 series: .value("类型", "计划\(point.segment)"))
+                            .foregroundStyle(Palette.purple)
+                            .lineStyle(StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+                            .interpolationMethod(.linear)
+                    }
+                    ForEach(scheduled) { point in
+                        PointMark(x: .value("月份", Double(point.index)),
+                                  y: .value("计划工时", point.planned))
+                            .foregroundStyle(Palette.purple)
+                            .symbolSize(point.index == selectedIndex ? 60 : 18)
+                    }
+                }
+
+                // 长按选中某个月：一条竖线，顶上一张小卡写这个月的计划、基本、额外。
+                if let selected {
+                    RuleMark(x: .value("月份", Double(selected.index)))
+                        .foregroundStyle(Color.secondary.opacity(0.5))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                        .annotation(position: .top,
+                                    spacing: 4,
+                                    overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
+                            MonthCallout(label: selected.label,
+                                         planned: selected.planned,
+                                         basic: selected.basic,
+                                         showsExtra: showsPlanned)
+                        }
+                }
+            }
+            .chartXScale(domain: 0...max(lastIndex, 1))
+            // 长按 0.3 秒选中，按住左右拖换月份，松手收起。只在换到另一个月时才更新状态，
+            // 手指在同一个月里挪动不触发重画。
+            .chartOverlay { proxy in
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        .gesture(ChartLongPress { location in
+                            guard let location, let plotFrame = proxy.plotFrame else {
+                                if selectedIndex != nil { selectedIndex = nil }
+                                return
+                            }
+                            let x = location.x - geometry[plotFrame].origin.x
+                            guard let value: Double = proxy.value(atX: x) else { return }
+                            let index = Int(value.rounded())
+                            let clamped = min(max(index, 0), points.count - 1)
+                            if clamped != selectedIndex { selectedIndex = clamped }
+                        })
+                }
+            }
+            .sensoryFeedback(.selection, trigger: selectedIndex)
+            .chartYAxis {
+                AxisMarks(position: .leading) { value in
+                    AxisGridLine().foregroundStyle(Palette.hairline.opacity(0.4))
+                    AxisValueLabel {
+                        if let hours = value.as(Double.self) {
+                            Text(HoursFormatter.compact(hours)).font(.caption2)
+                        }
+                    }
+                }
+            }
+            .chartXAxis {
+                AxisMarks(values: points.map { Double($0.index) }) { value in
+                    AxisValueLabel {
+                        if let raw = value.as(Double.self),
+                           let point = points.first(where: { $0.index == Int(raw.rounded()) }) {
+                            Text(point.label).font(.caption2)
+                        }
+                    }
+                }
+            }
+            .chartLegend(.hidden)
+            .frame(height: 190)
+
+            HStack(spacing: 14) {
+                LegendRow(color: Palette.cyan, label: "基本工时", value: "")
+                if showsPlanned {
+                    LegendRow(color: Palette.purple, label: "计划工时", value: "")
+                    LegendRow(color: Palette.orange.opacity(0.6), label: "额外", value: "")
+                    LegendRow(color: Palette.red.opacity(0.5), label: "不足", value: "")
+                }
+                Spacer(minLength: 0)
+            }
+            Text("长按图表查看当月明细")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
         }
     }
 }

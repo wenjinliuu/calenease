@@ -10,6 +10,8 @@ enum DocumentNormalizer {
     static func document(fromBackup raw: Any) -> ScheduleDocument {
         guard let object = raw as? [String: Any] else { return .makeDefault() }
         if let payload = object["data"] { return document(from: payload) }
+        // 没包外层的新格式数据本体也带 records，先按版本号认，别被当成 v1 老数据
+        if (object["dataVersion"] as? Int) == ScheduleDocument.version { return document(from: object) }
         if object["settings"] != nil || object["records"] != nil {
             return migrateLegacy(settings: object["settings"], records: object["records"])
         }
@@ -56,7 +58,23 @@ enum DocumentNormalizer {
         document.records = (object["records"] as? [Any] ?? [])
             .compactMap { record(from: $0, shiftIds: shiftIds, tagIds: tagIds) }
             .sorted { $0.date < $1.date }
+
+        // 日程、倒计时、提醒、功能开关只有 iOS 版有，结构由 App 自己写出，
+        // 按 Codable 原样读回；网页版的备份里没有这几项，保持默认。
+        document.events = (decoded([CalendarEvent].self, from: object["events"]) ?? [])
+            .filter { !$0.title.isEmpty && DayNumber.of($0.startDate) != nil && DayNumber.of($0.endDate) != nil }
+        document.countdowns = (decoded([Countdown].self, from: object["countdowns"]) ?? [])
+            .filter { DayNumber.of($0.date) != nil }
+        document.reminders = decoded(ReminderSettings.self, from: object["reminders"]) ?? ReminderSettings()
+        document.features = decoded(FeatureSettings.self, from: object["features"]) ?? FeatureSettings()
         return document
+    }
+
+    private static func decoded<T: Decodable>(_ type: T.Type, from raw: Any?) -> T? {
+        guard let raw, JSONSerialization.isValidJSONObject(raw),
+              let data = try? JSONSerialization.data(withJSONObject: raw)
+        else { return nil }
+        return try? JSONDecoder().decode(type, from: data)
     }
 
     /// v1（`day / night / rest` 那一代）数据的迁移。
@@ -200,7 +218,8 @@ enum DocumentNormalizer {
             showShiftTime: raw["showShiftTime"] as? Bool ?? false,
             showHours: raw["showHours"] as? Bool ?? false,
             showHolidays: raw["showHolidays"] as? Bool ?? true,
-            showLunar: raw["showLunar"] as? Bool ?? false
+            showLunar: raw["showLunar"] as? Bool ?? false,
+            eventSlots: min(3, max(0, raw["eventSlots"] as? Int ?? 2))
         )
     }
 

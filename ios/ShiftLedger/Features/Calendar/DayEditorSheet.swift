@@ -1,112 +1,309 @@
 import SwiftUI
 
-/// 逐日编辑。改的只是当天，不会打断后续循环——要改未来请用"循环排班"。
+/// 抽屉里的两页。
+enum DaySegment: String, CaseIterable, Identifiable, Hashable {
+    case shift = "排班"
+    case events = "日程"
+    var id: String { rawValue }
+}
+
+/// 点两下格子弹出来的大抽屉：上面分段切「排班 | 日程」，左右滑也能切。
+///
+/// 排班页改的只是当天，不会打断后续循环——要改未来请用"循环排班"。
+/// 排班页只有真改了才保存，光进来看一眼、切到日程页加一条日程，不会平白多出一条排班记录。
 struct DayEditorSheet: View {
     let date: String
+    let initialSegment: DaySegment
 
     @Environment(ScheduleStore.self) private var store
     @Environment(\.showToast) private var showToast
     @Environment(\.dismiss) private var dismiss
 
+    @State private var segment: DaySegment = .shift
     @State private var draft = DayRecord(date: "", shiftId: "", hours: 0)
+    /// 打开时的样子，用来判断改没改。
+    @State private var original = DayRecord(date: "", shiftId: "", hours: 0)
     @State private var loaded = false
     /// 次要班次那一块展开了没有。默认收着，只露一个「添加次要班次」。
     @State private var showsSecondary = false
-    /// 表单内容实际要多高。抽屉按它定高度，正好露到「清空这一天」为止。
-    @State private var contentHeight: CGFloat?
+    @State private var eventTarget: EventEditorTarget?
 
     private var document: ScheduleDocument { store.document }
     private var selectedShift: ShiftDefinition? { document.shift(draft.shiftId) }
+    private var shiftsEnabled: Bool { document.features.shiftsEnabled }
+    private var isShiftDirty: Bool { loaded && draft != original }
+
+    /// 分段控件那一条的高度，两页的表单都往下让出这么多。
+    private static let segmentBarHeight: CGFloat = 48
+
+    init(date: String, initialSegment: DaySegment = .shift) {
+        self.date = date
+        self.initialSegment = initialSegment
+        _segment = State(initialValue: initialSegment)
+    }
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("主要班次") {
-                    ShiftPickerGrid(shifts: document.orderedShifts,
-                                    selection: draft.shiftId) { shift in
-                        selectPrimary(shift)
+            Group {
+                if shiftsEnabled {
+                    TabView(selection: $segment) {
+                        shiftPage.tag(DaySegment.shift)
+                        eventsPage.tag(DaySegment.events)
                     }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .overlay(alignment: .top) { segmentBar }
+                } else {
+                    eventsPage
                 }
-
-                secondarySection
-
-                if !document.tags.isEmpty {
-                    Section("职责标签 · 可多选") {
-                        TagPickerFlow(tags: document.tags, selection: $draft.tagIds)
-                    }
+            }
+            .background(Palette.grouped)
+            .navigationTitle(titleText)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(isShiftDirty ? "取消" : "关闭") { dismiss() }
                 }
-
-                if document.work.trackHours, selectedShift?.countsAsWork == true {
-                    Section("工时") {
-                        Toggle("班次已完成", isOn: $draft.completed)
-                        LabeledStepper(label: "实际 / 计划工时", value: $draft.hours, step: 0.5, range: 0...24)
-                        if needsManualOvertime {
-                            LabeledStepper(label: "手动额外工时",
-                                           value: Binding(get: { draft.manualOvertime ?? 0 },
-                                                          set: { draft.manualOvertime = $0 }),
-                                           step: 0.5, range: 0...24)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") {
+                        if isShiftDirty && !draft.shiftId.isEmpty {
+                            var record = draft
+                            record.planned = true
+                            store.save(record)
+                            showToast("已保存 \(date)")
                         }
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+            .sheet(item: $eventTarget) { target in
+                EventEditorSheet(target: target)
+            }
+            .onAppear {
+                loadDraft()
+                if !shiftsEnabled { segment = .events }
+            }
+            .sensoryFeedback(.selection, trigger: segment)
+        }
+        // 两页统一一个高度：之前跟着内容走，没有日程的那页矮得只剩一条，切页时抽屉忽高忽低。
+        .presentationDetents([.fraction(0.78), .large])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(28)
+    }
+
+    private var segmentBar: some View {
+        Picker("", selection: $segment.animation(.smooth(duration: 0.3))) {
+            ForEach(DaySegment.allCases) { item in Text(item.rawValue).tag(item) }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .padding(.horizontal, 16)
+        .padding(.top, 2)
+        .frame(height: Self.segmentBarHeight, alignment: .top)
+        .frame(maxWidth: .infinity)
+        .background(Palette.grouped)
+    }
+
+    // MARK: - 排班页
+
+    private var shiftPage: some View {
+        Form {
+            Section("主要班次") {
+                ShiftPickerGrid(shifts: document.orderedShifts,
+                                selection: draft.shiftId) { shift in
+                    selectPrimary(shift)
+                }
+            }
+
+            secondarySection
+
+            if !document.tags.isEmpty {
+                Section("职责标签 · 可多选") {
+                    TagPickerFlow(tags: document.tags, selection: $draft.tagIds)
+                }
+            }
+
+            if document.work.trackHours, selectedShift?.countsAsWork == true {
+                Section("工时") {
+                    Toggle("班次已完成", isOn: $draft.completed)
+                    LabeledStepper(label: "实际 / 计划工时", value: $draft.hours, step: 0.5, range: 0...24)
+                    if needsManualOvertime {
+                        LabeledStepper(label: "手动额外工时",
+                                       value: Binding(get: { draft.manualOvertime ?? 0 },
+                                                      set: { draft.manualOvertime = $0 }),
+                                       step: 0.5, range: 0...24)
                     }
                 }
+            }
 
-                Section("备注") {
-                    TextField("这一天需要记点什么？", text: Binding(get: { draft.note ?? "" },
-                                                        set: { draft.note = $0.isEmpty ? nil : $0 }),
-                              axis: .vertical)
-                        .lineLimit(1...4)
-                }
+            Section {
+                TextField("这一天需要记点什么？", text: Binding(get: { draft.note ?? "" },
+                                                    set: { draft.note = $0.isEmpty ? nil : $0 }),
+                          axis: .vertical)
+                    .lineLimit(1...4)
+            } header: {
+                Text("备注")
+            } footer: {
+                Text("这里只修改当天，不会改变后续循环。要改变未来，请使用「循环排班」。")
+            }
 
-                Section {
-                    Label("这里只修改当天，不会改变后续循环。要改变未来，请使用「循环排班」。",
-                          systemImage: "sparkles")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            shiftReminderSection
 
+            if store.record(on: date) != nil {
                 Section {
                     Button(role: .destructive) {
                         store.clearDay(date)
                         showToast("已清空当天", symbol: "trash")
                         dismiss()
                     } label: {
-                        Label("清空这一天", systemImage: "trash")
+                        Label("清空这一天的排班", systemImage: "trash")
                             .foregroundStyle(.red)
                     }
                 }
             }
-            .pageBackground()
-            .navigationTitle(titleText)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
-                        var record = draft
-                        record.planned = true
-                        store.save(record)
-                        showToast("已保存 \(date)")
-                        dismiss()
+        }
+        .contentMargins(.top, shiftsEnabled ? Self.segmentBarHeight - 20 : 0, for: .scrollContent)
+        .scrollContentBackground(.hidden)
+    }
+
+    // MARK: - 提醒
+
+    /// 班次页底部的提醒：开关和提前多久，就地改，不用再跑去设置里。
+    private var shiftReminderSection: some View {
+        let reminders = document.reminders
+        return Section {
+            Toggle(isOn: reminderBinding(\.shiftStartEnabled)) {
+                Label("上班前提醒", systemImage: "alarm")
+            }
+            if reminders.shiftStartEnabled {
+                Picker("提前", selection: reminderBinding(\.shiftStartMinutes)) {
+                    ForEach([15, 30, 45, 60, 90, 120, 180], id: \.self) { minutes in
+                        Text(ReminderPlanner.lead(minutes)).tag(minutes)
                     }
-                    .disabled(draft.shiftId.isEmpty)
                 }
             }
-            .onAppear(perform: loadDraft)
-            // 量表单内容的总高度（含导航栏和底部安全区），抽屉就开这么高。
-            // 内容比屏幕还高时系统会封顶到全屏，表单自己滚动。
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                (geometry.contentSize.height + geometry.contentInsets.top + geometry.contentInsets.bottom).rounded(.up)
-            } action: { _, height in
-                guard height > 0 else { return }
-                withAnimation(.smooth(duration: 0.3)) { contentHeight = height }
+            Toggle(isOn: reminderBinding(\.clockOutEnabled)) {
+                Label("下班打卡提醒", systemImage: "figure.walk.departure")
+            }
+            if reminders.clockOutEnabled {
+                Picker("下班后", selection: reminderBinding(\.clockOutMinutes)) {
+                    ForEach([0, 5, 10, 15, 30], id: \.self) { minutes in
+                        Text(minutes == 0 ? "准点" : ReminderPlanner.lead(minutes)).tag(minutes)
+                    }
+                }
+            }
+        } header: {
+            Text("提醒")
+        } footer: {
+            Text(reminderFooter)
+        }
+    }
+
+    private var reminderFooter: String {
+        guard let shift = selectedShift, !shift.isRest, !shift.startTime.isEmpty else {
+            return "对所有排了班的日子生效，休息日不提醒。按班次单独开关在「设置 › 提醒」。"
+        }
+        var parts: [String] = []
+        let reminders = document.reminders
+        if reminders.shiftStartEnabled, !reminders.shiftStartExcluded.contains(shift.id),
+           let start = EventClock.minutes(shift.startTime) {
+            parts.append("这天 \(EventClock.text(start - reminders.shiftStartMinutes)) 提醒上班")
+        }
+        if reminders.clockOutEnabled, let end = EventClock.minutes(shift.endTime) {
+            let time = EventClock.text((end + reminders.clockOutMinutes) % (24 * 60))
+            parts.append("\(shift.crossesMidnight ? "次日 " : "")\(time) 提醒打卡")
+        }
+        let summary = parts.isEmpty ? "" : parts.joined(separator: "，") + "。"
+        return summary + "对所有排了班的日子生效，按班次单独开关在「设置 › 提醒」。"
+    }
+
+    /// 改提醒设置；打开任何一项时顺手请求通知权限。
+    private func reminderBinding<Value>(_ keyPath: WritableKeyPath<ReminderSettings, Value>) -> Binding<Value> {
+        Binding(get: { document.reminders[keyPath: keyPath] }, set: { newValue in
+            withAnimation(.snappy(duration: 0.25)) {
+                store.updateReminders { $0[keyPath: keyPath] = newValue }
+            }
+            if (newValue as? Bool) == true {
+                Task { await NotificationScheduler.requestAuthorization() }
+            }
+        })
+    }
+
+    private func clockBinding(_ keyPath: WritableKeyPath<ReminderSettings, String>) -> Binding<Date> {
+        Binding(get: {
+            EventClock.date(key: ScheduleCalendar.todayKey, time: document.reminders[keyPath: keyPath])
+        }, set: { value in
+            let text = EventClock.split(value).time
+            store.updateReminders { $0[keyPath: keyPath] = text }
+        })
+    }
+
+    // MARK: - 日程页
+
+    private var eventsPage: some View {
+        let occurrences = store.occurrences(on: date)
+        return Form {
+            Section {
+                if occurrences.isEmpty {
+                    Text("这天还没有日程")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 10)
+                } else {
+                    ForEach(occurrences) { occurrence in
+                        Button { eventTarget = .edit(occurrence) } label: {
+                            EventRow(occurrence: occurrence, day: date)
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                if occurrence.event.recurrence.isRepeating {
+                                    store.excludeOccurrence(eventId: occurrence.event.id, on: occurrence.startKey)
+                                } else {
+                                    store.deleteEvent(id: occurrence.event.id)
+                                }
+                            } label: {
+                                Label("删除", systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+            } footer: {
+                if occurrences.contains(where: { $0.event.recurrence.isRepeating }) {
+                    Text("重复日程左滑删除的只是这一次。")
+                }
+            }
+
+            Section {
+                Button {
+                    eventTarget = .new(on: date, reminders: document.reminders)
+                } label: {
+                    Label("新建日程", systemImage: "plus.circle.fill")
+                        .font(.body.weight(.semibold))
+                }
+            }
+
+            Section {
+                Picker(selection: reminderBinding(\.eventDefaultMinutes)) {
+                    Text("不提醒").tag(Int?.none)
+                    ForEach([0, 5, 10, 15, 30, 60], id: \.self) { minutes in
+                        Text(EventEditorSheet.reminderLabel(minutes)).tag(Int?.some(minutes))
+                    }
+                } label: {
+                    Label("新日程默认提醒", systemImage: "bell")
+                }
+                DatePicker(selection: clockBinding(\.allDayEventTime), displayedComponents: [.hourAndMinute]) {
+                    Label("全天日程提醒时间", systemImage: "sun.horizon")
+                }
+            } header: {
+                Text("提醒")
+            } footer: {
+                Text("每条日程点开还能单独改提醒时间。")
             }
         }
-        // 抽屉高度跟着内容走：露到「清空这一天」为止，不多不少。
-        // 展开次要班次时内容变高，抽屉跟着长高。
-        .presentationDetents([contentHeight.map { PresentationDetent.height($0) } ?? .medium])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(28)
+        .contentMargins(.top, shiftsEnabled ? Self.segmentBarHeight - 20 : 0, for: .scrollContent)
+        .scrollContentBackground(.hidden)
     }
 
     // MARK: - 次要班次
@@ -193,7 +390,6 @@ struct DayEditorSheet: View {
 
     private func loadDraft() {
         guard !loaded else { return }
-        loaded = true
         if let existing = store.record(on: date) {
             draft = existing
             // 次要班次指向的班次已经删掉了就当没有。
@@ -208,6 +404,8 @@ struct DayEditorSheet: View {
                               hours: fallback?.defaultHours ?? 0,
                               source: .manual)
         }
+        original = draft
+        loaded = true
     }
 }
 

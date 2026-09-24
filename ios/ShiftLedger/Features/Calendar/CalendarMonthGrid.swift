@@ -7,7 +7,7 @@ import SwiftUI
 /// 左列放职责标签（这天我承担什么），右列放「休 / 班」（这天在日历上是什么性质）。
 /// 两类信息含义不同，分开放比挤在一列清楚，日期也因此真正居中。
 ///
-/// 格子高度贴合内容，留白放在行与行之间——行距 17pt。
+/// 格子高度贴合内容，留白放在行与行之间。日程色条跨格子画，整行一层盖在格子上。
 /// 反过来做（格子撑高、行距 1pt）会让「今天」那一格的填充下方空出一大块。
 ///
 /// 网格是 `Equatable` 的：左右滑动时外层每一帧都在变，但只要这个月的数据没变，
@@ -21,15 +21,19 @@ struct CalendarMonthGrid: View, Equatable {
     var batchMode: Bool = false
     var selectedDates: Set<String> = []
     var holidays: HolidayCalendar = .empty
+    /// 单选的那一天（外圈蓝环）。只传本月的，别的月传 nil，翻页时就不会连带重画。
+    var selectedDay: String?
     let onSelect: (String) -> Void
 
     nonisolated static func == (lhs: CalendarMonthGrid, rhs: CalendarMonthGrid) -> Bool {
         lhs.year == rhs.year && lhs.month == rhs.month && lhs.todayKey == rhs.todayKey
             && lhs.batchMode == rhs.batchMode && lhs.selectedDates == rhs.selectedDates
+            && lhs.selectedDay == rhs.selectedDay
             && lhs.holidays == rhs.holidays && lhs.document == rhs.document
     }
 
-    private var cellHeight: CGFloat { DayCellMetrics.height(for: document.display) }
+    private var layout: CellLayout { CellLayout(document: document) }
+    private var cellHeight: CGFloat { DayCellMetrics.height(for: layout) }
 
     /// 这个月的记录按日期建一次索引。`document.record(on:)` 是整表线性查找，
     /// 一个月三十格就要把全部记录扫三十遍。
@@ -42,8 +46,19 @@ struct CalendarMonthGrid: View, Equatable {
         return map
     }
 
+    /// 这个月里所有日程的发生情况，整月算一次，再按周切。
+    private func monthOccurrences(blanks: Int, days: Int) -> [EventOccurrence] {
+        guard !document.events.isEmpty else { return [] }
+        let first = DayNumber.from(year: year, month: month + 1, day: 1)
+        return EventEngine.occurrences(of: document.events,
+                                       from: first,
+                                       to: first + days - 1,
+                                       shiftDays: EventEngine.shiftDays(of: document))
+    }
+
     var body: some View {
         let records = monthRecords
+        let layout = layout
         VStack(spacing: 10) {
             HStack(spacing: DayCellMetrics.columnSpacing) {
                 ForEach(Array(ScheduleCalendar.weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
@@ -58,17 +73,36 @@ struct CalendarMonthGrid: View, Equatable {
             // 懒加载套懒加载，每翻进一页都要多走一轮测量，得不偿失。
             let blanks = ScheduleCalendar.leadingBlanks(year: year, month: month)
             let days = ScheduleCalendar.daysInMonth(year: year, month: month)
+            let occurrences = monthOccurrences(blanks: blanks, days: days)
+            let firstDay = DayNumber.from(year: year, month: month + 1, day: 1)
             VStack(spacing: DayCellMetrics.rowSpacing) {
                 ForEach(0..<Self.rows(blanks: blanks, days: days), id: \.self) { row in
                     HStack(spacing: DayCellMetrics.columnSpacing) {
                         ForEach(0..<7, id: \.self) { column in
                             let day = row * 7 + column - blanks + 1
                             if day >= 1 && day <= days {
-                                cell(day: day, records: records)
+                                cell(day: day, records: records, layout: layout)
                             } else {
                                 Color.clear
                                     .frame(maxWidth: .infinity)
                                     .frame(height: cellHeight)
+                            }
+                        }
+                    }
+                    .overlay(alignment: .topLeading) {
+                        if !occurrences.isEmpty {
+                            let firstColumn = row == 0 ? blanks : 0
+                            let lastColumn = min(6, days + blanks - 1 - row * 7)
+                            let week = EventEngine.layoutWeek(occurrences,
+                                                              weekStart: firstDay - blanks + row * 7,
+                                                              visibleColumns: firstColumn...lastColumn,
+                                                              lanes: layout.eventSlots)
+                            if !week.segments.isEmpty || !week.hidden.isEmpty {
+                                WeekEventBars(segments: week.segments,
+                                              hidden: week.hidden,
+                                              weekStart: firstDay - blanks + row * 7,
+                                              top: DayCellMetrics.barsTop(for: layout),
+                                              slots: layout.eventSlots)
                             }
                         }
                     }
@@ -77,7 +111,7 @@ struct CalendarMonthGrid: View, Equatable {
         }
     }
 
-    private func cell(day: Int, records: [String: DayRecord]) -> some View {
+    private func cell(day: Int, records: [String: DayRecord], layout: CellLayout) -> some View {
         let key = ScheduleCalendar.key(year: year, month: month, day: day)
         let display = document.display
         return DayCell(day: day,
@@ -90,6 +124,8 @@ struct CalendarMonthGrid: View, Equatable {
                        adjustment: display.showHolidays ? holidays.adjustment(on: key) : nil,
                        batchMode: batchMode,
                        isSelected: selectedDates.contains(key),
+                       isFocused: !batchMode && key == selectedDay,
+                       layout: layout,
                        height: cellHeight)
             .contentShape(RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous))
             .onTapGesture { onSelect(key) }
@@ -112,13 +148,79 @@ struct CalendarMonthGrid: View, Equatable {
 
     /// 整块网格的高度（星期表头 + 表头间距 + 每行格子与行距）。行数可以带小数，
     /// 滑动切月时在 5 行和 6 行之间插值用。
-    static func height(rows: CGFloat, display: CalendarDisplaySettings) -> CGFloat {
-        let cell = DayCellMetrics.height(for: display)
+    static func height(rows: CGFloat, layout: CellLayout) -> CGFloat {
+        let cell = DayCellMetrics.height(for: layout)
         return 13 + 10 + rows * cell + max(rows - 1, 0) * DayCellMetrics.rowSpacing
     }
 
-    static func height(year: Int, month: Int, display: CalendarDisplaySettings) -> CGFloat {
-        height(rows: CGFloat(rows(index: year * 12 + month)), display: display)
+    static func height(year: Int, month: Int, layout: CellLayout) -> CGFloat {
+        height(rows: CGFloat(rows(index: year * 12 + month)), layout: layout)
+    }
+}
+
+/// 格子里要排哪几行。显示设置和「排班功能」开关一起决定，关掉的行整行收起，下面的往上补。
+struct CellLayout: Hashable {
+    var lunar: Bool
+    var shiftRow: Bool
+    var timeRow: Bool
+    var eventSlots: Int
+
+    init(document: ScheduleDocument) {
+        let display = document.display
+        lunar = display.showLunar
+        shiftRow = document.features.shiftsEnabled
+        timeRow = shiftRow && display.showShiftTime
+        eventSlots = min(3, max(0, display.eventSlots))
+    }
+}
+
+/// 一周的日程色条，盖在这一行格子上面。
+///
+/// 色条跨格子画，所以不放在格子里，而是整行一层；不接收点按，点按还是落到下面的格子。
+private struct WeekEventBars: View {
+    let segments: [EventBarSegment]
+    let hidden: [Int: Int]
+    let weekStart: Int
+    let top: CGFloat
+    let slots: Int
+
+    var body: some View {
+        GeometryReader { proxy in
+            let spacing = DayCellMetrics.columnSpacing
+            let columnWidth = (proxy.size.width - spacing * 6) / 7
+            ForEach(segments) { segment in
+                let tone = Tone.event(segment.occurrence.event.color)
+                let continues = segment.occurrence.end > weekStart + segment.column + segment.span - 1
+                let width = CGFloat(segment.span) * columnWidth + CGFloat(segment.span - 1) * spacing
+                Text(segment.occurrence.event.title)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(tone.ink)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .padding(.horizontal, 3)
+                    .frame(width: width - 4, height: DayCellMetrics.barHeight, alignment: .leading)
+                    // 色条带一点透明：跨过选中那天时，底下的蓝圈隐约透出来，不被整段盖住
+                    .background(tone.fill.opacity(0.78), in: UnevenRoundedRectangle(
+                        topLeadingRadius: segment.startsHere ? 3.5 : 0,
+                        bottomLeadingRadius: segment.startsHere ? 3.5 : 0,
+                        bottomTrailingRadius: continues ? 0 : 3.5,
+                        topTrailingRadius: continues ? 0 : 3.5,
+                        style: .continuous))
+                    .offset(x: CGFloat(segment.column) * (columnWidth + spacing) + (segment.startsHere ? 2 : 0),
+                            y: top + CGFloat(segment.lane) * (DayCellMetrics.barHeight + DayCellMetrics.barGap))
+            }
+            ForEach(hidden.keys.sorted(), id: \.self) { column in
+                Text("+\(hidden[column] ?? 0)")
+                    .font(.system(size: 7.5, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .frame(width: columnWidth - 4, alignment: .trailing)
+                    .offset(x: CGFloat(column) * (columnWidth + spacing),
+                            y: top + CGFloat(slots) * (DayCellMetrics.barHeight + DayCellMetrics.barGap) - 1)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
@@ -137,15 +239,29 @@ enum DayCellMetrics {
     static let paddingTop: CGFloat = 8
     static let paddingBottom: CGFloat = 9
     static let corner: CGFloat = 10
-    /// 留白放在行与行之间，不放在格子里。
-    static let rowSpacing: CGFloat = 17
+    /// 选中蓝圈比格子往下多伸出的距离。
+    static let focusOutset: CGFloat = 3
+    /// 留白放在行与行之间，不放在格子里。日程色条占了一部分高度，行距收到 10pt。
+    static let rowSpacing: CGFloat = 10
     static let columnSpacing: CGFloat = 1
+    /// 日程色条。
+    static let barHeight: CGFloat = 14
+    static let barGap: CGFloat = 2
 
-    static func height(for display: CalendarDisplaySettings) -> CGFloat {
-        var height = paddingTop + dateRow + paddingBottom
-        if display.showLunar { height += lunarGap + lunarRow }
-        height += spacing + markRow
-        if display.showShiftTime { height += spacing + timeRow }
+    /// 日程色条从格子顶上往下多少开始画。
+    static func barsTop(for layout: CellLayout) -> CGFloat {
+        var top = paddingTop + dateRow
+        if layout.lunar { top += lunarGap + lunarRow }
+        if layout.shiftRow { top += spacing + markRow }
+        if layout.timeRow { top += spacing + timeRow }
+        return top + spacing
+    }
+
+    static func height(for layout: CellLayout) -> CGFloat {
+        var height = barsTop(for: layout) - spacing + paddingBottom
+        if layout.eventSlots > 0 {
+            height += spacing + CGFloat(layout.eventSlots) * (barHeight + barGap) - barGap
+        }
         return height
     }
 }
@@ -162,6 +278,9 @@ private struct DayCell: View {
     let adjustment: DayAdjustment?
     let batchMode: Bool
     let isSelected: Bool
+    /// 单选选中的那一天：外面一圈蓝环。
+    let isFocused: Bool
+    let layout: CellLayout
     let height: CGFloat
 
     private var shift: ShiftDefinition? { record.flatMap { document.shift($0.shiftId) } }
@@ -182,7 +301,7 @@ private struct DayCell: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity)
-            .frame(height: height)
+            .frame(height: height, alignment: .top)
             .background {
                 // 今天和多选选中用同一层淡底；选中另外还有一圈描边，分得开
                 if isSelected || isToday {
@@ -193,6 +312,14 @@ private struct DayCell: View {
             .overlay(alignment: .topLeading) { rail(tagMarks) }
             .overlay(alignment: .topTrailing) { rail(dateMarks) }
             .overlay(alignment: .bottom) { noteDot }
+            .overlay {
+                if isFocused {
+                    // 往下多伸 3pt：右下角的「+N」落在格子底边上，不让蓝圈压住它
+                    RoundedRectangle(cornerRadius: DayCellMetrics.corner, style: .continuous)
+                        .strokeBorder(Palette.blue, lineWidth: 1.6)
+                        .padding(.bottom, -DayCellMetrics.focusOutset)
+                }
+            }
             .overlay {
                 // 多选时格子内容一个不藏——班次、工时、标签照常显示，改之前看得见原来是什么。
                 // 可选的状态只靠外框表达：没选是一圈淡描边，选中是蓝框 + 底部一枚勾。
@@ -210,12 +337,13 @@ private struct DayCell: View {
                         .foregroundStyle(.white, Palette.blue)
                         .background(Circle().fill(Palette.card).padding(1))
                         // 落在行与行之间的留白里，不挡格子里的字
-                        .offset(y: 8)
+                        .offset(y: 7)
                         .transition(.scale(scale: 0.4).combined(with: .opacity))
                         .accessibilityHidden(true)
                 }
             }
             .animation(.spring(response: 0.26, dampingFraction: 0.7), value: isSelected)
+            .animation(.snappy(duration: 0.2), value: isFocused)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("day-\(key)")
             .accessibilityLabel(accessibilityText)
@@ -230,11 +358,10 @@ private struct DayCell: View {
                 dateRow
                 if let lunarText { lunarRow(lunarText) }
             }
-            markRow
-            if document.display.showShiftTime { timeRow }
+            if layout.shiftRow { markRow }
+            if layout.timeRow { timeRow }
         }
         .padding(.top, DayCellMetrics.paddingTop)
-        .padding(.bottom, DayCellMetrics.paddingBottom)
         // 只留 3pt。两位数日期在 22pt 字号下约 24pt 宽，在 46pt 的格子里居中后
         // 正好落在两条 9pt 标记列之间，不必再往里收；收多了「色标 + 工时」就放不下。
         .padding(.horizontal, 3)
@@ -243,9 +370,10 @@ private struct DayCell: View {
     /// 今天不改数字颜色，只把字重加到 bold——颜色留给班次和节假日。
     private var dateRow: some View {
         Text("\(day)")
-            .font(.system(size: 22, weight: isToday ? .bold : .medium))
+            .font(.system(size: 22, weight: isToday || isFocused ? .bold : .medium))
             .monospacedDigit()
-            .foregroundStyle(isUnscheduled || shift?.isRest == true ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+            // 日期颜色不跟排班走：平时一律黑字，选中的那天和蓝圈同色
+            .foregroundStyle(isFocused ? AnyShapeStyle(Palette.blue) : AnyShapeStyle(.primary))
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             .frame(height: DayCellMetrics.dateRow)
@@ -255,7 +383,7 @@ private struct DayCell: View {
     private func lunarRow(_ lunarText: String) -> some View {
         Text(festival?.shortName ?? lunarText)
             .font(.system(size: 8.5, weight: festival == nil ? .medium : .semibold))
-            .foregroundStyle(festival.map { AnyShapeStyle(Self.color(for: $0)) } ?? AnyShapeStyle(.tertiary))
+            .foregroundStyle(festival.map { AnyShapeStyle(Self.color(for: $0)) } ?? AnyShapeStyle(.primary))
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             .frame(height: DayCellMetrics.lunarRow)
@@ -392,7 +520,9 @@ private struct DayCell: View {
                 ForEach(Array(marks.enumerated()), id: \.offset) { _, mark in mark }
             }
             .frame(width: DayCellMetrics.railWidth)
-            .padding(.top, 5)
+            // 顺着圆角往里、往上收一点，选中的蓝圈不会压到角上的字
+            .padding(.top, 3.5)
+            .padding(.horizontal, 2)
         }
     }
 
@@ -413,6 +543,7 @@ private struct DayCell: View {
     private var accessibilityText: String {
         var parts = ["\(day)日"]
         if isToday { parts.append("今天") }
+        if isFocused { parts.append("已选中") }
         if batchMode { parts.append(isSelected ? "已选中" : "未选中") }
         if let festival { parts.append(festival.name) }
         switch adjustment {
@@ -421,7 +552,9 @@ private struct DayCell: View {
         case nil: break
         }
         if let lunarText, festival == nil { parts.append("农历\(lunarText)") }
-        if let shift {
+        if !layout.shiftRow {
+            // 不排班的人不念班次
+        } else if let shift {
             parts.append(shift.name)
             if let secondaryShift { parts.append("次要班次\(secondaryShift.name)") }
             if !shift.fullRange.isEmpty { parts.append(shift.fullRange) }

@@ -21,6 +21,7 @@ struct MonthPager: View {
 
     let batchMode: Bool
     let selectedDates: Set<String>
+    let selectedDay: String?
     let onSelect: (String) -> Void
 
     @State private var rows: PagerRows
@@ -28,9 +29,11 @@ struct MonthPager: View {
     init(focusedIndex: Int,
          batchMode: Bool,
          selectedDates: Set<String>,
+         selectedDay: String?,
          onSelect: @escaping (String) -> Void) {
         self.batchMode = batchMode
         self.selectedDates = selectedDates
+        self.selectedDay = selectedDay
         self.onSelect = onSelect
         _rows = State(initialValue: PagerRows(value: CGFloat(CalendarMonthGrid.rows(index: focusedIndex))))
     }
@@ -40,16 +43,17 @@ struct MonthPager: View {
 
     var body: some View {
         let document = store.document
-        let display = document.display
+        let layout = CellLayout(document: document)
         let focusStore = store
-        PagerViewport(rows: rows, display: display, bottomSlack: bottomSlack) {
+        PagerViewport(rows: rows, layout: layout, bottomSlack: bottomSlack) {
             MonthPagerScroll(document: document,
                              todayKey: focusStore.todayKey,
                              focusedIndex: focusStore.focusedIndex,
                              batchMode: batchMode,
                              selectedDates: selectedDates,
+                             selectedDay: selectedDay,
                              holidays: focusStore.holidays,
-                             contentHeight: CalendarMonthGrid.height(rows: 6, display: display) + bottomSlack,
+                             contentHeight: CalendarMonthGrid.height(rows: 6, layout: layout) + bottomSlack,
                              rows: rows,
                              onSelect: onSelect,
                              onSettle: { index in
@@ -70,13 +74,13 @@ final class PagerRows {
 /// 按插值行数裁出可见高度。
 private struct PagerViewport<Content: View>: View {
     let rows: PagerRows
-    let display: CalendarDisplaySettings
+    let layout: CellLayout
     let bottomSlack: CGFloat
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         content()
-            .frame(height: CalendarMonthGrid.height(rows: rows.value, display: display) + bottomSlack,
+            .frame(height: CalendarMonthGrid.height(rows: rows.value, layout: layout) + bottomSlack,
                    alignment: .top)
             .clipped()
     }
@@ -88,6 +92,7 @@ private struct MonthPagerScroll: View, Equatable {
     let focusedIndex: Int
     let batchMode: Bool
     let selectedDates: Set<String>
+    let selectedDay: String?
     let holidays: HolidayCalendar
     let contentHeight: CGFloat
     let rows: PagerRows
@@ -95,12 +100,16 @@ private struct MonthPagerScroll: View, Equatable {
     let onSettle: (Int) -> Void
 
     @State private var position: Int?
+    /// 手指一松、分页滚动已经定下要停在哪一页时就记下来。翻页器正往那儿减速，
+    /// 这时 store 跟着改月份，不能再反过来给滚动视图下一次「滚到那一页」的指令。
+    @State private var settlingTarget: Int?
 
     init(document: ScheduleDocument,
          todayKey: String,
          focusedIndex: Int,
          batchMode: Bool,
          selectedDates: Set<String>,
+         selectedDay: String?,
          holidays: HolidayCalendar,
          contentHeight: CGFloat,
          rows: PagerRows,
@@ -111,6 +120,7 @@ private struct MonthPagerScroll: View, Equatable {
         self.focusedIndex = focusedIndex
         self.batchMode = batchMode
         self.selectedDates = selectedDates
+        self.selectedDay = selectedDay
         self.holidays = holidays
         self.contentHeight = contentHeight
         self.rows = rows
@@ -122,6 +132,7 @@ private struct MonthPagerScroll: View, Equatable {
     nonisolated static func == (lhs: MonthPagerScroll, rhs: MonthPagerScroll) -> Bool {
         lhs.focusedIndex == rhs.focusedIndex && lhs.todayKey == rhs.todayKey
             && lhs.batchMode == rhs.batchMode && lhs.selectedDates == rhs.selectedDates
+            && lhs.selectedDay == rhs.selectedDay
             && lhs.contentHeight == rhs.contentHeight && lhs.rows === rhs.rows
             && lhs.holidays == rhs.holidays && lhs.document == rhs.document
     }
@@ -145,6 +156,9 @@ private struct MonthPagerScroll: View, Equatable {
                                       batchMode: batchMode,
                                       selectedDates: selectedDates,
                                       holidays: holidays,
+                                      selectedDay: selectedDay.flatMap { day in
+                                          day.hasPrefix(ScheduleCalendar.monthKey(year: index / 12, month: index % 12)) ? day : nil
+                                      },
                                       onSelect: onSelect)
                         .equatable()
                         .frame(height: contentHeight, alignment: .top)
@@ -154,7 +168,14 @@ private struct MonthPagerScroll: View, Equatable {
             .scrollTargetLayout()
         }
         .frame(height: contentHeight)
-        .scrollTargetBehavior(.paging)
+        // 松手那一刻就知道要停在哪一页：月份、选中的日子、震动都在这时候跟上，
+        // 不用等减速动画走完——之前等到停稳才切，看着总慢半拍、不跟手。
+        .scrollTargetBehavior(PagingWithTarget { page in
+            let index = lowerBound + page
+            guard index != focusedIndex, Self.range.contains(index) else { return }
+            settlingTarget = index
+            onSettle(index)
+        })
         .scrollIndicators(.hidden)
         .scrollPosition(id: $position)
         // 只把「插值后的行数」交出去，而且量化到 1/50 行。相邻两月行数相同时它是个常数，
@@ -173,13 +194,15 @@ private struct MonthPagerScroll: View, Equatable {
             if newValue > 0 { rows.value = newValue }
         }
         .onScrollPhaseChange { _, phase in
-            // 停稳了再把月份交给 store。拖到一半就切的话，整页的本月概览会在手指底下重算。
-            guard phase == .idle, let position, position != focusedIndex else { return }
+            // 停稳了再把月份交给 store。拖到一半就切的话，下面的日程面板会在手指底下重算。
+            guard phase == .idle else { return }
+            settlingTarget = nil
+            guard let position, position != focusedIndex else { return }
             onSettle(position)
         }
         .onChange(of: focusedIndex) { _, target in
             // 按钮、月份选择器、统计页改了月份，翻页器跟过去：相邻月份滑过去，远的直接跳。
-            guard position != target else { return }
+            guard position != target, settlingTarget != target else { return }
             if let position, abs(position - target) == 1 {
                 withAnimation(.smooth(duration: 0.38)) { self.position = target }
             } else {
@@ -188,5 +211,19 @@ private struct MonthPagerScroll: View, Equatable {
                 withTransaction(transaction) { self.position = target }
             }
         }
+    }
+}
+
+/// 系统的整页分页，外加一个回调：手指松开、目标页一定下来就报出第几页。
+private struct PagingWithTarget: ScrollTargetBehavior {
+    let onTarget: (Int) -> Void
+
+    func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
+        PagingScrollTargetBehavior().updateTarget(&target, context: context)
+        let width = context.containerSize.width
+        guard width > 0 else { return }
+        let page = Int((target.rect.minX / width).rounded())
+        // 这时还在布局 / 手势回调里，改状态放到下一轮
+        DispatchQueue.main.async { onTarget(page) }
     }
 }

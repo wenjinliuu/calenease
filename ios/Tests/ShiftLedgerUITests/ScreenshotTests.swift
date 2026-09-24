@@ -21,7 +21,10 @@ final class ScreenshotTests: XCTestCase {
         capture("01b-calendar-bottom")
         tapTab("日历")
 
-        tapTab("统计")
+        tapTab("事项")
+        capture("02a-agenda")
+
+        tapTab("工时")
         capture("02-stats")
         scrollToBottom()
         capture("02b-stats-chart")
@@ -43,9 +46,18 @@ final class ScreenshotTests: XCTestCase {
             .matching(NSPredicate(format: "identifier BEGINSWITH %@", "day-"))
             .element(boundBy: 8)
         if day.waitForExistence(timeout: 5) {
+            // 第一下选中，第二下打开抽屉
+            day.tap()
+            Thread.sleep(forTimeInterval: 0.4)
             day.tap()
             Thread.sleep(forTimeInterval: 1.2)
             capture("05-day-editor")
+            let events = app.buttons["日程"]
+            if events.exists {
+                events.tap()
+                Thread.sleep(forTimeInterval: 1.0)
+                capture("06-day-events")
+            }
         }
     }
 
