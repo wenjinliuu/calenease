@@ -37,27 +37,9 @@ extension View {
         glassEffect(GlassStyle.pill(tint: tint, interactive: interactive), in: Capsule())
     }
 
-    /// 顶栏上的圆形玻璃按钮。`tint` 给了就是染色玻璃（主操作、开着的开关）。
-    func glassCircle(tint: Color? = nil) -> some View {
-        glassEffect(GlassStyle.button(tint: tint), in: Circle())
-    }
-
     /// 浮在图表、内容上的小卡片：透得见底下的东西。
     func glassCard(cornerRadius: CGFloat = 12) -> some View {
         glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-    }
-
-    /// 固定在顶上的标题栏：内容从底下滚过去时由系统画一段柔和的玻璃渐隐（scroll edge effect），
-    /// 隐约透出下面的月历；停在顶部时什么都不画，不会压住星期那一行。
-    /// 栏里空白的地方也拦住点按，不会点穿到下面的格子。
-    func pinnedTopBar<Bar: View>(@ViewBuilder _ bar: () -> Bar) -> some View {
-        self
-            .safeAreaBar(edge: .top, spacing: 0) {
-                bar()
-                    .contentShape(Rectangle())
-                    .onTapGesture {}
-            }
-            .scrollEdgeEffectStyle(.soft, for: .top)
     }
 }
 
@@ -67,12 +49,6 @@ enum GlassStyle {
         var glass = Glass.regular
         if let tint { glass = glass.tint(tint.opacity(0.22)) }
         if interactive { glass = glass.interactive() }
-        return glass
-    }
-
-    static func button(tint: Color?) -> Glass {
-        var glass = Glass.regular.interactive()
-        if let tint { glass = glass.tint(tint) }
         return glass
     }
 }

@@ -496,7 +496,12 @@ struct HoursTrendChart: View, Equatable {
                 GeometryReader { geometry in
                     if let plotFrame = proxy.plotFrame {
                         let origin = geometry[plotFrame].origin
-                        TrendFills(proxy: proxy, origin: origin, basic: basicCurve, planned: plannedCurves)
+                        // 面积和曲线都画在图表底层：长按弹出的玻璃小卡是图表自己的标注，
+                        // 在底层之上，不会被曲线压住
+                        ZStack {
+                            TrendFills(proxy: proxy, origin: origin, basic: basicCurve, planned: plannedCurves)
+                            TrendLines(proxy: proxy, origin: origin, basic: basicCurve, planned: plannedCurves)
+                        }
                     }
                 }
                 .allowsHitTesting(false)
@@ -506,11 +511,6 @@ struct HoursTrendChart: View, Equatable {
             // 手指在同一个月里挪动不触发重画。
             .chartOverlay { proxy in
                 GeometryReader { geometry in
-                    if let plotFrame = proxy.plotFrame {
-                        TrendLines(proxy: proxy, origin: geometry[plotFrame].origin,
-                                   basic: basicCurve, planned: plannedCurves)
-                            .allowsHitTesting(false)
-                    }
                     Rectangle()
                         .fill(.clear)
                         .contentShape(Rectangle())
@@ -724,7 +724,7 @@ private struct TrendFills: View {
     }
 }
 
-/// 图表上层：基本（青）、计划（紫）两条平滑曲线。
+/// 基本（青）、计划（紫）两条平滑曲线，画在面积之上、图表标注之下。
 private struct TrendLines: View {
     let proxy: ChartProxy
     let origin: CGPoint

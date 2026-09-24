@@ -3,8 +3,9 @@ import UIKit
 
 /// 月历翻页器：三张月历卡片（上个月、这个月、下个月）并排，手指拖着走。
 ///
-/// 松手时只看两件事：拖过了宽度的一小半，或者甩得够快。满足就用一段短而不回弹的
-/// 弹簧滑到相邻月份，不满足就弹回原位。一次永远只翻一个月。
+/// 松手时按「手指甩出去之后会停在哪」来判断（Apple 的动量投影：当前位移 + 速度折算的惯性距离），
+/// 投影越过三分之一页就翻，否则弹回。翻页的弹簧不回弹，并且接着手指松开时的速度继续走，
+/// 拖动和动画之间没有停顿的接缝。一次永远只翻一个月。
 ///
 /// 之前用的是分页 `ScrollView`：惯性由系统决定，甩快了会越过一个月，减速阶段又拖得很长，
 /// 怎么调参数都不利落。现在位置完全由这里的 `drag` 决定，动画只有一段，行为是确定的。
@@ -40,8 +41,10 @@ struct MonthPager: View {
     /// 多选时每格底下挂一枚勾，落在行距里；最后一行的勾要多留这点地方。
     private var bottomSlack: CGFloat { batchMode ? 10 : 0 }
 
-    /// 翻页的弹簧：短、不回弹。
-    static let settle = Animation.spring(duration: 0.3, bounce: 0)
+    /// Apple「Designing Fluid Interfaces」里的惯性投影：松手后按系统滚动的减速率还能滑多远。
+    static func projection(velocity: CGFloat, decelerationRate: CGFloat = 0.998) -> CGFloat {
+        velocity / 1000 * decelerationRate / (1 - decelerationRate)
+    }
 
     var body: some View {
         let document = store.document
@@ -90,16 +93,9 @@ struct MonthPager: View {
 
     private func finish(translation: CGFloat, velocity: CGFloat, index: Int) {
         guard width > 0 else { drag = 0; return }
-        // 过了 22% 宽度，或者朝同一个方向甩得够快（且没有往回拉）
-        let flick = abs(velocity) > 420 && velocity.sign == translation.sign
-        let step: Int
-        if translation < 0 && (-translation > width * 0.22 || flick) {
-            step = 1
-        } else if translation > 0 && (translation > width * 0.22 || flick) {
-            step = -1
-        } else {
-            step = 0
-        }
+        let projected = translation + Self.projection(velocity: velocity)
+        let threshold = width / 3
+        let step = projected < -threshold ? 1 : projected > threshold ? -1 : 0
 
         if step != 0 {
             // 月份立刻交出去；drag 同时补上一整页，画面停在原处不跳
@@ -110,7 +106,13 @@ struct MonthPager: View {
                 drag += CGFloat(step) * width
             }
         }
-        withAnimation(Self.settle) { drag = 0 }
+        // 接着手指的速度走：弹簧的初速度按「离目标还剩多远」归一化
+        let remaining = -drag
+        let relative = abs(remaining) > 1 ? velocity / remaining : 0
+        withAnimation(.interpolatingSpring(duration: 0.32, bounce: 0,
+                                           initialVelocity: min(max(relative, 0), 12))) {
+            drag = 0
+        }
     }
 }
 

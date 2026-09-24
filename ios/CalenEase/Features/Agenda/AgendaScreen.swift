@@ -36,9 +36,12 @@ struct AgendaScreen: View {
                         .id(listID)
                 }
             }
-            .pinnedTopBar { pinnedBar }
+            // 顶栏和「工时」「设置」一样用系统导航栏：同一种玻璃按钮、同一种滚动边缘效果。
+            // 下面那一排日期挂在导航栏下（safeAreaBar），算顶栏的一部分，内容从它们底下一起滑过去。
+            .safeAreaBar(edge: .top, spacing: 0) { dateStrip }
             .background(Palette.canvas)
-            .toolbarVisibility(.hidden, for: .navigationBar)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { toolbarContent }
             .overlay(alignment: .bottomTrailing) { addButton }
             .sheet(item: $editorTarget) { target in
                 EventEditorSheet(target: target)
@@ -62,56 +65,60 @@ struct AgendaScreen: View {
 
     // MARK: - 顶栏
 
-    private var pinnedBar: some View {
-        VStack(spacing: 8) {
-            header
-                .padding(.horizontal, 18)
-                .padding(.top, 4)
-            if mode == .day {
+    /// 本周那一排日期。日视图铺满一行；周视图左边让出刻度栏，七格正好对着下面的七列。
+    private var dateStrip: some View {
+        Group {
+            switch mode {
+            case .day:
                 WeekStrip(day: $day, today: today)
+            case .week:
+                WeekStrip(day: $day, today: today, leading: AgendaWeekView.gutter, trailing: 4)
             }
         }
-        .padding(.bottom, 6)
+        .padding(.bottom, 4)
     }
 
-    private var header: some View {
-        let date = DayNumber.civil(day)
-        let currentYear = DayNumber.civil(today).year
-        return HStack(alignment: .center, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text("\(date.month)")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .contentTransition(.numericText(value: Double(date.month)))
-                Text("月").font(.title3.weight(.bold))
-                if date.year != currentYear {
-                    Text("\(String(date.year))年")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 4)
-                }
-            }
-            .animation(.snappy(duration: 0.3), value: date.month)
-
-            Spacer(minLength: 0)
-
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) { monthTitle }
+            .sharedBackgroundVisibility(.hidden)
+        ToolbarItem(placement: .topBarTrailing) {
             Picker("视图", selection: Binding(get: { mode },
                                             set: { value in withAnimation(.snappy(duration: 0.3)) { modeRaw = value.rawValue } })) {
                 ForEach(AgendaMode.allCases) { item in Text(item.label).tag(item) }
             }
             .pickerStyle(.segmented)
             .frame(width: 96)
-
+        }
+        .sharedBackgroundVisibility(.hidden)
+        ToolbarItem(placement: .topBarTrailing) {
             Button {
                 withAnimation(.smooth(duration: 0.35)) { day = today }
             } label: {
                 TodayBadge(day: DayNumber.civil(today).day)
-                    .frame(width: 38, height: 38)
-                    .glassCircle()
             }
-            .buttonStyle(.plain)
             .accessibilityLabel("回到今天")
         }
+    }
+
+    private var monthTitle: some View {
+        let date = DayNumber.civil(day)
+        let currentYear = DayNumber.civil(today).year
+        return HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text("\(date.month)")
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .contentTransition(.numericText(value: Double(date.month)))
+            Text("月").font(.headline.weight(.bold))
+            if date.year != currentYear {
+                Text("\(String(date.year))年")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 4)
+            }
+        }
+        .fixedSize()
+        .animation(.snappy(duration: 0.3), value: date.month)
     }
 
     private var addButton: some View {
@@ -164,91 +171,6 @@ struct TodayBadge: View {
                 .strokeBorder(Color.primary.opacity(0.7), lineWidth: 1.4)
         }
         .foregroundStyle(.primary)
-    }
-}
-
-// MARK: - 一周的日期条
-
-/// 日视图顶上的一周日期。左右翻周；每天底下几个小圆点是当天日程的颜色。
-private struct WeekStrip: View {
-    @Binding var day: Int
-    let today: Int
-
-    @Environment(ScheduleStore.self) private var store
-    @State private var weekPosition: Int?
-
-    private static func weekStart(_ day: Int) -> Int { day - DayNumber.weekday(day) }
-    private var weeks: [Int] {
-        let anchor = Self.weekStart(today)
-        return stride(from: anchor - 7 * 104, through: anchor + 7 * 104, by: 7).map { $0 }
-    }
-
-    var body: some View {
-        ScrollView(.horizontal) {
-            LazyHStack(spacing: 0) {
-                ForEach(weeks, id: \.self) { start in
-                    HStack(spacing: 0) {
-                        ForEach(0..<7, id: \.self) { offset in
-                            cell(start + offset)
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .containerRelativeFrame(.horizontal)
-                }
-            }
-            .scrollTargetLayout()
-        }
-        .scrollTargetBehavior(.paging)
-        .scrollIndicators(.hidden)
-        .scrollPosition(id: $weekPosition)
-        .frame(height: 66)
-        .onAppear { weekPosition = Self.weekStart(day) }
-        .onChange(of: day) { _, newDay in
-            let start = Self.weekStart(newDay)
-            guard weekPosition != start else { return }
-            withAnimation(.smooth(duration: 0.3)) { weekPosition = start }
-        }
-        .onChange(of: weekPosition) { _, start in
-            // 手指翻到别的一周：选中那一周里同一个星期几
-            guard let start, Self.weekStart(day) != start else { return }
-            day = start + DayNumber.weekday(day)
-        }
-    }
-
-    private func cell(_ number: Int) -> some View {
-        let date = DayNumber.civil(number)
-        let isSelected = number == day
-        let isToday = number == today
-        let colors = Array(Set(store.occurrences(on: DayNumber.key(number)).map(\.event.color))).sorted().prefix(3)
-        return Button {
-            withAnimation(.smooth(duration: 0.35)) { day = number }
-        } label: {
-            VStack(spacing: 4) {
-                Text(ScheduleCalendar.weekdaySymbols[DayNumber.weekday(number)])
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Text("\(date.day)")
-                    .font(.system(size: 17, weight: isSelected || isToday ? .bold : .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(isSelected ? AnyShapeStyle(.white)
-                                     : isToday ? AnyShapeStyle(Palette.red) : AnyShapeStyle(.primary))
-                    .frame(width: 34, height: 34)
-                    .background {
-                        if isSelected { Circle().fill(isToday ? Palette.red : Palette.blue) }
-                    }
-                HStack(spacing: 2) {
-                    ForEach(Array(colors), id: \.self) { hex in
-                        Circle().fill(Tone.event(hex).solid).frame(width: 5, height: 5)
-                    }
-                }
-                .frame(height: 5)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(date.month)月\(date.day)日")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -341,7 +263,9 @@ private struct AgendaDaySection: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(occurrences.enumerated()), id: \.element.id) { index, occurrence in
                         if index == nowIndex { NowMarker() }
-                        SwipeToDelete(id: occurrence.id, openRow: $openRow, onDelete: { delete(occurrence) }) {
+                        SwipeActionsRow(id: occurrence.id, openRow: $openRow,
+                                        onEdit: { onEdit(.edit(occurrence)) },
+                                        onDelete: { delete(occurrence) }) {
                             TimelineEntry(occurrence: occurrence,
                                           day: key,
                                           isLast: index == occurrences.count - 1,
@@ -472,110 +396,6 @@ private struct ShiftBadge: View {
     }
 }
 
-/// 左滑露出一颗红色删除按钮；滑过一大半直接删。只认横向拖动，竖着滑照常滚动列表。
-///
-/// 横向拖动一开始，里面的内容就不再接收点按：否则手指松开时，条目自己的按钮会把这次拖动
-/// 当成一次点击，删除没露出来、编辑抽屉先弹了。往右拖也一样拦住（往右没有操作）。
-/// 已经滑开的一条，点它只是合上，不进编辑。
-struct SwipeToDelete<Content: View>: View {
-    let id: String
-    @Binding var openRow: String?
-    let onDelete: () -> Void
-    @ViewBuilder let content: () -> Content
-
-    @State private var offset: CGFloat = 0
-    @State private var startOffset: CGFloat = 0
-    @State private var dragging = false
-    private let buttonWidth: CGFloat = 76
-
-    var body: some View {
-        content()
-            // 拖动中、或者已经滑开时，内容不接点按
-            .allowsHitTesting(!dragging && offset == 0)
-            .offset(x: offset)
-            .overlay {
-                if offset < 0 && !dragging {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .offset(x: offset)
-                        .onTapGesture { withAnimation(.snappy(duration: 0.22)) { close() } }
-                }
-            }
-            .background(alignment: .trailing) {
-                Button(role: .destructive) {
-                    withAnimation(.snappy(duration: 0.22)) { close() }
-                    onDelete()
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "trash.fill").font(.system(size: 16, weight: .semibold))
-                        Text("删除").font(.caption2.weight(.semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .frame(width: max(0, -offset - 8))
-                    .frame(maxHeight: .infinity)
-                    .background(Palette.red, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding(.vertical, 4)
-                    .opacity(offset < -12 ? 1 : 0)
-                }
-                .buttonStyle(.plain)
-                .accessibilityHidden(true)
-            }
-            // 只裁左右：时间线上胶囊之间的连线要伸到下一条，上下不能裁
-            .mask { Rectangle().padding(.vertical, -400) }
-            // 内容暂时不接点按时，拖动手势也要有地方落手
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 12)
-                    .onChanged { value in
-                        let dx = value.translation.width, dy = value.translation.height
-                        guard dragging || abs(dx) > abs(dy) * 1.3 else { return }
-                        if !dragging {
-                            dragging = true
-                            startOffset = offset
-                            if openRow != id { openRow = id }
-                        }
-                        // 往右最多拉回到 0，再往右只给一点阻尼
-                        let proposed = startOffset + dx
-                        offset = proposed > 0 ? min(12, proposed * 0.15) : proposed
-                    }
-                    .onEnded { value in
-                        guard dragging else { return }
-                        let predicted = value.predictedEndTranslation.width
-                        var deleteNow = false
-                        withAnimation(.snappy(duration: 0.25)) {
-                            if offset < -220 || predicted < -380 {
-                                offset = -600
-                                deleteNow = true
-                            } else if offset < -buttonWidth / 2 || (predicted < -120 && offset < 0) {
-                                offset = -buttonWidth
-                                openRow = id
-                            } else {
-                                close()
-                            }
-                        }
-                        // 松手这一帧还算在拖动里，下一帧再放开点按，免得松手本身被当成一次点击
-                        DispatchQueue.main.async { dragging = false }
-                        if deleteNow {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                onDelete()
-                                offset = 0
-                                if openRow == id { openRow = nil }
-                            }
-                        }
-                    }
-            )
-            .onChange(of: openRow) { _, row in
-                if row != id, offset != 0 { withAnimation(.snappy(duration: 0.22)) { offset = 0 } }
-            }
-            .accessibilityAction(named: "删除") { onDelete() }
-    }
-
-    private func close() {
-        offset = 0
-        if openRow == id { openRow = nil }
-    }
-}
-
 /// 时间线上的一条事项：左边一颗带图标的彩色胶囊（越长的日程胶囊越高），
 /// 中间时间和标题，右边一个完成圈。
 struct TimelineEntry: View {
@@ -589,36 +409,40 @@ struct TimelineEntry: View {
         let event = occurrence.event
         let tone = Tone.event(event.color)
         let done = occurrence.isCompleted
+        // 只有左边的图标胶囊和时间能点开编辑；标题、空白处不响应点按。
+        // 之前整行都是一个大按钮，上下滑、左滑删除时手指一松就会弹出编辑抽屉。
         HStack(alignment: .center, spacing: 12) {
             Button(action: onOpen) {
-                HStack(alignment: .center, spacing: 12) {
-                    Image(systemName: event.symbol ?? EventSymbols.fallback)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 48, height: capsuleHeight)
-                        .background(tone.solid.opacity(done ? 0.45 : 1), in: Capsule())
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(timeText)
-                            .font(.caption)
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                        Text(event.title)
-                            .font(.headline)
-                            .strikethrough(done, color: .secondary)
-                            .foregroundStyle(done ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
-                            .lineLimit(2)
-                        if let location = event.location {
-                            Label(location, systemImage: "mappin")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                    }
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
+                Image(systemName: event.symbol ?? EventSymbols.fallback)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 48, height: capsuleHeight)
+                    .background(tone.solid.opacity(done ? 0.45 : 1), in: Capsule())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("编辑「\(event.title)」")
+            VStack(alignment: .leading, spacing: 2) {
+                Button(action: onOpen) {
+                    Text(timeText)
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHidden(true)
+                Text(event.title)
+                    .font(.headline)
+                    .strikethrough(done, color: .secondary)
+                    .foregroundStyle(done ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+                    .lineLimit(2)
+                if let location = event.location {
+                    Label(location, systemImage: "mappin")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 0)
 
             Button(action: onToggle) {
                 Image(systemName: done ? "checkmark.circle.fill" : "circle")
@@ -674,7 +498,8 @@ struct TimelineEntry: View {
 
 // MARK: - 周视图
 
-/// 周视图：顶上只有本周一行日期（周一到周日），下面七列共用一条时间轴，像一张周历。
+/// 周视图：顶栏下面只有本周一行日期（周一到周日，和日视图同一条日期条），
+/// 下面七列共用一条时间轴，像一张周历。
 ///
 /// 左边刻度写全「08:00」，和日历页当天时间轴一个样子；今天在这一周里时，
 /// 刻度栏里有一颗红色「现在」胶囊写着几点几分，红线横过整周、今天那一列加粗。
@@ -702,11 +527,7 @@ private struct AgendaWeekView: View {
         let perDay = days.map { store.occurrences(on: DayNumber.key($0)) }
 
         VStack(spacing: 0) {
-            header(days)
-                .id(weekStart)
-                .transition(slide)
-            Divider()
-
+            // 本周那一排日期在顶栏里（AgendaScreen 的 dateStrip），这里只有时间轴
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 0) {
@@ -753,46 +574,6 @@ private struct AgendaWeekView: View {
     private func step(_ weeks: Int) {
         forward = weeks > 0
         withAnimation(.spring(duration: 0.3, bounce: 0)) { day += 7 * weeks }
-    }
-
-    /// 本周一行：星期在上、日期在下，和日视图顶上的日期条一个样子，列和下面的时间轴对齐。
-    private func header(_ days: [Int]) -> some View {
-        HStack(spacing: 0) {
-            // 只占宽度：只给宽度的 Color 会把高度撑满，之前整行日期就是这样被挤到了屏幕中间
-            Color.clear.frame(width: Self.gutter, height: 0)
-            ForEach(days, id: \.self) { number in
-                let date = DayNumber.civil(number)
-                let isSelected = number == day
-                let isToday = number == today
-                let weekday = ScheduleCalendar.weekdaySymbols[DayNumber.weekday(number)]
-                Button {
-                    withAnimation(.snappy(duration: 0.2)) { day = number }
-                } label: {
-                    VStack(spacing: 2) {
-                        Text(weekday)
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                        Text("\(date.day)")
-                            .font(.system(size: 15, weight: isSelected || isToday ? .bold : .medium))
-                            .monospacedDigit()
-                            .foregroundStyle(isSelected ? AnyShapeStyle(.white)
-                                             : isToday ? AnyShapeStyle(Palette.blue) : AnyShapeStyle(.primary))
-                            .frame(width: 28, height: 28)
-                            .background {
-                                if isSelected { Circle().fill(Palette.blue) }
-                            }
-                            .transaction { $0.animation = nil }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(date.month)月\(date.day)日 周\(weekday)")
-                .accessibilityAddTraits(isSelected ? .isSelected : [])
-            }
-        }
-        .padding(.trailing, 4)
-        .padding(.vertical, 4)
     }
 
     /// 全天日程：时间轴最上面一条，跟着一起滚。没有全天日程就不占地方。

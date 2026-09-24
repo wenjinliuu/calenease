@@ -447,6 +447,8 @@ struct EventRow: View {
     let occurrence: EventOccurrence
     /// 这一行是在哪一天的列表里（跨天日程写「第 2 天」）。
     let day: String
+    /// 已完成时右边挂一枚小勾。旁边已经有完成按钮的地方关掉，免得两个勾。
+    var showsDoneMark = true
 
     var body: some View {
         let event = occurrence.event
@@ -482,7 +484,7 @@ struct EventRow: View {
                 .lineLimit(1)
             }
             Spacer(minLength: 0)
-            if done {
+            if done && showsDoneMark {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(tone.solid.opacity(0.7))
