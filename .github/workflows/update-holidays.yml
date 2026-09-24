@@ -16,7 +16,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: shift-holidays-production
+  group: calenease-holidays-production
   cancel-in-progress: false
 
 jobs:
@@ -110,7 +110,7 @@ jobs:
           npm install --global @cloudbase/cli@3.8.3
           tcb login --cloudbase-api-key "$CLOUDBASE_API_KEY" -e "$CLOUDBASE_ENV_ID" --yes
           tcb env use "$CLOUDBASE_ENV_ID" --yes
-          tcb fn deploy shift-holidays-v1-http --force --yes
+          tcb fn deploy calenease-holidays-v1-http --force --yes
 
       - name: Verify public endpoint, headers and hashes
         if: steps.window.outputs.run == 'true'
@@ -134,7 +134,7 @@ jobs:
         run: |
           mkdir -p cloudbase/holiday-api/holidays/v1
           cp holidays/v1/*.json cloudbase/holiday-api/holidays/v1/
-          tcb fn deploy shift-holidays-v1-http --force --yes
+          tcb fn deploy calenease-holidays-v1-http --force --yes
 
       - name: Alert repository maintainer
         if: failure() && steps.window.outputs.run == 'true'
