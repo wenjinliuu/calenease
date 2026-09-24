@@ -124,19 +124,24 @@ struct CalendarScreen: View {
             .accessibilityHidden(!batchMode)
     }
 
+    /// 右上角从左到右：循环排班、多选、回到今天。「今天」放在最右边，和事项页同一个位置。
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) { monthTitle }
             .sharedBackgroundVisibility(.hidden)
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                jump(to: store.todayKey)
-            } label: {
-                TodayBadge(day: Int(store.todayKey.suffix(2)) ?? 1)
-            }
-            .accessibilityLabel("回到今天")
-        }
         if shiftsEnabled {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    sparkleTick += 1
+                    isGeneratorPresented = true
+                } label: {
+                    // 和其他按钮一样的黑色图标；点一下星星按层弹一下，由操作触发，不做循环的装饰动画
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(.primary)
+                        .symbolEffect(.bounce.up.byLayer, options: .speed(1.4), value: sparkleTick)
+                }
+                .accessibilityLabel("循环排班")
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     withAnimation(batchAnimation) {
@@ -152,20 +157,14 @@ struct CalendarScreen: View {
                 .accessibilityLabel(batchMode ? "退出多选" : "批量修改")
                 .sensoryFeedback(.impact(weight: .light), trigger: batchMode)
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    sparkleTick += 1
-                    isGeneratorPresented = true
-                } label: {
-                    // 点一下星星按层弹一下，由操作触发，不做循环的装饰动画
-                    Image(systemName: "sparkles")
-                        .symbolEffect(.bounce.up.byLayer, options: .speed(1.4), value: sparkleTick)
-                }
-                .buttonStyle(.glassProminent)
-                // 染色调淡一些，底下的玻璃透得出来，不是一整块实心蓝
-                .tint(Palette.blue.opacity(0.55))
-                .accessibilityLabel("循环排班")
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                jump(to: store.todayKey)
+            } label: {
+                TodayBadge(day: Int(store.todayKey.suffix(2)) ?? 1)
             }
+            .accessibilityLabel("回到今天")
         }
     }
 
