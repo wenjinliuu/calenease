@@ -758,7 +758,8 @@ private struct AgendaWeekView: View {
     /// 本周一行：星期在上、日期在下，和日视图顶上的日期条一个样子，列和下面的时间轴对齐。
     private func header(_ days: [Int]) -> some View {
         HStack(spacing: 0) {
-            Color.clear.frame(width: Self.gutter)
+            // 只占宽度：只给宽度的 Color 会把高度撑满，之前整行日期就是这样被挤到了屏幕中间
+            Color.clear.frame(width: Self.gutter, height: 0)
             ForEach(days, id: \.self) { number in
                 let date = DayNumber.civil(number)
                 let isSelected = number == day
