@@ -503,6 +503,15 @@ struct EventRow: View {
     }
 }
 
+/// 倒数日卡片上的图标：考试、生日、纪念日、旅行、入职……
+enum CountdownSymbols {
+    static let fallback = "hourglass"
+    static let all = ["hourglass", "birthday.cake", "gift", "heart", "star", "flag", "airplane",
+                      "graduationcap", "book", "briefcase", "house", "car", "figure.2", "figure.and.child.holdinghands",
+                      "pawprint", "leaf", "sun.max", "moon.stars", "party.popper", "trophy",
+                      "stethoscope", "banknote", "music.note", "camera"]
+}
+
 /// 事项页时间线上那颗圆里的图标。
 enum EventSymbols {
     static let fallback = "calendar"
@@ -517,15 +526,17 @@ enum EventSymbols {
 struct SymbolPickerRow: View {
     @Binding var selection: String?
     let tint: String
+    var symbols: [String] = EventSymbols.all
+    var fallback: String = EventSymbols.fallback
 
     var body: some View {
         let tone = Tone.event(tint)
         ScrollView(.horizontal) {
             HStack(spacing: 8) {
-                ForEach(EventSymbols.all, id: \.self) { symbol in
-                    let picked = (selection ?? EventSymbols.fallback) == symbol
+                ForEach(symbols, id: \.self) { symbol in
+                    let picked = (selection ?? fallback) == symbol
                     Button {
-                        selection = symbol == EventSymbols.fallback || picked ? nil : symbol
+                        selection = symbol == fallback || picked ? nil : symbol
                     } label: {
                         Image(systemName: symbol)
                             .font(.system(size: 15, weight: .semibold))

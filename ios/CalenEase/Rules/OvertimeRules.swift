@@ -19,7 +19,7 @@ enum OvertimeRules {
             return total - standardTarget
         }
 
-        if settings.system == .manual || settings.system == .irregular
+        if settings.system == .manual || settings.system == .irregular || settings.system == .hourly
             || (settings.system == .custom && settings.customRule == .manual) {
             return records.reduce(0) { $0 + max(0, $1.manualOvertime ?? 0) }
         }

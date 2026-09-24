@@ -19,8 +19,6 @@ struct CalendarScreen: View {
     @State private var isBatchEditorPresented = false
     /// 点格子选中时震一下。翻月自动选 1 号时月份那边已经震过了，不再叠一次。
     @State private var tapTick = 0
-    /// 内容有没有滚到顶栏底下。没滚时不画渐变——否则渐变正好压在星期那一行上。
-    @State private var isScrolled = false
 
     /// 进出多选用的弹簧：略带一点回弹，行动条展开、网格下移、格子描边淡入都走这一条，
     /// 几样东西同一节奏动，看起来是一个整体在让位，而不是各动各的。
@@ -58,15 +56,9 @@ struct CalendarScreen: View {
                 .padding(.top, 2)
                 .padding(.bottom, 24)
             }
-            // 标题行和多选行动条固定在顶上，不跟着内容上下滑；内容从它底下滑过去，
-            // 交界处一段渐变淡出。自己画渐变，不用系统的滚动边缘效果——
-            // 那个在不同系统版本上样子不一样，这里要各版本一致。
-            .onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top > 1
-            } action: { _, scrolled in
-                withAnimation(.easeOut(duration: 0.18)) { isScrolled = scrolled }
-            }
-            .safeAreaInset(edge: .top, spacing: 0) { pinnedBar }
+            // 标题行和多选行动条固定在顶上，不跟着内容上下滑；内容从它底下滑过去时，
+            // 系统的玻璃边缘效果把月历柔和地淡进顶栏（见 `pinnedTopBar`）。
+            .pinnedTopBar { pinnedBar }
             .background(Palette.canvas)
             .toolbarVisibility(.hidden, for: .navigationBar)
             .sheet(item: $sheet) { item in
@@ -135,7 +127,6 @@ struct CalendarScreen: View {
                 .allowsHitTesting(batchMode)
                 .accessibilityHidden(!batchMode)
         }
-        .background { PinnedBarBackground(showsFade: isScrolled) }
     }
 
     private var header: some View {
@@ -174,7 +165,7 @@ struct CalendarScreen: View {
             } label: {
                 TodayBadge(day: Int(store.todayKey.suffix(2)) ?? 1)
                     .frame(width: 38, height: 38)
-                    .background(Palette.card, in: Circle())
+                    .glassCircle()
             }
             .buttonStyle(.plain)
             .accessibilityLabel("回到今天")
@@ -193,15 +184,7 @@ struct CalendarScreen: View {
                         .contentTransition(.symbolEffect(.replace.downUp.byLayer, options: .nonRepeating))
                         .foregroundStyle(batchMode ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                         .frame(width: 38, height: 38)
-                        .background {
-                            ZStack {
-                                Circle().fill(Palette.card)
-                                Circle()
-                                    .fill(Palette.blue)
-                                    .scaleEffect(batchMode ? 1 : 0.2)
-                                    .opacity(batchMode ? 1 : 0)
-                            }
-                        }
+                        .glassCircle(tint: batchMode ? Palette.blue : nil)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(batchMode ? "退出多选" : "批量修改")
@@ -214,7 +197,7 @@ struct CalendarScreen: View {
                         .font(.body.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(width: 38, height: 38)
-                        .background(Palette.blue, in: Circle())
+                        .glassCircle(tint: Palette.blue)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("循环排班")
@@ -312,30 +295,6 @@ struct CalendarScreen: View {
         case -2: "前天"
         default: date
         }
-    }
-}
-
-/// 固定在顶上的标题栏的底：上面实色，往下一段渐变淡出，内容从底下滑过去时自然过渡。
-///
-/// 渐变只在内容真的滚到顶栏底下时才出现（`showsFade`）。停在顶部时它会伸到
-/// 顶栏外面、半盖住月历的星期那一行——之前就是这样把「一 二 三」遮掉了一半。
-struct PinnedBarBackground: View {
-    var showsFade = true
-    var fade: CGFloat = 22
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Palette.canvas
-            LinearGradient(stops: [.init(color: Palette.canvas, location: 0),
-                                   .init(color: Palette.canvas.opacity(0.85), location: 0.35),
-                                   .init(color: Palette.canvas.opacity(0), location: 1)],
-                           startPoint: .top, endPoint: .bottom)
-                .frame(height: fade)
-                .opacity(showsFade ? 1 : 0)
-        }
-        .padding(.bottom, -fade)
-        .ignoresSafeArea(edges: .top)
-        .allowsHitTesting(false)
     }
 }
 

@@ -12,6 +12,9 @@ enum WorkSystem: String, Codable, Sendable, CaseIterable, Identifiable {
     case custom
     /// 全部手动记录。
     case manual
+    /// 小时工：按实际上班的小时计。具体怎么统计以后再细化，现在先和不定时工时一样，
+    /// 不自动判定加班，要登记就逐日手动填。网页版还没有这个选项，导过去会落回默认制度。
+    case hourly
 
     var id: String { rawValue }
 
@@ -22,6 +25,7 @@ enum WorkSystem: String, Codable, Sendable, CaseIterable, Identifiable {
         case .irregular: "不定时工时"
         case .custom: "自定义"
         case .manual: "手动记录"
+        case .hourly: "小时工"
         }
     }
 
@@ -32,6 +36,7 @@ enum WorkSystem: String, Codable, Sendable, CaseIterable, Identifiable {
         case .irregular: "不自动判定，加班全部手动登记"
         case .custom: "自己设定判定规则和阈值"
         case .manual: "工时和加班都逐日手动填写"
+        case .hourly: "按实际上班小时计，不自动判定加班"
         }
     }
 }

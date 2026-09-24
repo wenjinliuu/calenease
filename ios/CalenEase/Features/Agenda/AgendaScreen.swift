@@ -9,13 +9,17 @@ import SwiftUI
 ///
 /// 月视图去掉了：日历页本身就是月视图。两种视图共用同一个「选中的日子」。
 struct AgendaScreen: View {
+    /// 再点一次「事项」标签时加一：回到今天，列表重新定位到今天那一段。
+    var resetToken = 0
+
     @Environment(ScheduleStore.self) private var store
 
     @AppStorage("agenda.mode") private var modeRaw = AgendaMode.day.rawValue
     @State private var day: Int = DayNumber.of(ScheduleCalendar.todayKey) ?? 0
     @State private var editorTarget: EventEditorTarget?
-    /// 内容有没有滚到顶栏底下，决定顶栏下沿画不画渐变。
-    @State private var isScrolled = false
+    /// 换一个值就重建日视图列表。再点「事项」标签时，系统会把列表滚到最顶上
+    /// （一年前那一天），看起来像跳到了不知道哪一天；直接换一个新列表、定位到今天，不和它抢。
+    @State private var listID = 0
 
     private var mode: AgendaMode { AgendaMode(rawValue: modeRaw) ?? .day }
     private var today: Int { DayNumber.of(store.todayKey) ?? 0 }
@@ -25,17 +29,31 @@ struct AgendaScreen: View {
             Group {
                 switch mode {
                 case .day:
-                    AgendaDayList(day: $day, isScrolled: $isScrolled, onEdit: open)
+                    AgendaDayList(day: $day, onEdit: open)
+                        .id(listID)
                 case .week:
-                    AgendaWeekView(day: $day, isScrolled: $isScrolled, onEdit: open)
+                    AgendaWeekView(day: $day, onEdit: open)
+                        .id(listID)
                 }
             }
-            .safeAreaInset(edge: .top, spacing: 0) { pinnedBar }
+            .pinnedTopBar { pinnedBar }
             .background(Palette.canvas)
             .toolbarVisibility(.hidden, for: .navigationBar)
             .overlay(alignment: .bottomTrailing) { addButton }
             .sheet(item: $editorTarget) { target in
                 EventEditorSheet(target: target)
+            }
+            .onChange(of: resetToken) { _, _ in
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    day = today
+                    listID += 1
+                }
+                // 系统的「点标签回到顶部」动画要是晚一拍落到新列表上，再定位一次今天
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    if day != today { withAnimation(.smooth(duration: 0.3)) { day = today } }
+                }
             }
         }
     }
@@ -54,7 +72,6 @@ struct AgendaScreen: View {
             }
         }
         .padding(.bottom, 6)
-        .background { PinnedBarBackground(showsFade: isScrolled) }
     }
 
     private var header: some View {
@@ -90,7 +107,7 @@ struct AgendaScreen: View {
             } label: {
                 TodayBadge(day: DayNumber.civil(today).day)
                     .frame(width: 38, height: 38)
-                    .background(Palette.card, in: Circle())
+                    .glassCircle()
             }
             .buttonStyle(.plain)
             .accessibilityLabel("回到今天")
@@ -127,13 +144,13 @@ enum AgendaMode: String, CaseIterable, Identifiable {
     }
 }
 
-/// 「今天」按钮上的小日历：顶上一道红，下面是今天几号。
+/// 「今天」按钮上的小日历：顶上一道蓝（省心日历的主色），下面是今天几号。
 struct TodayBadge: View {
     let day: Int
 
     var body: some View {
         VStack(spacing: 0) {
-            Rectangle().fill(Palette.red).frame(height: 5)
+            Rectangle().fill(Palette.blue).frame(height: 5)
             Text("\(day)")
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .monospacedDigit()
@@ -240,7 +257,6 @@ private struct WeekStrip: View {
 /// 一天一段，竖着一直往下排。滚到哪一天，顶上的日期条就选中哪一天。
 private struct AgendaDayList: View {
     @Binding var day: Int
-    @Binding var isScrolled: Bool
     let onEdit: (EventEditorTarget) -> Void
 
     @Environment(ScheduleStore.self) private var store
@@ -263,11 +279,6 @@ private struct AgendaDayList: View {
             .padding(.bottom, 90)
         }
         .scrollPosition(id: $position, anchor: .top)
-        .onScrollGeometryChange(for: Bool.self) { geometry in
-            geometry.contentOffset.y + geometry.contentInsets.top > 1
-        } action: { _, scrolled in
-            withAnimation(.easeOut(duration: 0.18)) { isScrolled = scrolled }
-        }
         .onAppear { position = day }
         .onChange(of: position) { _, newValue in
             guard let newValue else { return }
@@ -462,6 +473,10 @@ private struct ShiftBadge: View {
 }
 
 /// 左滑露出一颗红色删除按钮；滑过一大半直接删。只认横向拖动，竖着滑照常滚动列表。
+///
+/// 横向拖动一开始，里面的内容就不再接收点按：否则手指松开时，条目自己的按钮会把这次拖动
+/// 当成一次点击，删除没露出来、编辑抽屉先弹了。往右拖也一样拦住（往右没有操作）。
+/// 已经滑开的一条，点它只是合上，不进编辑。
 struct SwipeToDelete<Content: View>: View {
     let id: String
     @Binding var openRow: String?
@@ -475,10 +490,20 @@ struct SwipeToDelete<Content: View>: View {
 
     var body: some View {
         content()
+            // 拖动中、或者已经滑开时，内容不接点按
+            .allowsHitTesting(!dragging && offset == 0)
             .offset(x: offset)
+            .overlay {
+                if offset < 0 && !dragging {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .offset(x: offset)
+                        .onTapGesture { withAnimation(.snappy(duration: 0.22)) { close() } }
+                }
+            }
             .background(alignment: .trailing) {
                 Button(role: .destructive) {
-                    close()
+                    withAnimation(.snappy(duration: 0.22)) { close() }
                     onDelete()
                 } label: {
                     VStack(spacing: 3) {
@@ -497,33 +522,40 @@ struct SwipeToDelete<Content: View>: View {
             }
             // 只裁左右：时间线上胶囊之间的连线要伸到下一条，上下不能裁
             .mask { Rectangle().padding(.vertical, -400) }
+            // 内容暂时不接点按时，拖动手势也要有地方落手
+            .contentShape(Rectangle())
             .simultaneousGesture(
-                DragGesture(minimumDistance: 18)
+                DragGesture(minimumDistance: 12)
                     .onChanged { value in
                         let dx = value.translation.width, dy = value.translation.height
-                        guard dragging || abs(dx) > abs(dy) * 1.4 else { return }
+                        guard dragging || abs(dx) > abs(dy) * 1.3 else { return }
                         if !dragging {
                             dragging = true
                             startOffset = offset
                             if openRow != id { openRow = id }
                         }
-                        offset = min(0, startOffset + dx)
+                        // 往右最多拉回到 0，再往右只给一点阻尼
+                        let proposed = startOffset + dx
+                        offset = proposed > 0 ? min(12, proposed * 0.15) : proposed
                     }
                     .onEnded { value in
                         guard dragging else { return }
-                        dragging = false
                         let predicted = value.predictedEndTranslation.width
+                        var deleteNow = false
                         withAnimation(.snappy(duration: 0.25)) {
                             if offset < -220 || predicted < -380 {
                                 offset = -600
-                            } else if offset < -buttonWidth / 2 || predicted < -120 {
+                                deleteNow = true
+                            } else if offset < -buttonWidth / 2 || (predicted < -120 && offset < 0) {
                                 offset = -buttonWidth
                                 openRow = id
                             } else {
                                 close()
                             }
                         }
-                        if offset <= -600 {
+                        // 松手这一帧还算在拖动里，下一帧再放开点按，免得松手本身被当成一次点击
+                        DispatchQueue.main.async { dragging = false }
+                        if deleteNow {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                                 onDelete()
                                 offset = 0
@@ -642,24 +674,25 @@ struct TimelineEntry: View {
 
 // MARK: - 周视图
 
-/// 周视图：周一到周日七列，共用同一条竖着的时间轴。
+/// 周视图：顶上只有本周一行日期（周一到周日），下面七列共用一条时间轴，像一张周历。
 ///
-/// 原来是横向分页、每一页各带一个竖向滚动：翻页时新的一周总从 7 点开始，旧的一周停在别处，
-/// 刻度和色块在手指底下错开；日期表头也占了很大一块。现在只有一个竖向滚动，
-/// 左右滑动只换这一周的内容，时间停在哪就还在哪；表头压成一行「一 22」。
+/// 左边刻度写全「08:00」，和日历页当天时间轴一个样子；今天在这一周里时，
+/// 刻度栏里有一颗红色「现在」胶囊写着几点几分，红线横过整周、今天那一列加粗。
+/// 全天日程放在时间轴最上面，跟着一起滚，不再多占一行表头。
+/// 左右滑动换周，竖着滚到哪个钟点，换周后还停在那里。
 private struct AgendaWeekView: View {
     @Binding var day: Int
-    @Binding var isScrolled: Bool
     let onEdit: (EventEditorTarget) -> Void
 
     @Environment(ScheduleStore.self) private var store
     /// 翻周的方向，给切换动画用：往后翻从右边推进来，往前翻从左边。
     @State private var forward = true
 
-    static let hourHeight: CGFloat = 40
-    static let gutter: CGFloat = 34
+    static let hourHeight: CGFloat = 44
+    /// 刻度栏：放得下「08:00」和「现在」胶囊，胶囊左边也不贴屏幕边。
+    static let gutter: CGFloat = 54
     /// 时间轴上下各留一点，0 点和 24 点的刻度字不被切掉。
-    static let gridInset: CGFloat = 8
+    static let gridInset: CGFloat = 10
 
     private var weekStart: Int { day - DayNumber.weekday(day) }
     private var today: Int { DayNumber.of(store.todayKey) ?? 0 }
@@ -667,41 +700,32 @@ private struct AgendaWeekView: View {
     var body: some View {
         let days = (0..<7).map { weekStart + $0 }
         let perDay = days.map { store.occurrences(on: DayNumber.key($0)) }
-        let allDay = perDay.map { $0.filter { $0.event.isAllDay } }
 
         VStack(spacing: 0) {
-            Group {
-                header(days)
-                if allDay.contains(where: { !$0.isEmpty }) {
-                    allDayRow(allDay)
-                }
-            }
-            .id(weekStart)
-            .transition(slide)
-
+            header(days)
+                .id(weekStart)
+                .transition(slide)
             Divider()
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    WeekTimeGrid(days: days, perDay: perDay, today: today, onEdit: onEdit)
-                        .id(weekStart)
-                        .transition(slide)
-                        .overlay(alignment: .topLeading) {
-                            // 滚动定位用的锚点，一小时一个，和时间轴同一套坐标
-                            VStack(spacing: 0) {
-                                ForEach(0..<24, id: \.self) { hour in
-                                    Color.clear.frame(height: Self.hourHeight).id(hour)
+                    VStack(spacing: 0) {
+                        allDayBand(days: days, perDay: perDay)
+                        WeekTimeGrid(days: days, perDay: perDay, today: today, onEdit: onEdit)
+                            .overlay(alignment: .topLeading) {
+                                // 滚动定位用的锚点，一小时一个，和时间轴同一套坐标
+                                VStack(spacing: 0) {
+                                    ForEach(0..<24, id: \.self) { hour in
+                                        Color.clear.frame(height: Self.hourHeight).id(hour)
+                                    }
                                 }
+                                .padding(.top, Self.gridInset)
+                                .allowsHitTesting(false)
                             }
-                            .padding(.top, Self.gridInset)
-                            .allowsHitTesting(false)
-                        }
-                        .padding(.bottom, 90)
-                }
-                .onScrollGeometryChange(for: Bool.self) { geometry in
-                    geometry.contentOffset.y + geometry.contentInsets.top > 1
-                } action: { _, scrolled in
-                    withAnimation(.easeOut(duration: 0.18)) { isScrolled = scrolled }
+                    }
+                    .id(weekStart)
+                    .transition(slide)
+                    .padding(.bottom, 90)
                 }
                 .onAppear {
                     let hour = Calendar.current.component(.hour, from: Date())
@@ -728,10 +752,10 @@ private struct AgendaWeekView: View {
 
     private func step(_ weeks: Int) {
         forward = weeks > 0
-        withAnimation(.snappy(duration: 0.3)) { day += 7 * weeks }
+        withAnimation(.spring(duration: 0.3, bounce: 0)) { day += 7 * weeks }
     }
 
-    /// 一行：星期 + 日期。选中的那天蓝底，今天红字（选中又是今天就红底）。
+    /// 本周一行：星期在上、日期在下，和日视图顶上的日期条一个样子，列和下面的时间轴对齐。
     private func header(_ days: [Int]) -> some View {
         HStack(spacing: 0) {
             Color.clear.frame(width: Self.gutter)
@@ -739,77 +763,81 @@ private struct AgendaWeekView: View {
                 let date = DayNumber.civil(number)
                 let isSelected = number == day
                 let isToday = number == today
+                let weekday = ScheduleCalendar.weekdaySymbols[DayNumber.weekday(number)]
                 Button {
                     withAnimation(.snappy(duration: 0.2)) { day = number }
                 } label: {
-                    HStack(spacing: 2) {
-                        Text(ScheduleCalendar.weekdaySymbols[DayNumber.weekday(number)])
+                    VStack(spacing: 2) {
+                        Text(weekday)
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary))
+                            .foregroundStyle(.secondary)
                         Text("\(date.day)")
-                            .font(.system(size: 13, weight: isSelected || isToday ? .bold : .medium))
+                            .font(.system(size: 15, weight: isSelected || isToday ? .bold : .medium))
                             .monospacedDigit()
                             .foregroundStyle(isSelected ? AnyShapeStyle(.white)
-                                             : isToday ? AnyShapeStyle(Palette.red) : AnyShapeStyle(.primary))
+                                             : isToday ? AnyShapeStyle(Palette.blue) : AnyShapeStyle(.primary))
+                            .frame(width: 28, height: 28)
+                            .background {
+                                if isSelected { Circle().fill(Palette.blue) }
+                            }
+                            .transaction { $0.animation = nil }
                     }
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 24)
-                    .background {
-                        if isSelected {
-                            Capsule().fill(isToday ? Palette.red : Palette.blue).padding(.horizontal, 2)
-                        }
-                    }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(date.month)月\(date.day)日 周\(ScheduleCalendar.weekdaySymbols[DayNumber.weekday(number)])")
+                .accessibilityLabel("\(date.month)月\(date.day)日 周\(weekday)")
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
-        .padding(.horizontal, 4)
+        .padding(.trailing, 4)
         .padding(.vertical, 4)
     }
 
-    private func allDayRow(_ allDay: [[EventOccurrence]]) -> some View {
-        HStack(alignment: .top, spacing: 0) {
-            Text("全天")
-                .font(.system(size: 9.5))
-                .foregroundStyle(.tertiary)
-                .frame(width: Self.gutter)
-                .padding(.top, 2)
-            ForEach(Array(allDay.enumerated()), id: \.offset) { _, items in
-                VStack(spacing: 2) {
-                    ForEach(items.prefix(2)) { occurrence in
-                        let tone = Tone.event(occurrence.event.color)
-                        Button { onEdit(.edit(occurrence)) } label: {
-                            Text(occurrence.event.title)
-                                .font(.system(size: 9, weight: .semibold))
-                                .strikethrough(occurrence.isCompleted, color: tone.ink)
-                                .foregroundStyle(tone.ink)
-                                .lineLimit(1)
-                                .padding(.horizontal, 2)
-                                .frame(maxWidth: .infinity, minHeight: 16)
-                                .background(tone.fill, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+    /// 全天日程：时间轴最上面一条，跟着一起滚。没有全天日程就不占地方。
+    @ViewBuilder
+    private func allDayBand(days: [Int], perDay: [[EventOccurrence]]) -> some View {
+        let allDay = perDay.map { $0.filter { $0.event.isAllDay } }
+        if allDay.contains(where: { !$0.isEmpty }) {
+            HStack(alignment: .top, spacing: 0) {
+                Text("全天")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .frame(width: Self.gutter - 6, alignment: .trailing)
+                    .padding(.trailing, 6)
+                    .padding(.top, 2)
+                ForEach(Array(allDay.enumerated()), id: \.offset) { _, items in
+                    VStack(spacing: 2) {
+                        ForEach(items.prefix(2)) { occurrence in
+                            let tone = Tone.event(occurrence.event.color)
+                            Button { onEdit(.edit(occurrence)) } label: {
+                                Text(occurrence.event.title)
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .strikethrough(occurrence.isCompleted, color: tone.ink)
+                                    .foregroundStyle(tone.ink)
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 2)
+                                    .frame(maxWidth: .infinity, minHeight: 16)
+                                    .background(tone.fill, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                        if items.count > 2 {
+                            Text("+\(items.count - 2)").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
+                        }
                     }
-                    if items.count > 2 {
-                        Text("+\(items.count - 2)").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
-                    }
+                    .padding(.horizontal, 1)
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, 1)
-                .frame(maxWidth: .infinity)
             }
+            .padding(.trailing, 4)
+            .padding(.top, 6)
         }
-        .padding(.horizontal, 4)
-        .padding(.bottom, 4)
     }
 }
 
 /// 一周的时间格子。刻度线、刻度字、色块、「现在」红线全在同一个坐标系里摆，
-/// 分钟换算成 y 只有一个公式，不会一个跟着行高走、一个跟着偏移走而对不齐。
+/// 分钟换算成 y 只有一个公式，刻度和色块不会对不齐。
 private struct WeekTimeGrid: View {
     let days: [Int]
     let perDay: [[EventOccurrence]]
@@ -824,27 +852,30 @@ private struct WeekTimeGrid: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let columnWidth = (geometry.size.width - gutter - 4) / 7
+            let gridWidth = geometry.size.width - gutter - 4
+            let columnWidth = gridWidth / 7
+            let todayColumn = days.firstIndex(of: today)
             ZStack(alignment: .topLeading) {
                 // 今天那一列淡底
-                if let index = days.firstIndex(of: today) {
+                if let index = todayColumn {
                     Rectangle()
                         .fill(Palette.todayFill.opacity(0.55))
                         .frame(width: columnWidth, height: hourHeight * 24)
                         .offset(x: gutter + CGFloat(index) * columnWidth, y: inset)
                 }
-                // 刻度线与刻度字
+                // 刻度线与刻度字（写全到分钟）；「现在」胶囊附近的刻度让出来
                 ForEach(0...24, id: \.self) { hour in
                     Rectangle()
                         .fill(Palette.hairline)
-                        .frame(width: geometry.size.width - gutter - 4, height: 0.5)
+                        .frame(width: gridWidth, height: 0.5)
                         .offset(x: gutter, y: y(hour * 60))
-                    Text(String(format: "%02d", hour))
-                        .font(.system(size: 9.5))
+                    Text(String(format: "%02d:00", hour))
+                        .font(.caption2)
                         .monospacedDigit()
                         .foregroundStyle(.tertiary)
-                        .frame(width: gutter - 6, height: 12, alignment: .trailing)
-                        .offset(y: y(hour * 60) - 6)
+                        .frame(width: gutter - 6, height: 14, alignment: .trailing)
+                        .offset(y: y(hour * 60) - 7)
+                        .opacity(todayColumn != nil && Self.nearNow(hour) ? 0 : 1)
                 }
                 // 列分隔线
                 ForEach(1..<7, id: \.self) { index in
@@ -861,22 +892,49 @@ private struct WeekTimeGrid: View {
                     }
                 }
                 // 现在
-                if let index = days.firstIndex(of: today) {
-                    TimelineView(.everyMinute) { context in
-                        let parts = Calendar.current.dateComponents([.hour, .minute], from: context.date)
-                        let minutes = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
-                        HStack(spacing: 0) {
-                            Circle().fill(Palette.red).frame(width: 7, height: 7)
-                            Rectangle().fill(Palette.red).frame(height: 1.5)
-                        }
-                        .frame(width: columnWidth + 3.5)
-                        .offset(x: gutter + CGFloat(index) * columnWidth - 3.5, y: y(minutes) - 3.5)
-                    }
-                    .allowsHitTesting(false)
+                if let index = todayColumn {
+                    nowLine(gridWidth: gridWidth, columnWidth: columnWidth, column: index)
                 }
             }
         }
         .frame(height: hourHeight * 24 + inset * 2)
+    }
+
+    /// 离现在不到 15 分钟的整点刻度字让给「现在」胶囊。
+    private static func nearNow(_ hour: Int) -> Bool {
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: Date())
+        let now = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+        return abs(now - hour * 60) < 15
+    }
+
+    /// 刻度栏里一颗红胶囊写着「14:05」，一条细红线横过整周，今天那一列加粗。
+    private func nowLine(gridWidth: CGFloat, columnWidth: CGFloat, column: Int) -> some View {
+        TimelineView(.everyMinute) { context in
+            let parts = Calendar.current.dateComponents([.hour, .minute], from: context.date)
+            let minutes = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+            ZStack(alignment: .topLeading) {
+                Rectangle()
+                    .fill(Palette.red.opacity(0.35))
+                    .frame(width: gridWidth, height: 1)
+                    .offset(x: gutter, y: y(minutes) - 0.5)
+                Rectangle()
+                    .fill(Palette.red)
+                    .frame(width: columnWidth, height: 2)
+                    .offset(x: gutter + CGFloat(column) * columnWidth, y: y(minutes) - 1)
+                Text(EventClock.text(minutes))
+                    .font(.system(size: 10.5, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .frame(height: 17)
+                    .background(Palette.red, in: Capsule())
+                    .fixedSize()
+                    .frame(width: gutter - 2, alignment: .trailing)
+                    .offset(y: y(minutes) - 8.5)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityLabel("现在")
     }
 
     private func block(_ item: TimelineLayout.Placed, columnWidth: CGFloat, column: Int) -> some View {
@@ -890,7 +948,7 @@ private struct WeekTimeGrid: View {
                     .font(.system(size: 9.5, weight: .semibold))
                     .strikethrough(done, color: tone.ink)
                     .lineLimit(height > 30 ? 3 : 1)
-                if height > 44, !item.occurrence.event.isAllDay {
+                if height > 44 {
                     Text(item.occurrence.event.startTime)
                         .font(.system(size: 8.5))
                         .monospacedDigit()

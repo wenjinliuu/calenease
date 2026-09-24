@@ -462,7 +462,7 @@ struct DayEditorSheet: View {
     private var needsManualOvertime: Bool {
         guard document.work.trackOvertime else { return false }
         let system = document.work.system
-        return system == .manual || system == .irregular
+        return system == .manual || system == .irregular || system == .hourly
             || (system == .custom && document.work.customRule == .manual)
     }
 

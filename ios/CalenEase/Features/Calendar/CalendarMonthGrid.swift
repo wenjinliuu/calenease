@@ -354,7 +354,7 @@ private struct DayCell: View {
                 }
             }
             .animation(.spring(response: 0.26, dampingFraction: 0.7), value: isSelected)
-            .animation(.snappy(duration: 0.2), value: isFocused)
+            .animation(.easeOut(duration: 0.16), value: isFocused)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("day-\(key)")
             .accessibilityLabel(accessibilityText)
@@ -388,6 +388,9 @@ private struct DayCell: View {
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             .frame(height: DayCellMetrics.dateRow)
+            // 字重和颜色直接切，不做动画：SwiftUI 给字重做插值时字形会先挤后撑、颜色再慢慢过渡，
+            // 点一下看着像抖了一下。动画只留给蓝圈和底色的淡入淡出。
+            .transaction { $0.animation = nil }
     }
 
     /// 农历开着时日期下面一行：节日当天写节日（法定红、传统琥珀），平时写农历日子。

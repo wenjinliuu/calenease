@@ -70,7 +70,12 @@ struct CountdownCard: View {
     var body: some View {
         let tone = Tone.event(countdown.color)
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
+                Image(systemName: countdown.symbol ?? CountdownSymbols.fallback)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 20, height: 20)
+                    .background(tone.solid, in: Circle())
                 Text(countdown.title)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
@@ -161,8 +166,10 @@ struct CountdownEditorSheet: View {
                     }
                 }
 
-                Section("颜色") {
+                Section("颜色与图标") {
                     ColorPaletteRow(palette: AccentHex.eventPalette, selection: $draft.color)
+                    SymbolPickerRow(selection: $draft.symbol, tint: draft.color,
+                                    symbols: CountdownSymbols.all, fallback: CountdownSymbols.fallback)
                 }
 
                 Section("备注") {

@@ -90,7 +90,8 @@ private struct DayTimelinePage: View {
     @Environment(ScheduleStore.self) private var store
 
     private static let hourHeight: CGFloat = 48
-    private static let gutter: CGFloat = 46
+    /// 刻度栏宽度。「现在」胶囊靠右对齐在这一栏里，栏宽一点，胶囊左边离屏幕边缘就留出一段，不贴边。
+    private static let gutter: CGFloat = 54
 
     private var key: String { DayNumber.key(day) }
     private var document: ScheduleDocument { store.document }

@@ -340,8 +340,8 @@ private struct MonthCallout: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .background(Palette.inset, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
+        // 玻璃小卡：隐约透出底下的曲线
+        .glassCard(cornerRadius: 12)
     }
 
     private func row(_ title: String, _ value: Double, color: Color, sign: String = "") -> some View {
@@ -468,12 +468,12 @@ struct HoursTrendChart: View, Equatable {
                         .foregroundStyle(.clear)
                 }
 
+                // 计划工时也只撑纵轴范围、不画点：计划线就是一条干净的平滑曲线
                 if showsPlanned {
                     ForEach(scheduled) { point in
                         PointMark(x: .value("月份", Double(point.index)),
                                   y: .value("计划工时", point.planned))
-                            .foregroundStyle(Palette.purple)
-                            .symbolSize(point.index == selectedIndex ? 60 : 18)
+                            .foregroundStyle(.clear)
                     }
                 }
 
