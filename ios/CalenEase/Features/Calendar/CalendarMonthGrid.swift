@@ -354,7 +354,7 @@ private struct DayCell: View {
                 }
             }
             .animation(.spring(response: 0.26, dampingFraction: 0.7), value: isSelected)
-            .animation(.snappy(duration: 0.2), value: isFocused)
+            .animation(.easeOut(duration: 0.16), value: isFocused)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("day-\(key)")
             .accessibilityLabel(accessibilityText)
@@ -388,6 +388,10 @@ private struct DayCell: View {
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             .frame(height: DayCellMetrics.dateRow)
+            // 字重直接切，不做字形插值（插值时字形会先挤后撑，点一下像抖了一下）。
+            // 只关掉「内容」的过渡，位置照常跟着翻页动画走——之前用 transaction 把动画整个拿掉，
+            // 翻月时日期数字不跟卡片一起滑、先跳到位，其他元素看着就慢了半拍。
+            .contentTransition(.identity)
     }
 
     /// 农历开着时日期下面一行：节日当天写节日（法定红、传统琥珀），平时写农历日子。

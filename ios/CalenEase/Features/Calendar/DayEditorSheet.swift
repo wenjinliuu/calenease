@@ -113,7 +113,6 @@ struct DayEditorSheet: View {
         // 两页统一一个高度：之前跟着内容走，没有日程的那页矮得只剩一条，切页时抽屉忽高忽低。
         .presentationDetents([.fraction(0.78), .large])
         .presentationDragIndicator(.visible)
-        .presentationCornerRadius(28)
     }
 
     private var segmentBar: some View {
@@ -462,7 +461,7 @@ struct DayEditorSheet: View {
     private var needsManualOvertime: Bool {
         guard document.work.trackOvertime else { return false }
         let system = document.work.system
-        return system == .manual || system == .irregular
+        return system == .manual || system == .irregular || system == .hourly
             || (system == .custom && document.work.customRule == .manual)
     }
 

@@ -135,6 +135,8 @@ struct Countdown: Codable, Hashable, Identifiable, Sendable {
     /// 到那天发一条提醒（倒数日才有）。
     var remind: Bool
     var note: String?
+    /// 卡片上的小图标（SF Symbol 名）。nil 用默认的沙漏。网页版没有这个字段，导入导出原样忽略。
+    var symbol: String?
 
     init(id: String = ShiftCatalog.makeId("countdown"),
          title: String = "",
@@ -144,7 +146,8 @@ struct Countdown: Codable, Hashable, Identifiable, Sendable {
          color: String = AccentHex.vividOrange,
          pinned: Bool = false,
          remind: Bool = true,
-         note: String? = nil) {
+         note: String? = nil,
+         symbol: String? = nil) {
         self.id = id
         self.title = title
         self.date = date
@@ -154,6 +157,7 @@ struct Countdown: Codable, Hashable, Identifiable, Sendable {
         self.pinned = pinned
         self.remind = remind
         self.note = note
+        self.symbol = symbol
     }
 }
 
@@ -238,7 +242,7 @@ extension EventRecurrence {
 
 extension Countdown {
     enum CodingKeys: String, CodingKey {
-        case id, title, date, kind, repeatsYearly, color, pinned, remind, note
+        case id, title, date, kind, repeatsYearly, color, pinned, remind, note, symbol
     }
 
     init(from decoder: Decoder) throws {
@@ -251,7 +255,8 @@ extension Countdown {
                   color: try c.decodeIfPresent(String.self, forKey: .color) ?? AccentHex.vividOrange,
                   pinned: try c.decodeIfPresent(Bool.self, forKey: .pinned) ?? false,
                   remind: try c.decodeIfPresent(Bool.self, forKey: .remind) ?? true,
-                  note: try c.decodeIfPresent(String.self, forKey: .note))
+                  note: try c.decodeIfPresent(String.self, forKey: .note),
+                  symbol: try c.decodeIfPresent(String.self, forKey: .symbol))
     }
 }
 

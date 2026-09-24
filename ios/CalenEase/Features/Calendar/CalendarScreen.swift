@@ -8,6 +8,7 @@ import SwiftUI
 ///
 /// 点格子分两步：第一下只是选中（蓝圈），再点一下选中的那天才打开大抽屉。
 /// 打开 App 时今天已经是选中的，所以点今天一下就直接进编辑。
+/// 左右翻月不会改选中的日子，下面的面板一直是用户最后点的那一天。
 struct CalendarScreen: View {
     @Environment(ScheduleStore.self) private var store
 
@@ -19,8 +20,10 @@ struct CalendarScreen: View {
     @State private var isBatchEditorPresented = false
     /// 点格子选中时震一下。翻月自动选 1 号时月份那边已经震过了，不再叠一次。
     @State private var tapTick = 0
-    /// 内容有没有滚到顶栏底下。没滚时不画渐变——否则渐变正好压在星期那一行上。
-    @State private var isScrolled = false
+    /// 标题上显示的月份。跟着 store 的月份走，但自己带动画：翻页提交月份时为了卡片不跳，
+    /// 那一下是关掉动画的，标题要是直接读 store，数字滚动的动效就被一起关掉了。
+    @State private var titleIndex: Int?
+    @State private var sparkleTick = 0
 
     /// 进出多选用的弹簧：略带一点回弹，行动条展开、网格下移、格子描边淡入都走这一条，
     /// 几样东西同一节奏动，看起来是一个整体在让位，而不是各动各的。
@@ -58,17 +61,12 @@ struct CalendarScreen: View {
                 .padding(.top, 2)
                 .padding(.bottom, 24)
             }
-            // 标题行和多选行动条固定在顶上，不跟着内容上下滑；内容从它底下滑过去，
-            // 交界处一段渐变淡出。自己画渐变，不用系统的滚动边缘效果——
-            // 那个在不同系统版本上样子不一样，这里要各版本一致。
-            .onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top > 1
-            } action: { _, scrolled in
-                withAnimation(.easeOut(duration: 0.18)) { isScrolled = scrolled }
-            }
-            .safeAreaInset(edge: .top, spacing: 0) { pinnedBar }
+            // 和「工时」「设置」同一种顶栏：系统导航栏 + 系统玻璃按钮 + 系统滚动边缘效果。
+            // 多选行动条挂在导航栏下（safeAreaBar），算顶栏的一部分。
+            .safeAreaBar(edge: .top, spacing: 0) { batchBarSlot }
             .background(Palette.canvas)
-            .toolbarVisibility(.hidden, for: .navigationBar)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { toolbarContent }
             .sheet(item: $sheet) { item in
                 switch item {
                 case let .day(date, segment):
@@ -96,14 +94,9 @@ struct CalendarScreen: View {
             }
             .sensoryFeedback(.selection, trigger: store.focusedMonthKey)
             .sensoryFeedback(.selection, trigger: tapTick)
+            // 翻到别的月不自动选日子：选中的那天留在原处，用户点了才算选。
             .onChange(of: store.focusedIndex) { _, index in
-                // 翻到别的月：本月选今天，其他月选 1 号。跳转已经选好了那个月里的某天就不动。
-                guard !selectedDate.hasPrefix(store.focusedMonthKey) else { return }
-                withAnimation(.snappy(duration: 0.3)) {
-                    selectedDate = index == store.currentMonthIndex
-                        ? store.todayKey
-                        : ScheduleCalendar.key(year: store.focusedYear, month: store.focusedMonth, day: 1)
-                }
+                withAnimation(.snappy(duration: 0.3)) { titleIndex = index }
             }
             .onChange(of: shiftsEnabled) { _, enabled in
                 if !enabled {
@@ -116,111 +109,96 @@ struct CalendarScreen: View {
 
     // MARK: - 标题行
 
-    private var pinnedBar: some View {
-        VStack(spacing: 0) {
-            header
-                .padding(.horizontal, 18)
-                .padding(.top, 4)
-                .padding(.bottom, 10)
-
-            // 行动条一直在布局里，只是收起时高度为零并裁掉：展开时从上往下拉开，
-            // 下面的网格跟着同一条弹簧平滑下移，而不是先整块顶下去再淡入。
-            batchBar
-                .padding(.horizontal, 12)
-                .padding(.bottom, 10)
-                .frame(height: batchMode ? nil : 0, alignment: .top)
-                .clipped()
-                .opacity(batchMode ? 1 : 0)
-                .scaleEffect(batchMode ? 1 : 0.96, anchor: .top)
-                .allowsHitTesting(batchMode)
-                .accessibilityHidden(!batchMode)
-        }
-        .background { PinnedBarBackground(showsFade: isScrolled) }
+    /// 行动条一直在布局里，只是收起时高度为零并裁掉：展开时从上往下拉开，
+    /// 下面的网格跟着同一条弹簧平滑下移，而不是先整块顶下去再淡入。
+    private var batchBarSlot: some View {
+        batchBar
+            .padding(.horizontal, 12)
+            .padding(.top, 4)
+            .padding(.bottom, 10)
+            .frame(height: batchMode ? nil : 0, alignment: .top)
+            .clipped()
+            .opacity(batchMode ? 1 : 0)
+            .scaleEffect(batchMode ? 1 : 0.96, anchor: .top)
+            .allowsHitTesting(batchMode)
+            .accessibilityHidden(!batchMode)
     }
 
-    private var header: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Button { sheet = .jump } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text("\(store.focusedMonth + 1)")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .contentTransition(.numericText(value: Double(store.focusedMonth)))
-                    Text("月")
-                        .font(.title3.weight(.bold))
-                    if store.focusedYear != store.currentMonthIndex / 12 {
-                        Text("\(String(store.focusedYear))年")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(.leading, 4)
-                            .transition(.opacity.combined(with: .move(edge: .leading)))
-                    }
-                    Image(systemName: "chevron.down")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.tertiary)
-                        .padding(.leading, 2)
+    /// 右上角从左到右：循环排班、多选、回到今天。「今天」放在最右边，和事项页同一个位置。
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) { monthTitle }
+            .sharedBackgroundVisibility(.hidden)
+        if shiftsEnabled {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    sparkleTick += 1
+                    isGeneratorPresented = true
+                } label: {
+                    // 和其他按钮一样的黑色图标；点一下星星按层弹一下，由操作触发，不做循环的装饰动画
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(.primary)
+                        .symbolEffect(.bounce.up.byLayer, options: .speed(1.4), value: sparkleTick)
                 }
-                .foregroundStyle(.primary)
-                .contentShape(Rectangle())
+                .accessibilityLabel("循环排班")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(store.focusedMonthLabel)
-            .accessibilityHint("跳到任意日期")
-
-            Spacer(minLength: 0)
-
-            Button {
-                jump(to: store.todayKey)
-            } label: {
-                TodayBadge(day: Int(store.todayKey.suffix(2)) ?? 1)
-                    .frame(width: 38, height: 38)
-                    .background(Palette.card, in: Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("回到今天")
-
-            if shiftsEnabled {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     withAnimation(batchAnimation) {
                         batchMode.toggle()
                         batchDates = []
                     }
                 } label: {
-                    // 图标原地变形（清单 ⇄ 叉），不是整颗按钮一闪换掉；
-                    // 进入多选时按钮染成强调蓝，一眼看得出现在处在多选里。
+                    // 图标原地变形（清单 ⇄ 叉），不是整颗按钮一闪换掉
                     Image(systemName: batchMode ? "xmark" : "checklist")
-                        .font(.body.weight(.semibold))
                         .contentTransition(.symbolEffect(.replace.downUp.byLayer, options: .nonRepeating))
-                        .foregroundStyle(batchMode ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-                        .frame(width: 38, height: 38)
-                        .background {
-                            ZStack {
-                                Circle().fill(Palette.card)
-                                Circle()
-                                    .fill(Palette.blue)
-                                    .scaleEffect(batchMode ? 1 : 0.2)
-                                    .opacity(batchMode ? 1 : 0)
-                            }
-                        }
+                        .foregroundStyle(batchMode ? Palette.blue : Color.primary)
                 }
-                .buttonStyle(.plain)
                 .accessibilityLabel(batchMode ? "退出多选" : "批量修改")
                 .sensoryFeedback(.impact(weight: .light), trigger: batchMode)
-
-                Button {
-                    isGeneratorPresented = true
-                } label: {
-                    Image(systemName: "sparkles")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
-                        .background(Palette.blue, in: Circle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("循环排班")
             }
         }
-        .animation(.snappy(duration: 0.3), value: store.focusedIndex)
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                jump(to: store.todayKey)
+            } label: {
+                TodayBadge(day: Int(store.todayKey.suffix(2)) ?? 1)
+            }
+            .accessibilityLabel("回到今天")
+        }
+    }
+
+    private var monthTitle: some View {
+        let index = titleIndex ?? store.focusedIndex
+        let year = index / 12, month = index % 12
+        return Button { sheet = .jump } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                // 和事项页左上角的月份同一种数字滚动
+                Text("\(month + 1)")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText(value: Double(index)))
+                Text("月")
+                    .font(.headline.weight(.bold))
+                if year != store.currentMonthIndex / 12 {
+                    Text("\(String(year))年")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 4)
+                        .transition(.opacity.combined(with: .move(edge: .leading)))
+                }
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.tertiary)
+                    .padding(.leading, 2)
+            }
+            .foregroundStyle(.primary)
+            .fixedSize()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(store.focusedMonthLabel)
+        .accessibilityHint("跳到任意日期")
     }
 
     /// 跳到某一天：选中它，月历翻过去。
@@ -315,30 +293,6 @@ struct CalendarScreen: View {
     }
 }
 
-/// 固定在顶上的标题栏的底：上面实色，往下一段渐变淡出，内容从底下滑过去时自然过渡。
-///
-/// 渐变只在内容真的滚到顶栏底下时才出现（`showsFade`）。停在顶部时它会伸到
-/// 顶栏外面、半盖住月历的星期那一行——之前就是这样把「一 二 三」遮掉了一半。
-struct PinnedBarBackground: View {
-    var showsFade = true
-    var fade: CGFloat = 22
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Palette.canvas
-            LinearGradient(stops: [.init(color: Palette.canvas, location: 0),
-                                   .init(color: Palette.canvas.opacity(0.85), location: 0.35),
-                                   .init(color: Palette.canvas.opacity(0), location: 1)],
-                           startPoint: .top, endPoint: .bottom)
-                .frame(height: fade)
-                .opacity(showsFade ? 1 : 0)
-        }
-        .padding(.bottom, -fade)
-        .ignoresSafeArea(edges: .top)
-        .allowsHitTesting(false)
-    }
-}
-
 /// 日历页弹出来的几种抽屉。
 enum CalendarSheet: Identifiable {
     case day(String, DaySegment)
@@ -368,6 +322,9 @@ private struct DayPanel: View {
     let onTimeline: () -> Void
 
     @Environment(ScheduleStore.self) private var store
+    @Environment(\.showToast) private var showToast
+    /// 哪一条日程正左滑开着，同一时间只开一条。
+    @State private var openRow: String?
 
     var body: some View {
         let document = store.document
@@ -411,13 +368,40 @@ private struct DayPanel: View {
             } else {
                 VStack(spacing: 6) {
                     ForEach(occurrences) { occurrence in
-                        Button { onEditEvent(occurrence) } label: {
-                            EventRow(occurrence: occurrence, day: date)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Palette.inset, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        // 和事项页一样：右边打勾完成（两边同步），左滑编辑 / 删除
+                        SwipeActionsRow(id: occurrence.id, openRow: $openRow,
+                                        onEdit: { onEditEvent(occurrence) },
+                                        onDelete: { delete(occurrence) },
+                                        cornerRadius: 12) {
+                            HStack(spacing: 8) {
+                                // 用轻点手势，不用按钮：按钮在手指拖了一小段再松开时也会触发，
+                                // 左滑删除时就会顺带弹出编辑抽屉；轻点手势一旦手指移动就不算。
+                                EventRow(occurrence: occurrence, day: date, showsDoneMark: false)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { onEditEvent(occurrence) }
+                                    .accessibilityAddTraits(.isButton)
+                                    .accessibilityAction { onEditEvent(occurrence) }
+                                Button {
+                                    withAnimation(.snappy(duration: 0.25)) {
+                                        store.toggleCompletion(eventId: occurrence.event.id, on: occurrence.startKey)
+                                    }
+                                } label: {
+                                    Image(systemName: occurrence.isCompleted ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 22))
+                                        .foregroundStyle(Tone.event(occurrence.event.color).solid)
+                                        .contentTransition(.symbolEffect(.replace))
+                                        .frame(width: 32, height: 32)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(occurrence.isCompleted ? "标记为未完成" : "标记为完成")
+                                .sensoryFeedback(.success, trigger: occurrence.isCompleted) { _, new in new }
+                            }
+                            .padding(.leading, 10)
+                            .padding(.trailing, 4)
+                            .padding(.vertical, 6)
+                            .background(Palette.inset, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -436,9 +420,22 @@ private struct DayPanel: View {
         .animation(.snappy(duration: 0.25), value: date)
     }
 
+    /// 重复日程左滑删掉的只是这一次，单次日程整条删掉。
+    private func delete(_ occurrence: EventOccurrence) {
+        let repeating = occurrence.event.recurrence.isRepeating
+        withAnimation(.snappy(duration: 0.28)) {
+            if repeating {
+                store.excludeOccurrence(eventId: occurrence.event.id, on: occurrence.startKey)
+            } else {
+                store.deleteEvent(id: occurrence.event.id)
+            }
+        }
+        showToast(repeating ? "已删除这一次" : "已删除日程", symbol: "trash")
+    }
+
     @ViewBuilder
     private func shiftRow(_ document: ScheduleDocument) -> some View {
-        let record = document.record(on: date)
+        let record = store.record(on: date)
         let shift = record.flatMap { $0.planned ? document.shift($0.shiftId) : nil }
         Button(action: onEditShift) {
             HStack(spacing: 10) {

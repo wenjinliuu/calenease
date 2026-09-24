@@ -340,8 +340,8 @@ private struct MonthCallout: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .background(Palette.inset, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
+        // 玻璃小卡：隐约透出底下的曲线
+        .glassCard(cornerRadius: 12)
     }
 
     private func row(_ title: String, _ value: Double, color: Color, sign: String = "") -> some View {
@@ -468,35 +468,32 @@ struct HoursTrendChart: View, Equatable {
                         .foregroundStyle(.clear)
                 }
 
+                // 计划工时也只撑纵轴范围、不画点：计划线就是一条干净的平滑曲线
                 if showsPlanned {
                     ForEach(scheduled) { point in
                         PointMark(x: .value("月份", Double(point.index)),
                                   y: .value("计划工时", point.planned))
-                            .foregroundStyle(Palette.purple)
-                            .symbolSize(point.index == selectedIndex ? 60 : 18)
+                            .foregroundStyle(.clear)
                     }
                 }
 
-                // 长按选中某个月：一条竖线，顶上一张小卡写这个月的计划、基本、额外。
+                // 长按选中某个月：一条竖线；那张小卡画在上层（见 chartOverlay），压在曲线上面
                 if let selected {
                     RuleMark(x: .value("月份", Double(selected.index)))
                         .foregroundStyle(Color.secondary.opacity(0.5))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                        .annotation(position: .top,
-                                    spacing: 4,
-                                    overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
-                            MonthCallout(label: selected.label,
-                                         planned: selected.planned,
-                                         basic: selected.basic,
-                                         showsExtra: showsPlanned)
-                        }
                 }
             }
             .chartBackground { proxy in
                 GeometryReader { geometry in
                     if let plotFrame = proxy.plotFrame {
                         let origin = geometry[plotFrame].origin
-                        TrendFills(proxy: proxy, origin: origin, basic: basicCurve, planned: plannedCurves)
+                        // 面积和曲线都画在图表底层：长按弹出的玻璃小卡是图表自己的标注，
+                        // 在底层之上，不会被曲线压住
+                        ZStack {
+                            TrendFills(proxy: proxy, origin: origin, basic: basicCurve, planned: plannedCurves)
+                            TrendLines(proxy: proxy, origin: origin, basic: basicCurve, planned: plannedCurves)
+                        }
                     }
                 }
                 .allowsHitTesting(false)
@@ -506,10 +503,21 @@ struct HoursTrendChart: View, Equatable {
             // 手指在同一个月里挪动不触发重画。
             .chartOverlay { proxy in
                 GeometryReader { geometry in
-                    if let plotFrame = proxy.plotFrame {
-                        TrendLines(proxy: proxy, origin: geometry[plotFrame].origin,
-                                   basic: basicCurve, planned: plannedCurves)
+                    // 选中月份的小卡：自己摆在曲线上方的同一层里，玻璃才透得出底下的曲线。
+                    // 之前是图表的标注，单独一层，玻璃取不到下面的内容，看着就是一块白卡。
+                    if let selected, let plotFrame = proxy.plotFrame,
+                       let x = proxy.position(forX: Double(selected.index)) {
+                        let frame = geometry[plotFrame]
+                        let half: CGFloat = 66
+                        MonthCallout(label: selected.label,
+                                     planned: selected.planned,
+                                     basic: selected.basic,
+                                     showsExtra: showsPlanned)
+                            .fixedSize()
+                            .position(x: min(max(frame.minX + x, half), geometry.size.width - half),
+                                      y: frame.minY + 36)
                             .allowsHitTesting(false)
+                            .transition(.opacity)
                     }
                     Rectangle()
                         .fill(.clear)
@@ -724,7 +732,7 @@ private struct TrendFills: View {
     }
 }
 
-/// 图表上层：基本（青）、计划（紫）两条平滑曲线。
+/// 基本（青）、计划（紫）两条平滑曲线，画在面积之上、图表标注之下。
 private struct TrendLines: View {
     let proxy: ChartProxy
     let origin: CGPoint

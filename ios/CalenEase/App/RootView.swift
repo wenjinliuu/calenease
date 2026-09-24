@@ -7,15 +7,25 @@ struct RootView: View {
 
     @State private var selection: MainTab = .calendar
     @State private var toast: ToastMessage?
+    /// 已经在「事项」页时再点一次「事项」标签，就回到今天。
+    @State private var agendaReset = 0
+
+    /// 标签选中。点的就是当前这一页（再点一次）时，系统也会调这个 set。
+    private var tabSelection: Binding<MainTab> {
+        Binding(get: { selection }, set: { tab in
+            if tab == selection, tab == .agenda { agendaReset += 1 }
+            selection = tab
+        })
+    }
 
     var body: some View {
         @Bindable var observed = store
-        TabView(selection: $selection) {
+        TabView(selection: tabSelection) {
             Tab("日历", systemImage: "calendar", value: MainTab.calendar) {
                 CalendarScreen()
             }
             Tab("事项", systemImage: "checklist", value: MainTab.agenda) {
-                AgendaScreen()
+                AgendaScreen(resetToken: agendaReset)
             }
             // 工时页只属于排班那一套；关掉排班功能的人没有工时可看，整页收起来
             if store.document.features.shiftsEnabled {
@@ -85,7 +95,6 @@ private struct OnboardingSheet: View {
         }
         .padding(24)
         .presentationDetents([.height(400)])
-        .presentationCornerRadius(28)
     }
 
     private func choice(title: String, detail: String, symbol: String, tint: Color, shifts: Bool) -> some View {

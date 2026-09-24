@@ -25,9 +25,10 @@ struct DayTimelineSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                DateStrip(range: range, selection: currentDay, todayKey: store.todayKey) { day in
-                    withAnimation(.smooth(duration: 0.35)) { position = day }
-                }
+                // 和事项页日视图、周视图同一条日期条：一样的大小，下面带当天日程的彩色小点
+                WeekStrip(day: Binding(get: { currentDay }, set: { position = $0 }),
+                          today: DayNumber.of(store.todayKey) ?? currentDay)
+                    .padding(.bottom, 4)
                 Divider()
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
@@ -90,7 +91,8 @@ private struct DayTimelinePage: View {
     @Environment(ScheduleStore.self) private var store
 
     private static let hourHeight: CGFloat = 48
-    private static let gutter: CGFloat = 46
+    /// 刻度栏宽度。「现在」胶囊靠右对齐在这一栏里，栏宽一点，胶囊左边离屏幕边缘就留出一段，不贴边。
+    private static let gutter: CGFloat = 54
 
     private var key: String { DayNumber.key(day) }
     private var document: ScheduleDocument { store.document }
@@ -99,7 +101,7 @@ private struct DayTimelinePage: View {
         let occurrences = store.occurrences(on: key)
         let allDay = occurrences.filter { $0.event.isAllDay }
         let timed = occurrences.filter { !$0.event.isAllDay }
-        let record = document.features.shiftsEnabled ? document.record(on: key) : nil
+        let record = document.features.shiftsEnabled ? store.record(on: key) : nil
         let shift = record.flatMap { $0.planned ? document.shift($0.shiftId) : nil }
 
         VStack(spacing: 0) {
@@ -126,6 +128,18 @@ private struct DayTimelinePage: View {
     // MARK: - 全天
 
     private func allDayStrip(shift: ShiftDefinition?, events: [EventOccurrence]) -> some View {
+        // 左边和周视图一样写「全天」，对齐刻度栏
+        HStack(spacing: 0) {
+            Text("全天")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .frame(width: Self.gutter - 6, alignment: .trailing)
+                .padding(.trailing, 6)
+            allDayChips(shift: shift, events: events)
+        }
+    }
+
+    private func allDayChips(shift: ShiftDefinition?, events: [EventOccurrence]) -> some View {
         ScrollView(.horizontal) {
             HStack(spacing: 6) {
                 if let shift {
@@ -153,7 +167,7 @@ private struct DayTimelinePage: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.trailing, 16)
             .padding(.vertical, 8)
         }
         .scrollIndicators(.hidden)
@@ -274,63 +288,6 @@ private struct DayTimelinePage: View {
             }
         }
         .frame(height: Self.hourHeight * 24)
-    }
-}
-
-/// 时间轴顶上那一排日期：一格一天，左右滑，选中的那天实心圆。只写星期和几号，不放日程。
-private struct DateStrip: View {
-    let range: ClosedRange<Int>
-    let selection: Int
-    let todayKey: String
-    let onSelect: (Int) -> Void
-
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal) {
-                LazyHStack(spacing: 2) {
-                    ForEach(range, id: \.self) { day in
-                        cell(day)
-                            .id(day)
-                    }
-                }
-                .padding(.horizontal, 8)
-            }
-            .scrollIndicators(.hidden)
-            .frame(height: 62)
-            .onAppear { proxy.scrollTo(selection, anchor: .center) }
-            .onChange(of: selection) { _, day in
-                withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(day, anchor: .center) }
-            }
-        }
-    }
-
-    private func cell(_ day: Int) -> some View {
-        let date = DayNumber.civil(day)
-        let isSelected = day == selection
-        let isToday = DayNumber.key(day) == todayKey
-        return Button { onSelect(day) } label: {
-            VStack(spacing: 4) {
-                Text(date.day == 1 ? "\(date.month)月" : ScheduleCalendar.weekdaySymbols[DayNumber.weekday(day)])
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(date.day == 1 ? AnyShapeStyle(Palette.blue) : AnyShapeStyle(.secondary))
-                Text("\(date.day)")
-                    .font(.system(size: 16, weight: isSelected || isToday ? .bold : .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(isSelected ? AnyShapeStyle(.white)
-                                     : isToday ? AnyShapeStyle(Palette.red) : AnyShapeStyle(.primary))
-                    .frame(width: 32, height: 32)
-                    .background {
-                        if isSelected {
-                            Circle().fill(isToday ? Palette.red : Palette.blue)
-                        }
-                    }
-            }
-            .frame(width: 42)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(date.month)月\(date.day)日")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

@@ -72,6 +72,15 @@ final class OvertimeRulesTests: XCTestCase {
         XCTAssertEqual(OvertimeRules.overtime(records: records, settings: settings, standardTarget: 0), 3)
     }
 
+    func testHourlySystemDoesNotJudgeOvertimeAutomatically() {
+        var settings = WorkSettings()
+        settings.system = .hourly
+
+        let records = [record("2026-08-01", hours: 12), record("2026-08-02", hours: 10, manualOvertime: 1)]
+        XCTAssertEqual(OvertimeRules.overtime(records: records, settings: settings, standardTarget: 0), 1)
+        XCTAssertEqual(WorkSystem(rawValue: "hourly"), .hourly)
+    }
+
     func testCustomDailyRuleUsesItsOwnThreshold() {
         var settings = WorkSettings()
         settings.system = .custom

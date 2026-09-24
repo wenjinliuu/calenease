@@ -30,6 +30,27 @@ final class ScheduleStore {
 
     var todayKey: String { ScheduleCalendar.todayKey }
 
+    // MARK: - 按天的缓存
+    //
+    // 事项页一天一段往下排、日期条一格一天，每一格每画一次都要问「这天有哪些日程」「这天排的什么班」。
+    // 原来每问一次都把全部日程重算一遍，有「跟随班次」重复的日程时还要把几千条排班记录扫一遍建表；
+    // 查某天的排班也是整表线性查找。滚动、翻周时这些成倍叠加，手指落在有日程的那几天就卡得滑不动。
+    // 现在按文档版本缓存：同一份文档里，每一天只算一次。
+    @ObservationIgnored private var occurrenceCache: [String: [EventOccurrence]] = [:]
+    @ObservationIgnored private var shiftDaysCache: [String: String]?
+    @ObservationIgnored private var recordIndex: [String: DayRecord]?
+    /// 缓存是按哪一份文档算的。文档一变（任何途径），下一次查询时整批作废。
+    /// 文档没变时两边的数组共用同一块存储，比较几乎不花时间。
+    @ObservationIgnored private var cacheSource: ScheduleDocument?
+
+    private func validateDayCaches() {
+        guard cacheSource != document else { return }
+        occurrenceCache.removeAll(keepingCapacity: true)
+        shiftDaysCache = nil
+        recordIndex = nil
+        cacheSource = document
+    }
+
     private let fileURL: URL
     private var saveTask: Task<Void, Never>?
     /// 已经补齐过循环记录的「循环 ID|年份」。翻月时同一年不必重算——
@@ -268,7 +289,17 @@ final class ScheduleStore {
 
     // MARK: - 逐日编辑
 
-    func record(on date: String) -> DayRecord? { document.record(on: date) }
+    /// 某一天的排班记录。按日期建一次索引，之后是字典查找。
+    func record(on date: String) -> DayRecord? {
+        let records = document.records   // 读一下文档，让视图跟着文档变化重画
+        validateDayCaches()
+        if let recordIndex { return recordIndex[date] }
+        var index: [String: DayRecord] = [:]
+        index.reserveCapacity(records.count)
+        for record in records { index[record.date] = record }
+        recordIndex = index
+        return index[date]
+    }
 
     func shift(_ id: String) -> ShiftDefinition? { document.shift(id) }
 
@@ -460,7 +491,15 @@ final class ScheduleStore {
 
     /// 某一天的日程。
     func occurrences(on date: String) -> [EventOccurrence] {
-        EventEngine.occurrences(of: document.events, on: date, shiftDays: EventEngine.shiftDays(of: document))
+        let events = document.events   // 读一下文档，让视图跟着文档变化重画
+        validateDayCaches()
+        if let cached = occurrenceCache[date] { return cached }
+        if events.isEmpty { return [] }
+        let shiftDays = shiftDaysCache ?? EventEngine.shiftDays(of: document)
+        shiftDaysCache = shiftDays
+        let result = EventEngine.occurrences(of: events, on: date, shiftDays: shiftDays)
+        occurrenceCache[date] = result
+        return result
     }
 
     // MARK: - 倒计时
