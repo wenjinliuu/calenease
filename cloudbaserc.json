@@ -4,7 +4,7 @@
   "functionRoot": ".",
   "functions": [
     {
-      "name": "shift-holidays-v1-http",
+      "name": "calenease-holidays-v1-http",
       "dir": "cloudbase/holiday-api",
       "handler": "index.main",
       "type": "HTTP",
