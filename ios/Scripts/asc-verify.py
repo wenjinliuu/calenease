@@ -60,7 +60,9 @@ def main() -> int:
     print("=== Bundle IDs（Apple Developer › Identifiers）===")
     for item in sorted(bundle_ids, key=lambda b: b["attributes"]["identifier"]):
         a = item["attributes"]
-        print(f"  {a['identifier']:<45} name={a['name']!r} platform={a['platform']}")
+        caps = get(f"/v1/bundleIds/{item['id']}/bundleIdCapabilities", auth=auth)
+        names = ",".join(sorted(c["attributes"]["capabilityType"] for c in caps)) or "-"
+        print(f"  {a['identifier']:<45} name={a['name']!r} platform={a['platform']} capabilities={names}")
 
     print("=== Apps（App Store Connect）===")
     for item in apps:
