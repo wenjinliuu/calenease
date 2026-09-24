@@ -44,6 +44,17 @@ struct ScheduleDocument: Codable, Hashable, Sendable {
     func tag(_ id: String) -> DutyTag? { tags.first { $0.id == id } }
     func record(on date: String) -> DayRecord? { records.first { $0.date == date } }
 
+    /// 设置里的「记录天数」：从用户记下的第一天（最早的一天排班或日程）到今天，一共多少天，含首尾。
+    /// 循环排班会把以后的日子提前生成出来，那些还没到的日子不算；第一天在今天之后（或还什么都没记）就是 0。
+    func recordedDays(today: String) -> Int {
+        let earliestRecord = records.lazy.map(\.date).filter { $0 <= today }.min()
+        let earliestEvent = events.lazy.map(\.startDate).filter { $0 <= today }.min()
+        guard let first = [earliestRecord, earliestEvent].compactMap({ $0 }).min(),
+              let start = DayNumber.of(first), let end = DayNumber.of(today)
+        else { return 0 }
+        return end - start + 1
+    }
+
     /// 设置页与选择器里的班次顺序：内置的按固定次序，自定义的排在后面。
     var orderedShifts: [ShiftDefinition] {
         let rank = Dictionary(uniqueKeysWithValues: ShiftID.displayOrder.enumerated().map { ($1, $0) })

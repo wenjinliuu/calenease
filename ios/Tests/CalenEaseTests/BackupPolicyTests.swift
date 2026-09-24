@@ -105,4 +105,24 @@ final class BackupPolicyTests: XCTestCase {
         record.endTime = "18:00"
         XCTAssertEqual(record.fullRange(for: shift), "08:00–18:00")
     }
+
+    func testRecordedDaysCountsFromFirstEntryToTodayOnly() {
+        var document = ScheduleDocument.makeDefault()
+        document.records = [
+            DayRecord(date: "2026-09-20", shiftId: "day", hours: 8),
+            DayRecord(date: "2026-09-24", shiftId: "day", hours: 8),
+            // 循环提前生成的未来日子不算
+            DayRecord(date: "2026-12-31", shiftId: "day", hours: 8),
+        ]
+        document.events = []
+        // 9 月 20 日到 9 月 24 日，含首尾 5 天
+        XCTAssertEqual(document.recordedDays(today: "2026-09-24"), 5)
+        // 更早的日程也算作开始记录的那一天
+        document.events = [CalendarEvent(title: "体检", startDate: "2026-09-18")]
+        XCTAssertEqual(document.recordedDays(today: "2026-09-24"), 7)
+        // 只有未来的记录：还没开始
+        document.events = []
+        document.records = [DayRecord(date: "2026-10-01", shiftId: "day", hours: 8)]
+        XCTAssertEqual(document.recordedDays(today: "2026-09-24"), 0)
+    }
 }

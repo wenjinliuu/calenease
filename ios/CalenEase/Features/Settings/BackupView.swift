@@ -111,7 +111,8 @@ struct BackupView: View {
             }
 
             Section("状态") {
-                LabeledContent("记录天数", value: "\(store.document.records.count) 天")
+                // 从记下的第一天到今天；循环提前生成的未来日子不算
+                LabeledContent("记录天数", value: "\(store.document.recordedDays(today: store.todayKey)) 天")
                 LabeledContent("班次 / 标签",
                                value: "\(store.document.shifts.count) / \(store.document.tags.count)")
             }

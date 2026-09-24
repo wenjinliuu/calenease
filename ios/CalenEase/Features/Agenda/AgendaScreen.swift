@@ -418,24 +418,24 @@ struct TimelineEntry: View {
         // 只有左边的图标胶囊和时间能点开编辑；标题、空白处不响应点按。
         // 之前整行都是一个大按钮，上下滑、左滑删除时手指一松就会弹出编辑抽屉。
         HStack(alignment: .center, spacing: 12) {
-            Button(action: onOpen) {
-                Image(systemName: event.symbol ?? EventSymbols.fallback)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 48, height: capsuleHeight)
-                    .background(tone.solid.opacity(done ? 0.45 : 1), in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("编辑「\(event.title)」")
+            // 轻点手势而不是按钮：手指一移动就不算点，滑动时不会误弹编辑
+            Image(systemName: event.symbol ?? EventSymbols.fallback)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 48, height: capsuleHeight)
+                .background(tone.solid.opacity(done ? 0.45 : 1), in: Capsule())
+                .contentShape(Capsule())
+                .onTapGesture(perform: onOpen)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel("编辑「\(event.title)」")
             VStack(alignment: .leading, spacing: 2) {
-                Button(action: onOpen) {
-                    Text(timeText)
-                        .font(.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityHidden(true)
+                Text(timeText)
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onOpen)
+                    .accessibilityHidden(true)
                 Text(event.title)
                     .font(.headline)
                     .strikethrough(done, color: .secondary)

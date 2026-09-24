@@ -374,10 +374,13 @@ private struct DayPanel: View {
                                         onDelete: { delete(occurrence) },
                                         cornerRadius: 12) {
                             HStack(spacing: 8) {
-                                Button { onEditEvent(occurrence) } label: {
-                                    EventRow(occurrence: occurrence, day: date, showsDoneMark: false)
-                                }
-                                .buttonStyle(.plain)
+                                // 用轻点手势，不用按钮：按钮在手指拖了一小段再松开时也会触发，
+                                // 左滑删除时就会顺带弹出编辑抽屉；轻点手势一旦手指移动就不算。
+                                EventRow(occurrence: occurrence, day: date, showsDoneMark: false)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { onEditEvent(occurrence) }
+                                    .accessibilityAddTraits(.isButton)
+                                    .accessibilityAction { onEditEvent(occurrence) }
                                 Button {
                                     withAnimation(.snappy(duration: 0.25)) {
                                         store.toggleCompletion(eventId: occurrence.event.id, on: occurrence.startKey)
