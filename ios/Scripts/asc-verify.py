@@ -11,8 +11,11 @@
 依赖：pip install 'pyjwt[crypto]'
 """
 
+import base64
 import json
 import os
+import plistlib
+import re
 import sys
 import time
 import urllib.parse
@@ -50,6 +53,27 @@ def get(path: str, params: dict | None = None, auth: str = "") -> list[dict]:
     return items
 
 
+def icloud_containers(bundle_pk: str, auth: str) -> set[str]:
+    """从这个 Bundle ID 现有的描述文件里读出 App ID 实际勾选的 iCloud 容器。
+
+    API 不直接列容器，但描述文件的 Entitlements 里写着 App ID 允许的全部容器。
+    """
+    containers: set[str] = set()
+    profiles = get(f"/v1/bundleIds/{bundle_pk}/profiles",
+                   {"fields[profiles]": "name,profileType,profileState,profileContent"}, auth)
+    for profile in profiles:
+        a = profile["attributes"]
+        raw = base64.b64decode(a.get("profileContent") or "")
+        match = re.search(rb"<\?xml.*?</plist>", raw, re.S)
+        if not match:
+            continue
+        entitlements = plistlib.loads(match.group(0)).get("Entitlements", {})
+        found = entitlements.get("com.apple.developer.icloud-container-identifiers", [])
+        print(f"    描述文件 {a['name']!r}（{a['profileType']}，{a['profileState']}）iCloud 容器：{found or '（无）'}")
+        containers.update(found)
+    return containers
+
+
 def main() -> int:
     auth = token()
     expected = os.environ.get("EXPECTED_BUNDLE_ID", "").strip()
@@ -63,6 +87,8 @@ def main() -> int:
         caps = get(f"/v1/bundleIds/{item['id']}/bundleIdCapabilities", auth=auth)
         names = ",".join(sorted(c["attributes"]["capabilityType"] for c in caps)) or "-"
         print(f"  {a['identifier']:<45} name={a['name']!r} platform={a['platform']} capabilities={names}")
+        if "ICLOUD" in names:
+            icloud_containers(item["id"], auth)
 
     print("=== Apps（App Store Connect）===")
     for item in apps:
