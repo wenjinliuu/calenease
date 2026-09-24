@@ -578,26 +578,43 @@ struct MonotoneCurve {
         self.xs = xs
         self.ys = ys
         let n = xs.count
-        guard n > 1 else { slopes = Array(repeating: 0, count: n); return }
-        let d = (0..<(n - 1)).map { (ys[$0 + 1] - ys[$0]) / max(xs[$0 + 1] - xs[$0], 1e-9) }
+        guard n > 1 else {
+            slopes = [Double](repeating: 0, count: n)
+            return
+        }
+        // 相邻两点的斜率
+        var d = [Double](repeating: 0, count: n - 1)
+        for k in 0..<(n - 1) {
+            let run: Double = max(xs[k + 1] - xs[k], 1e-9)
+            let rise: Double = ys[k + 1] - ys[k]
+            d[k] = rise / run
+        }
+        // 每个点的切线：两侧斜率同号取平均，异号（拐点）取 0
         var m = [Double](repeating: 0, count: n)
         m[0] = d[0]
         m[n - 1] = d[n - 2]
-        for k in 1..<(n - 1) {
-            m[k] = d[k - 1] * d[k] <= 0 ? 0 : (d[k - 1] + d[k]) / 2
+        if n > 2 {
+            for k in 1..<(n - 1) {
+                let left: Double = d[k - 1]
+                let right: Double = d[k]
+                m[k] = left * right <= 0 ? 0 : (left + right) / 2
+            }
         }
+        // Fritsch–Carlson：切线太陡就按比例压下来，保证不冲过头
         for k in 0..<(n - 1) {
-            if d[k] == 0 {
+            let slope: Double = d[k]
+            if slope == 0 {
                 m[k] = 0
                 m[k + 1] = 0
                 continue
             }
-            let a = m[k] / d[k], b = m[k + 1] / d[k]
-            let length = a * a + b * b
+            let a: Double = m[k] / slope
+            let b: Double = m[k + 1] / slope
+            let length: Double = a * a + b * b
             if length > 9 {
-                let t = 3 / length.squareRoot()
-                m[k] = t * a * d[k]
-                m[k + 1] = t * b * d[k]
+                let t: Double = 3 / length.squareRoot()
+                m[k] = t * a * slope
+                m[k + 1] = t * b * slope
             }
         }
         slopes = m
@@ -612,11 +629,18 @@ struct MonotoneCurve {
         if x >= last { return ys[ys.count - 1] }
         var k = 0
         while k < xs.count - 2 && x > xs[k + 1] { k += 1 }
-        let h = xs[k + 1] - xs[k]
-        let t = (x - xs[k]) / h
-        let t2 = t * t, t3 = t2 * t
-        return (2 * t3 - 3 * t2 + 1) * ys[k] + (t3 - 2 * t2 + t) * h * slopes[k]
-            + (-2 * t3 + 3 * t2) * ys[k + 1] + (t3 - t2) * h * slopes[k + 1]
+        let h: Double = xs[k + 1] - xs[k]
+        let t: Double = (x - xs[k]) / h
+        let t2: Double = t * t
+        let t3: Double = t2 * t
+        // 三次 Hermite 基函数
+        let h00: Double = 2 * t3 - 3 * t2 + 1
+        let h10: Double = t3 - 2 * t2 + t
+        let h01: Double = -2 * t3 + 3 * t2
+        let h11: Double = t3 - t2
+        let start: Double = h00 * ys[k] + h10 * h * slopes[k]
+        let end: Double = h01 * ys[k + 1] + h11 * h * slopes[k + 1]
+        return start + end
     }
 
     /// 在 [lower, upper] 上等距取样，每个月之间取 `density` 个点。

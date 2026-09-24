@@ -57,19 +57,7 @@ struct AgendaScreen: View {
         .background { PinnedBarBackground(showsFade: isScrolled) }
     }
 
-    /// 重复日程左滑删掉的只是这一次，单次日程整条删掉。
-    private func delete(_ occurrence: EventOccurrence) {
-        withAnimation(.snappy(duration: 0.28)) {
-            if occurrence.event.recurrence.isRepeating {
-                store.excludeOccurrence(eventId: occurrence.event.id, on: occurrence.startKey)
-            } else {
-                store.deleteEvent(id: occurrence.event.id)
-            }
-        }
-        showToast(occurrence.event.recurrence.isRepeating ? "已删除这一次" : "已删除日程", symbol: "trash")
-    }
-
-    private func header(shift: ShiftDefinition?) -> some View {
+    private var header: some View {
         let date = DayNumber.civil(day)
         let currentYear = DayNumber.civil(today).year
         return HStack(alignment: .center, spacing: 10) {
