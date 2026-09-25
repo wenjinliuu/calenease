@@ -36,7 +36,7 @@ concurrency:
 
 jobs:
   preview:
-    uses: wenjinliuu/ios-ci-workflows/.github/workflows/agent-preview.yml@cb55a73d5436cad38f9f312c1fd39ace9f682ef9
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/agent-preview.yml@e8c0c76a38f237a4a30f653904d3bf7513c32953
     with:
       workdir: ios
       project: CalenEase.xcodeproj
@@ -51,6 +51,6 @@ jobs:
       screenshot_scheme: CalenEaseScreenshots
       capture_screenshots: ${{ inputs.capture_screenshots || false }}
       screenshot_device: iPhone 17 Pro Max
-      ci_revision: cb55a73d5436cad38f9f312c1fd39ace9f682ef9
+      ci_revision: e8c0c76a38f237a4a30f653904d3bf7513c32953
     secrets:
       AGENT_PREVIEW_PASSWORD: ${{ secrets.AGENT_PREVIEW_PASSWORD }}
