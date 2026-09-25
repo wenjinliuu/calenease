@@ -2,7 +2,7 @@ import Foundation
 
 /// 截图与界面自查用的示例数据。
 ///
-/// 只有带 `--demo-data` 启动参数时才会用到（CI 的截图流程），
+/// 只有带 `--demo-data` 启动参数时才会用到（在 Xcode 的 Scheme 里手动添加），
 /// 正常运行永远读用户自己的数据，也不会把示例写回磁盘。
 enum DemoData {
 

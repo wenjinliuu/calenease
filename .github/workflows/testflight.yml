@@ -7,6 +7,10 @@ on:
         description: "Build number (blank: GitHub run number)"
         type: string
         required: false
+      marketing_version:
+        description: "Marketing version override (blank: project default)"
+        type: string
+        required: false
       lookup_only:
         description: "Only verify Apple registration; do not archive or upload"
         type: boolean
@@ -18,13 +22,16 @@ on:
   push:
     tags: ["v*"]
 
+permissions:
+  contents: read
+
 concurrency:
   group: calenease-testflight
   cancel-in-progress: false
 
 jobs:
   release:
-    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@89da677e072827be1229167b285c7363c2294363
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@2db31de1f9ad8c5f2462c3af3e47721bf2ac5e0d
     with:
       workdir: ios
       project: CalenEase.xcodeproj
@@ -33,14 +40,15 @@ jobs:
       sync_command: bash Scripts/sync-app-icon.sh
       generate_command: xcodegen generate
       build_number: ${{ inputs.build_number || '' }}
+      marketing_version: ${{ inputs.marketing_version || '' }}
+      lookup_only: ${{ inputs.lookup_only || false }}
       dry_run: ${{ inputs.dry_run || false }}
+      artifact_prefix: calenease-
+      ci_revision: 2db31de1f9ad8c5f2462c3af3e47721bf2ac5e0d
+      display_name: 省心日历
       entitlements_path: CalenEase/Resources/CalenEase.entitlements
       entitlement_mode: icloud-verified
       icloud_container: iCloud.com.wenjinliu.calenease
-      asc_verify_command: python3 Scripts/asc-verify.py
-      lookup_only: ${{ inputs.lookup_only || false }}
-      display_name: 省心日历
-      artifact_prefix: calenease-
     secrets:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}

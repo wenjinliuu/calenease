@@ -9,7 +9,7 @@
 | App Store 名称 | 省心日历-循环班表（Apple ID 6815659759） |
 | Bundle ID | `com.wenjinliu.calenease` |
 | SKU | `calenease-ios` |
-| Xcode 工程 / Target / Scheme | `CalenEase.xcodeproj` / `CalenEase` / `CalenEase`（截图用 `CalenEaseScreenshots`） |
+| Xcode 工程 / Target / Scheme | `CalenEase.xcodeproj` / `CalenEase` / `CalenEase` |
 | iCloud 容器 | `iCloud.com.wenjinliu.calenease` |
 
 - **最低系统**：iOS 26（Liquid Glass、`Tab` 新标签栏都要求 26 起）
@@ -22,7 +22,6 @@
 ```
 project.yml                     XcodeGen 工程定义（.xcodeproj 不入库）
 Scripts/bootstrap.sh            本地生成并打开工程
-Scripts/asc-verify.py           用 App Store Connect API 只读核对 App、Bundle ID、iCloud 容器
 CalenEase/
   App/                          入口、根标签栏、界面偏好
   Design/                       表面与材质封装、配色、班次色球
@@ -34,7 +33,6 @@ CalenEase/
   Features/Stats                工时
   Features/Settings             设置、班次与标签编辑、每月基本工时、备份、关于
 Tests/CalenEaseTests/           排班、加班、节假日、日程的单元测试
-Tests/CalenEaseUITests/         App Store 截图
 ```
 
 ## 本地开发
