@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   release:
-    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@2e7db029f79b1b3826793251562ed58b8fac0f5b
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@1785ec85efe4d88c1a87b5a9125e5ca5125a10ca
     with:
       workdir: ios
       project: CalenEase.xcodeproj
@@ -44,7 +44,7 @@ jobs:
       lookup_only: ${{ inputs.lookup_only || false }}
       dry_run: ${{ inputs.dry_run || false }}
       artifact_prefix: calenease-
-      ci_revision: 2e7db029f79b1b3826793251562ed58b8fac0f5b
+      ci_revision: 1785ec85efe4d88c1a87b5a9125e5ca5125a10ca
       display_name: 省心日历
       entitlements_path: CalenEase/Resources/CalenEase.entitlements
       entitlement_mode: icloud-verified
