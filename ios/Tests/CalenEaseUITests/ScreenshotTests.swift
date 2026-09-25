@@ -41,15 +41,15 @@ final class ScreenshotTests: XCTestCase {
             dismissSheet()
         }
 
-        // 点当月的某一天，展示逐日编辑
+        // 先回到今天，再用当天的可访问性标签定位日期。
+        // 月历会保留相邻月份的离屏元素，按索引取日期可能误点不可见的格子。
+        let today = app.buttons["回到今天"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        today.tap()
         let day = app.buttons
-            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "day-"))
-            .allElementsBoundByIndex.first(where: { $0.isHittable })
-        XCTAssertNotNil(day, "日历上没有可点击的日期")
-        guard let day else { return }
-        // 第一下选中，第二下打开抽屉
-        day.tap()
-        Thread.sleep(forTimeInterval: 0.4)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@ AND label CONTAINS %@", "day-", "今天"))
+            .firstMatch
+        XCTAssertTrue(day.waitForExistence(timeout: 10), "日历上没有找到今天")
         day.tap()
         Thread.sleep(forTimeInterval: 1.2)
         capture("05-day-editor")
