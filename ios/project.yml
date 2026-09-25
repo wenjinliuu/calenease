@@ -80,21 +80,6 @@ targets:
         CODE_SIGN_STYLE: Automatic
         CODE_SIGNING_ALLOWED: NO
 
-  CalenEaseUITests:
-    type: bundle.ui-testing
-    platform: iOS
-    sources:
-      - path: Tests/CalenEaseUITests
-    dependencies:
-      - target: CalenEase
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.wenjinliu.calenease.uitests
-        GENERATE_INFOPLIST_FILE: YES
-        CODE_SIGN_STYLE: Automatic
-        CODE_SIGNING_ALLOWED: NO
-        TEST_TARGET_NAME: CalenEase
-
 schemes:
   CalenEase:
     build:
@@ -109,16 +94,3 @@ schemes:
       config: Debug
     archive:
       config: Release
-
-  # 截图专用：只跑 UI 测试，产物是 App Store 素材，不参与日常 CI
-  CalenEaseScreenshots:
-    build:
-      targets:
-        CalenEase: all
-        CalenEaseUITests: [test]
-    test:
-      targets:
-        - CalenEaseUITests
-      gatherCoverageData: false
-    run:
-      config: Debug

@@ -6,7 +6,7 @@ iOS 版是 SwiftUI 原生实现（`ios/`），和网页版共用同一套业务�
 ## 一、现状速览
 
 以下 App Store Connect / Apple Developer 的值由 `TestFlight` 工作流的核对步骤
-（`ios/Scripts/asc-verify.py`，App Store Connect API 只读查询）实际读出，2026-09-24 核对。
+（中央仓库 `ios-ci-workflows` 的 `scripts/asc-verify.py`，App Store Connect API 只读查询）实际读出，2026-09-24 核对。
 
 | 项目 | 值 |
 | --- | --- |
@@ -68,8 +68,8 @@ Xcode 里一次性配置：
    - 本地：Xcode → Product → Destination 选 `Any iOS Device` → Archive → Distribute App
 3. **填写元数据**（草稿见下节），上传截图：
    - 至少提供 6.9 英寸 iPhone 截图（1320×2868）3–10 张，其余尺寸 Apple 会自动缩放
-   - 现成的：Actions → `iOS Screenshots` → Run workflow，跑完在 artifact 里下载，
-     也会推一份到 `ci/screenshots` 分支；尺寸正好是 1320×2868
+   - 在 6.9 英寸模拟器（如 iPhone 17 Pro Max）上截取；也可以手动运行 `Build & Test / Agent Preview`，
+     把 `simulator_name` 设为 `iPhone 17 Pro Max`，从产物的 `launch.png` 或实时预览里截图
 4. **App 隐私**：选择「不收集数据」；隐私政策 URL 填上面那个线上地址
 5. **App 审核信息**：无需登录账号，备注里写明「离线本地工具，无账号体系，无服务器」
 6. 先用 TestFlight 自测一轮，再提交审核
