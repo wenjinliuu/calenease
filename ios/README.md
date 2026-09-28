@@ -33,6 +33,9 @@ CalenEase/
   Features/Stats                工时
   Features/Settings             设置、班次与标签编辑、每月基本工时、备份、关于
 Tests/CalenEaseTests/           排班、加班、节假日、日程的单元测试
+Tests/CalenEaseSnapshotTests/   组件快照（参考图在 __Snapshots__）
+Tests/CalenEaseUITests/         关键流程 + 无障碍审计
+Fast.xctestplan / Full.xctestplan  快线 / 全部测试计划
 ```
 
 ## 本地开发
@@ -61,11 +64,17 @@ iOS 26 的 Liquid Glass 系统 API 也只出现在这一个文件里。
 
 ## CI
 
+编译、测试、发版都在中央仓库 [ios-ci-workflows](https://github.com/wenjinliuu/ios-ci-workflows) 的工作流里跑，设置在仓库根目录的 `.ios-ci.yml`。
+
 | Workflow | 触发 | 作用 |
 | --- | --- | --- |
-| `iOS Build & Test` | push main / PR / 手动 | 生成工程、模拟器编译、跑单元测试 |
-| `App Icon Preview` | 图标文件 push / 手动 | Xcode 原生验证；第三方预览仅作非阻塞辅助 |
-| `TestFlight` | 手动 / `v*` tag | 核对 App Store Connect 注册信息，归档、签名、上传 TestFlight；勾「只核对」则只列出 App / Bundle ID / SKU / iCloud 容器 |
+| `Build & Test` | PR、分支 push：快线；合并到 main：慢线；手动：可选 fast / ui / full | 快线跑逻辑、迁移、快照测试（`Fast.xctestplan`）；慢线只跑 `CalenEaseUITests` 的关键流程和无障碍审计；full 跑 `Full.xctestplan` 全部。只改 `*.md` 和 `docs/**` 不跑 |
+| `Live Preview` | 手动 | 在手机浏览器里操作模拟器 |
+| `App Icon` | 图标文件 push / 手动 | Xcode 原生验证；第三方预览仅作非阻塞辅助 |
+| `TestFlight` | 手动 / `v*` tag | 核对 App Store Connect 注册；复用这个提交已通过的快线和慢线，没有才现场跑全部测试；再归档、签名、上传 |
+
+改了界面交互、关键流程或 UI 测试的 PR，合并前手动跑一次 `Build & Test` 的 `ui`。
+两份测试计划里的 target ID 由 `Scripts/sync-test-plans.py` 在生成工程后填入。
 
 TestFlight 需要的 Secrets 见 [`../docs/ios-release.md`](../docs/ios-release.md)。
 图标源文件与验证规则见 [`../docs/app-icon-workflow.md`](../docs/app-icon-workflow.md)。
