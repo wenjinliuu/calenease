@@ -18,6 +18,9 @@ struct CountdownSection: View {
                         .font(.subheadline.weight(.semibold))
                         .frame(width: 30, height: 30)
                         .background(Palette.card, in: Circle())
+                        // 看起来还是 30pt 的圆，点按区域撑到 44×44
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("新建倒数日")

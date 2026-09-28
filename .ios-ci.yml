@@ -5,7 +5,7 @@ scheme: CalenEase
 bundle_id: com.wenjinliu.calenease
 display_name: 省心日历
 sync_command: bash Scripts/sync-app-icon.sh
-generate_command: xcodegen generate
+generate_command: xcodegen generate && python3 Scripts/sync-test-plans.py
 icon_path: CalenEase/Resources/AppIcon.icon
 
 toolchain:
@@ -14,7 +14,11 @@ toolchain:
   ios: '26.4'
 
 build_test:
-  accessibility_audit: warn
+  # 快线与慢线：PR 和分支跑 Fast，合并到 main 只跑 UI 测试，发版复用两者的结果
+  fast_test_plan: Fast
+  full_test_plan: Full
+  ui_test_target: CalenEaseUITests
+  accessibility_audit: fail
   commit_recorded_snapshots: true
 
 testflight:

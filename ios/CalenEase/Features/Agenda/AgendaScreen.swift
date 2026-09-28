@@ -455,6 +455,9 @@ struct TimelineEntry: View {
                     .font(.system(size: 24, weight: .regular))
                     .foregroundStyle(tone.solid)
                     .contentTransition(.symbolEffect(.replace))
+                    // 圈只有 24pt，点按区域撑到 44×44（苹果建议的最小值）
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(done ? "标记为未完成" : "标记为完成")

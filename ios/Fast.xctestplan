@@ -1,0 +1,35 @@
+{
+  "configurations": [
+    {
+      "id": "5E1A3C2B-7F4D-4B8E-9A61-2D3C4B5A6F70",
+      "name": "Default",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "systemAttachmentLifetime": "deleteOnSuccess",
+    "userAttachmentLifetime": "deleteOnSuccess",
+    "targetForVariableExpansion": {
+      "containerPath": "container:CalenEase.xcodeproj",
+      "identifier": "000000000000000000000000",
+      "name": "CalenEase"
+    }
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:CalenEase.xcodeproj",
+        "identifier": "000000000000000000000000",
+        "name": "CalenEaseTests"
+      }
+    },
+    {
+      "target": {
+        "containerPath": "container:CalenEase.xcodeproj",
+        "identifier": "000000000000000000000000",
+        "name": "CalenEaseSnapshotTests"
+      }
+    }
+  ],
+  "version": 1
+}

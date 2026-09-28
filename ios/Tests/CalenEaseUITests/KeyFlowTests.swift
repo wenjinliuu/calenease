@@ -2,7 +2,15 @@ import XCTest
 
 /// 关键流程：只守最核心的几条路径，每条都要在真实界面上点一遍。
 /// 用 `--demo-data` 启动：App 加载示例班表，改动只在内存里，不读写用户数据。
+///
+/// 无障碍审计也在这里：流程走到哪一页，就在那一页跑一遍 `performAccessibilityAudit`，
+/// 不为每个页面单独启动 App。失败信息以 “Accessibility audit” 开头，中央 CI 据此归为无障碍问题。
 final class KeyFlowTests: XCTestCase {
+
+    /// 目前审计的问题类型。对比度、动态字号、文字截断还有大量存量问题，清完后再加进来。
+    private static let auditTypes: XCUIAccessibilityAuditType = [
+        .hitRegion, .sufficientElementDescription, .elementDetection, .trait,
+    ]
 
     private var app: XCUIApplication!
 
@@ -13,13 +21,15 @@ final class KeyFlowTests: XCTestCase {
         app.launch()
     }
 
-    /// 四个主页面都能打开。
+    /// 四个主页面都能打开，每个页面各审计一遍。
     func testEveryMainTabOpens() {
+        auditAccessibility(of: "日历")
         for tab in ["事项", "工时", "设置", "日历"] {
             let button = app.tabBars.buttons[tab]
             XCTAssertTrue(button.waitForExistence(timeout: 10), "找不到标签：\(tab)")
             button.tap()
             XCTAssertTrue(button.isSelected, "点了「\(tab)」没有切过去")
+            if tab != "日历" { auditAccessibility(of: tab) }
         }
     }
 
@@ -49,6 +59,7 @@ final class KeyFlowTests: XCTestCase {
 
         let leave = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "请假")).firstMatch
         XCTAssertTrue(leave.waitForExistence(timeout: 10), "编辑器里没有「请假」")
+        auditAccessibility(of: "当天编辑")
         leave.tap()
         tapButton("完成")
 
@@ -62,6 +73,7 @@ final class KeyFlowTests: XCTestCase {
 
         let title = app.textFields["标题"]
         XCTAssertTrue(title.waitForExistence(timeout: 10), "新建日程没有标题输入框")
+        auditAccessibility(of: "新建日程")
         title.tap()
         title.typeText("CI 验收会")
         tapButton("保存")
@@ -71,6 +83,27 @@ final class KeyFlowTests: XCTestCase {
     }
 
     // MARK: - 工具
+
+    /// 在当前页面跑一遍无障碍审计。每个问题单独记一条失败，写明页面和元素，方便直接定位。
+    private func auditAccessibility(of page: String) {
+        // 一页的问题全部列出来再继续流程；审计完恢复“失败即停”
+        let stopOnFailure = !continueAfterFailure
+        continueAfterFailure = true
+        defer { continueAfterFailure = !stopOnFailure }
+        do {
+            try app.performAccessibilityAudit(for: Self.auditTypes) { issue in
+                let element = issue.element.map { element in
+                    let frame = element.frame
+                    return "「\(element.label)」\(element.identifier) "
+                        + "\(Int(frame.minX)),\(Int(frame.minY)) \(Int(frame.width))×\(Int(frame.height))"
+                } ?? "（没有元素）"
+                XCTFail("Accessibility audit（\(page)）：\(issue.compactDescription) — \(element)")
+                return true
+            }
+        } catch {
+            XCTFail("Accessibility audit（\(page)）没有完成：\(error.localizedDescription)")
+        }
+    }
 
     private func tapButton(_ label: String) {
         let button = app.buttons[label].firstMatch
