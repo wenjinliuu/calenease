@@ -46,6 +46,19 @@ enum ShiftID {
 /// 其余按最大化最小色差贪心排出来。
 enum AccentHex {
 
+    /// 读屏念的颜色名；色板里的颜色都在这里，不认识的色值念成「颜色」。
+    static func spokenName(_ hex: String) -> String {
+        let names: [String: String] = [
+            pumpkin: "南瓜橙", indigo: "靛蓝", magenta: "洋红", forest: "森林绿", rose: "玫瑰红",
+            brick: "砖红", jade: "翡翠绿", lavender: "薰衣草紫", scarlet: "猩红", purple: "紫色",
+            royal: "宝蓝", sky: "天蓝", olive: "橄榄绿", amber: "琥珀色", vividOrange: "活力橙",
+            vividGreen: "亮绿", vividCyan: "青色", mint: "薄荷绿", teal: "水鸭蓝", lemon: "柠檬黄",
+            caramel: "焦糖色", navy: "夜班蓝", coral: "珊瑚色", spring: "春绿", peach: "桃粉",
+            mustard: "芥末黄", grass: "草绿", lake: "湖蓝", neutral: "灰色",
+        ]
+        return names[hex.uppercased()] ?? "颜色"
+    }
+
     // 原有十四色的核心八色
     static let pumpkin = "#F06E15"
     static let indigo = "#5856D6"

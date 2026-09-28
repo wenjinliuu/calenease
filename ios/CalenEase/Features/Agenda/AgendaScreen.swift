@@ -262,8 +262,12 @@ private struct AgendaDaySection: View {
                     .font(.footnote)
                     .foregroundStyle(.tertiary)
                     .padding(.leading, 4)
+                    // 这一行字只有 15pt 高，点按区域撑到 44pt；外面再收回去，版面不变
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .padding(.vertical, -14.5)
             } else {
                 let nowIndex = isToday ? Self.nowIndex(occurrences) : nil
                 VStack(alignment: .leading, spacing: 0) {
@@ -399,6 +403,8 @@ private struct ShiftBadge: View {
         .background(shift.tint.opacity(0.12), in: Capsule())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(shift.fullRange.isEmpty ? shift.name : "\(shift.name)，\(shift.fullRange)")
+        // 只是标题里的一段说明，不能点；标成文字，读屏和审计都不把它当按钮
+        .accessibilityAddTraits(.isStaticText)
     }
 }
 
