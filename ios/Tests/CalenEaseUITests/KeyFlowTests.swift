@@ -23,16 +23,19 @@ final class KeyFlowTests: XCTestCase {
         }
     }
 
-    /// 左右切月，再一键回到今天。
+    /// 月历左右滑动切月，再一键回到今天。
     func testMonthSwitcherMovesAndReturnsToToday() {
         let title = monthTitle()
         let start = title.label
+        // 在今天那一行上横向拖：月历没有翻页按钮，只能滑
+        let row = todayCell().frame.midY
 
-        tapButton("下个月")
-        XCTAssertTrue(waitFor(title) { $0.label != start }, "点「下个月」后月份没变")
-        tapButton("上个月")
-        tapButton("上个月")
-        XCTAssertTrue(waitFor(title) { $0.label != start }, "点「上个月」后月份没变")
+        swipeMonth(from: 0.85, to: 0.15, atY: row)
+        XCTAssertTrue(waitFor(title) { $0.label != start }, "向左滑后月份没变")
+        let next = title.label
+        swipeMonth(from: 0.15, to: 0.85, atY: row)
+        swipeMonth(from: 0.15, to: 0.85, atY: row)
+        XCTAssertTrue(waitFor(title) { $0.label != start && $0.label != next }, "向右滑后月份没变")
 
         tapButton("回到今天")
         XCTAssertTrue(waitFor(title) { $0.label == start }, "「回到今天」没有回到本月")
@@ -73,6 +76,16 @@ final class KeyFlowTests: XCTestCase {
         let button = app.buttons[label].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 10), "找不到按钮：\(label)")
         button.tap()
+    }
+
+    /// 按屏幕宽度的比例横向拖一下；等标题动画走完再返回。
+    private func swipeMonth(from startX: CGFloat, to endX: CGFloat, atY y: CGFloat) {
+        let window = app.windows.firstMatch
+        let origin = window.coordinate(withNormalizedOffset: .zero)
+        let width = window.frame.width
+        origin.withOffset(CGVector(dx: width * startX, dy: y))
+            .press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: width * endX, dy: y)))
+        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
     }
 
     /// 月份标题的朗读文字是「2026年9月」这样的格式。

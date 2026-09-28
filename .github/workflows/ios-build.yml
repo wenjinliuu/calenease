@@ -36,7 +36,7 @@ concurrency:
 
 jobs:
   preview:
-    uses: wenjinliuu/ios-ci-workflows/.github/workflows/agent-preview.yml@380d338dabc52b27b9c3e3b9da33005f8c7e5571
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/agent-preview.yml@face2b2c79ff81c353bb1621900b1d593185ca1b
     with:
       workdir: ios
       project: CalenEase.xcodeproj
@@ -51,7 +51,7 @@ jobs:
       public_preview_url: ${{ vars.AGENT_PREVIEW_URL || '' }}
       record_snapshots: ${{ inputs.record_snapshots || false }}
       commit_recorded_snapshots: true
-      ci_revision: 380d338dabc52b27b9c3e3b9da33005f8c7e5571
+      ci_revision: face2b2c79ff81c353bb1621900b1d593185ca1b
     secrets:
       AGENT_PREVIEW_PASSWORD: ${{ secrets.AGENT_PREVIEW_PASSWORD }}
       AGENT_PREVIEW_TUNNEL_TOKEN: ${{ secrets.AGENT_PREVIEW_TUNNEL_TOKEN }}
