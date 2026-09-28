@@ -85,23 +85,32 @@ final class KeyFlowTests: XCTestCase {
     // MARK: - 工具
 
     /// 在当前页面跑一遍无障碍审计。每个问题单独记一条失败，写明页面和元素，方便直接定位。
+    /// runner 慢时审计偶尔超时（“Audit failed to complete in time”），这时重跑一次；再超时才算失败。
     private func auditAccessibility(of page: String) {
         // 一页的问题全部列出来再继续流程；审计完恢复“失败即停”
         let stopOnFailure = !continueAfterFailure
         continueAfterFailure = true
         defer { continueAfterFailure = !stopOnFailure }
-        do {
-            try app.performAccessibilityAudit(for: Self.auditTypes) { issue in
-                let element = issue.element.map { element in
-                    let frame = element.frame
-                    return "「\(element.label)」\(element.identifier) "
-                        + "\(Int(frame.minX)),\(Int(frame.minY)) \(Int(frame.width))×\(Int(frame.height))"
-                } ?? "（没有元素）"
-                XCTFail("Accessibility audit（\(page)）：\(issue.compactDescription) — \(element)")
-                return true
+        for attempt in 1...2 {
+            // 先收集，审计完成后再报：超时重跑时不会把同一个问题记两遍
+            var issues: [String] = []
+            do {
+                try app.performAccessibilityAudit(for: Self.auditTypes) { issue in
+                    let element = issue.element.map { element in
+                        let frame = element.frame
+                        return "「\(element.label)」\(element.identifier) "
+                            + "\(Int(frame.minX)),\(Int(frame.minY)) \(Int(frame.width))×\(Int(frame.height))"
+                    } ?? "（没有元素）"
+                    issues.append("\(issue.compactDescription) — \(element)")
+                    return true
+                }
+                for issue in issues { XCTFail("Accessibility audit（\(page)）：\(issue)") }
+                return
+            } catch where attempt == 1 {
+                continue
+            } catch {
+                XCTFail("Accessibility audit（\(page)）没有完成：\(error.localizedDescription)")
             }
-        } catch {
-            XCTFail("Accessibility audit（\(page)）没有完成：\(error.localizedDescription)")
         }
     }
 
