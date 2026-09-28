@@ -34,7 +34,7 @@ concurrency:
 
 jobs:
   release:
-    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@554445263493475a57fb83e79d083de8aafa9090 # v1.1.0 候选
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@f45c492fb3c4f96707e5d32016e571fd6b673a50 # v1.1.0
     with:
       lookup_only: ${{ inputs.lookup_only || false }}
       dry_run: ${{ inputs.dry_run || false }}

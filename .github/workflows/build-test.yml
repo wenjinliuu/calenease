@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   test:
-    uses: wenjinliuu/ios-ci-workflows/.github/workflows/build-test.yml@554445263493475a57fb83e79d083de8aafa9090 # v1.1.0 候选
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/build-test.yml@f45c492fb3c4f96707e5d32016e571fd6b673a50 # v1.1.0
     with:
       suite: ${{ inputs.suite || '' }}   # 空：PR 和分支跑快线，推送到 main 跑慢线
       record_snapshots: ${{ inputs.record_snapshots || false }}
