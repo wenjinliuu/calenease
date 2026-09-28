@@ -1,0 +1,25 @@
+# ios-ci-workflows 的配置，说明见 https://github.com/wenjinliuu/ios-ci-workflows/blob/main/docs/config.md
+workdir: ios
+project: CalenEase.xcodeproj
+scheme: CalenEase
+bundle_id: com.wenjinliu.calenease
+display_name: 省心日历
+sync_command: bash Scripts/sync-app-icon.sh
+generate_command: xcodegen generate
+icon_path: CalenEase/Resources/AppIcon.icon
+
+toolchain:
+  xcode: '26.6'
+  simulator: iPhone 17 Pro
+  ios: '26.4'
+
+build_test:
+  accessibility_audit: warn
+  commit_recorded_snapshots: true
+
+testflight:
+  entitlement_mode: icloud-verified
+  entitlements_path: CalenEase/Resources/CalenEase.entitlements
+  icloud_container: iCloud.com.wenjinliu.calenease
+  artifact_prefix: calenease-
+  acceptance_issue: true
