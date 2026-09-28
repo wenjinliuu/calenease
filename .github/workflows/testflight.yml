@@ -25,6 +25,8 @@ on:
 permissions:
   contents: read
   issues: write     # 开发版验收 Issue；testflight.acceptance_issue 为 false 时可去掉
+  actions: read     # 查这个提交已通过的快线和慢线，复用结果；去掉则每次现场跑全部测试
+  pull-requests: read
 
 concurrency:
   group: calenease-testflight
@@ -32,7 +34,7 @@ concurrency:
 
 jobs:
   release:
-    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@0c7501dd52ac0c252678ce5a4a7ed61fb6633cfb # v1.0.0
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@f45c492fb3c4f96707e5d32016e571fd6b673a50 # v1.1.0
     with:
       lookup_only: ${{ inputs.lookup_only || false }}
       dry_run: ${{ inputs.dry_run || false }}

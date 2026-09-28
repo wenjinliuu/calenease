@@ -11,6 +11,7 @@ if ! command -v xcodegen >/dev/null 2>&1; then
 fi
 
 xcodegen generate
+python3 Scripts/sync-test-plans.py
 echo "已生成 ios/CalenEase.xcodeproj"
 
 if [ "${1:-}" = "--open" ]; then

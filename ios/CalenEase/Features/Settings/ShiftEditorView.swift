@@ -208,6 +208,8 @@ struct ColorPaletteRow: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(AccentHex.spokenName(hex))
+                .accessibilityAddTraits(selection.lowercased() == hex.lowercased() ? .isSelected : [])
             }
         }
         .padding(.vertical, 4)

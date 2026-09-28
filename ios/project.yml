@@ -127,11 +127,13 @@ schemes:
         CalenEaseTests: [test]
         CalenEaseSnapshotTests: [test]
         CalenEaseUITests: [test]
+    # 两份测试计划：Fast 是 PR 上跑的快线（逻辑 + 迁移 + 快照），Full 是全部（加上 UI 关键流程和无障碍审计）。
+    # 计划里的 target ID 由 Scripts/sync-test-plans.py 在生成工程后填入。
     test:
-      targets:
-        - CalenEaseTests
-        - CalenEaseSnapshotTests
-        - CalenEaseUITests
+      testPlans:
+        - path: Full.xctestplan
+          defaultPlan: true
+        - path: Fast.xctestplan
       gatherCoverageData: false
     run:
       config: Debug

@@ -514,6 +514,24 @@ enum CountdownSymbols {
                       "stethoscope", "banknote", "music.note", "camera"]
 }
 
+/// 图标选择里每个图标给读屏念的中文名；系统图标的内部名字（sun.max）念出来没人听得懂。
+enum SymbolNames {
+    static func spoken(_ symbol: String) -> String {
+        let names: [String: String] = [
+            "calendar": "日历", "alarm": "闹钟", "sun.max": "太阳", "briefcase": "公文包",
+            "cup.and.saucer": "咖啡", "fork.knife": "吃饭", "figure.run": "跑步", "dumbbell": "健身",
+            "book": "书", "brain.head.profile": "思考", "cart": "购物", "car": "开车", "airplane": "飞机",
+            "house": "家", "heart": "爱心", "gift": "礼物", "birthday.cake": "生日蛋糕", "stethoscope": "看病",
+            "pills": "吃药", "phone": "电话", "person.2": "见面", "bed.double": "睡觉", "leaf": "叶子",
+            "pawprint": "宠物", "music.note": "音乐", "gamecontroller": "游戏", "graduationcap": "毕业",
+            "bolt": "闪电", "hourglass": "沙漏", "star": "星星", "flag": "旗子", "figure.2": "两个人",
+            "figure.and.child.holdinghands": "亲子", "moon.stars": "夜晚", "party.popper": "庆祝",
+            "trophy": "奖杯", "banknote": "钱", "camera": "相机",
+        ]
+        return names[symbol] ?? "图标"
+    }
+}
+
 /// 事项页时间线上那颗圆里的图标。
 enum EventSymbols {
     static let fallback = "calendar"
@@ -547,7 +565,8 @@ struct SymbolPickerRow: View {
                             .background(picked ? AnyShapeStyle(tone.solid) : AnyShapeStyle(tone.fill), in: Circle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(symbol)
+                    .accessibilityLabel(SymbolNames.spoken(symbol))
+                    .accessibilityAddTraits(picked ? .isSelected : [])
                 }
             }
             .padding(.vertical, 2)
