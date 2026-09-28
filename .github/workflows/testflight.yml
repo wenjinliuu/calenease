@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   release:
-    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@be8dbb4ee3bc0b3a64e93dd5533d14c140dc5e95 # v1.0.0 候选（claude/continue-previous-task-8nvu6f）
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/testflight-release.yml@0c7501dd52ac0c252678ce5a4a7ed61fb6633cfb # v1.0.0
     with:
       lookup_only: ${{ inputs.lookup_only || false }}
       dry_run: ${{ inputs.dry_run || false }}
