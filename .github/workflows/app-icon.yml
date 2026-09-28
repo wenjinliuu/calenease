@@ -1,0 +1,25 @@
+name: App Icon
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'DesignAssets/AppIcon/**'
+      - '!DesignAssets/AppIcon/previews/**'
+      - 'ios/CalenEase/Resources/AppIcon.icon/**'
+      - 'ios/project.yml'
+      - 'ios/Scripts/sync-app-icon.sh'
+      - '.ios-ci.yml'
+      - '.github/workflows/app-icon.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-icon-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  icon:
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/app-icon.yml@be8dbb4ee3bc0b3a64e93dd5533d14c140dc5e95 # v1.0.0 候选（claude/continue-previous-task-8nvu6f）
