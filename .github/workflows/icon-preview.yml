@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   icon:
-    uses: wenjinliuu/ios-ci-workflows/.github/workflows/app-icon.yml@face2b2c79ff81c353bb1621900b1d593185ca1b
+    uses: wenjinliuu/ios-ci-workflows/.github/workflows/app-icon.yml@49a2139dbae8314debb0ef4a171c717358e9b7bf
     with:
       workdir: ios
       project: CalenEase.xcodeproj
