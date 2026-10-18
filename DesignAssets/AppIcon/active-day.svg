@@ -4,6 +4,11 @@
       <stop stop-color="#0879F9"/>
       <stop offset="1" stop-color="#2F9BFF"/>
     </linearGradient>
+    <linearGradient id="glow-gradient" x1="345.1" y1="620.97" x2="489.1" y2="764.97" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0879F9"/>
+      <stop offset="1" stop-color="#2F9BFF"/>
+    </linearGradient>
   </defs>
+  <circle id="active-day-glow" cx="417.1" cy="692.97" r="72" fill="url(#glow-gradient)" opacity="0.18"/>
   <circle id="active-day" cx="417.1" cy="692.97" r="44.14" fill="url(#bay-gradient)"/>
 </svg>
