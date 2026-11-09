@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "NateScarlet/holiday-cn",
-  "generatedAt": "2026-09-23T10:44:58Z",
+  "generatedAt": "2026-11-09T09:52:47Z",
   "years": {
     "2007": {
       "url": "2007.json",
@@ -105,8 +105,8 @@
     },
     "2027": {
       "url": "2027.json",
-      "sha256": "b48dc36f7896d8cdf77cda251c6febb199b1830eb0a1c9a34a951e270f48c195",
-      "updatedAt": "2026-09-23T10:44:58Z"
+      "sha256": "a8bcc6b4eee07a39332e080967b6d607d3a41ef2dfe3dbc3ff1f5adbda2af9a5",
+      "updatedAt": "2026-11-09T09:52:47Z"
     }
   }
 }
